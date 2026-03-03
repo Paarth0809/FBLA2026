@@ -43,6 +43,14 @@ router.get('/', (req, res) => {
   res.json(items);
 });
 
+// GET /api/items/mine — all found items submitted by the logged-in user
+router.get('/mine', requireAuth, (req, res) => {
+  const items = readJSON('items.json')
+    .filter(i => i.submittedBy === req.session.userId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(items);
+});
+
 // GET /api/items/:id — get one item by ID
 router.get('/:id', (req, res) => {
   const item = readJSON('items.json').find(i => i.id === req.params.id);

@@ -16,6 +16,62 @@ function resetTestData() {
   // Wipe and recreate so every run starts from a clean slate
   if (fs.existsSync(TEST_DATA)) fs.rmSync(TEST_DATA, { recursive: true, force: true });
   fs.mkdirSync(TEST_DATA, { recursive: true });
+
+  // Pre-populate the items/missing-items/claims that the tests reference by
+  // hardcoded ID. The seed.js only creates user accounts now, so we write
+  // this test fixture data directly.
+  fs.writeFileSync(path.join(TEST_DATA, 'items.json'), JSON.stringify([
+    { id: 'item-001', itemName: 'Blue North Face Backpack', category: 'Bags & Backpacks',
+      description: 'Large blue backpack found near the library.', locationFound: 'Library Entrance',
+      dateFound: '2026-02-15', contactEmail: 'admin@school.edu', photo: null,
+      status: 'approved', submittedBy: 'admin-001', submitterName: 'Staff Member',
+      createdAt: '2026-02-15T10:30:00.000Z' },
+    { id: 'item-002', itemName: 'iPhone 14 (Space Gray)', category: 'Electronics',
+      description: 'Space gray iPhone 14 with clear case, found in cafeteria.', locationFound: 'Cafeteria',
+      dateFound: '2026-02-18', contactEmail: 'admin@school.edu', photo: null,
+      status: 'approved', submittedBy: 'admin-001', submitterName: 'Staff Member',
+      createdAt: '2026-02-18T12:15:00.000Z' },
+    { id: 'item-003', itemName: 'White Wireless Earbuds', category: 'Electronics',
+      description: 'White AirPods in charging case, found on gym bleachers.', locationFound: 'Gymnasium',
+      dateFound: '2026-02-20', contactEmail: 'admin@school.edu', photo: null,
+      status: 'approved', submittedBy: 'admin-001', submitterName: 'Coach Williams',
+      createdAt: '2026-02-20T14:00:00.000Z' },
+    { id: 'item-005', itemName: 'AP Calculus Textbook', category: 'Books & Supplies',
+      description: 'AP Calculus AB textbook, Larson 10th edition. Found in classroom 204.', locationFound: 'Room 204',
+      dateFound: '2026-02-28', contactEmail: 'admin@school.edu', photo: null,
+      status: 'approved', submittedBy: 'admin-001', submitterName: 'Mr. Johnson',
+      createdAt: '2026-02-28T15:30:00.000Z' },
+    { id: 'item-006', itemName: 'Black Compact Umbrella', category: 'Other',
+      description: 'Standard black folding umbrella found near the main entrance.', locationFound: 'Main Entrance',
+      dateFound: '2026-02-26', contactEmail: 'admin@school.edu', photo: null,
+      status: 'approved', submittedBy: 'admin-001', submitterName: 'Front Office',
+      createdAt: '2026-02-26T08:00:00.000Z' },
+    { id: 'item-007', itemName: 'Red Hydro Flask Water Bottle', category: 'Other',
+      description: 'Red 32oz Hydro Flask with stickers, found at the track.', locationFound: 'Track & Field',
+      dateFound: '2026-03-01', contactEmail: 'admin@school.edu', photo: null,
+      status: 'pending', submittedBy: 'user-001', submitterName: 'Alex Chen',
+      createdAt: '2026-03-01T16:00:00.000Z' }
+  ], null, 2));
+
+  fs.writeFileSync(path.join(TEST_DATA, 'missing-items.json'), JSON.stringify([
+    { id: 'missing-001', itemName: 'Blue Hydro Flask', category: 'Other',
+      description: 'Blue 24oz Hydro Flask with ocean sticker. Name on bottom.', lastSeenLocation: 'Cafeteria',
+      lastSeenDate: '2026-02-10', contactEmail: 'student@school.edu', photo: null,
+      status: 'approved', submittedBy: 'user-001', submitterName: 'Alex Chen',
+      createdAt: '2026-02-10T13:00:00.000Z' },
+    { id: 'missing-002', itemName: 'HP Laptop Charger', category: 'Electronics',
+      description: 'HP 45W charger with blue tape near connector, left in library.', lastSeenLocation: 'Library',
+      lastSeenDate: '2026-02-14', contactEmail: 'student@school.edu', photo: null,
+      status: 'approved', submittedBy: 'user-001', submitterName: 'Alex Chen',
+      createdAt: '2026-02-14T11:30:00.000Z' },
+    { id: 'missing-003', itemName: 'Gray Champion Hoodie', category: 'Clothing',
+      description: 'Gray Champion hoodie size L with ink stain near pocket.', lastSeenLocation: 'Girls Locker Room',
+      lastSeenDate: '2026-02-28', contactEmail: 'student@school.edu', photo: null,
+      status: 'pending', submittedBy: 'user-001', submitterName: 'Alex Chen',
+      createdAt: '2026-02-28T10:00:00.000Z' }
+  ], null, 2));
+
+  fs.writeFileSync(path.join(TEST_DATA, 'claims.json'), JSON.stringify([], null, 2));
 }
 
 // ── Start the server ──────────────────────────────────────────
@@ -643,7 +699,8 @@ async function runTests() {
     '/item.html',
     '/missing-item.html',
     '/claim.html',
-    '/admin.html'
+    '/admin.html',
+    '/my-submissions.html'
   ];
 
   for (const page of pages) {
