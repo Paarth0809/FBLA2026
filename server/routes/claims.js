@@ -5,6 +5,40 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// GET /api/claims/mine — claims submitted BY the current user (claimer view)
+// Enriched with the item's contactEmail so the claimer can reach the finder
+// when the admin approves the claim.
+router.get('/mine', requireAuth, (req, res) => {
+  const items   = readJSON('items.json');
+  const missing = readJSON('missing-items.json');
+
+  const claims = readJSON('claims.json')
+    .filter(c => c.submittedBy === req.session.userId)
+    .map(c => {
+      const source = c.itemType === 'found' ? items : missing;
+      const item   = source.find(i => i.id === c.itemId);
+      return { ...c, itemContactEmail: item ? item.contactEmail : null };
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  res.json(claims);
+});
+
+// GET /api/claims/received — claims made ON items submitted by the current user
+// (finder view — lets the finder see who wants to claim their item)
+router.get('/received', requireAuth, (req, res) => {
+  const uid = req.session.userId;
+
+  const myFoundIds   = new Set(readJSON('items.json')         .filter(i => i.submittedBy === uid).map(i => i.id));
+  const myMissingIds = new Set(readJSON('missing-items.json') .filter(i => i.submittedBy === uid).map(i => i.id));
+
+  const claims = readJSON('claims.json')
+    .filter(c => myFoundIds.has(c.itemId) || myMissingIds.has(c.itemId))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  res.json(claims);
+});
+
 // POST /api/claims — submit a claim for a found OR missing item
 router.post('/', requireAuth, (req, res) => {
   try {
