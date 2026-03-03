@@ -30,7 +30,7 @@ function renderNav() {
       </span>
       ${currentUser.role === 'admin'
         ? '<a href="/admin.html" class="btn btn-outline btn-sm">⚙️ Admin</a>'
-        : ''}
+        : '<a href="/my-submissions.html" class="btn btn-outline btn-sm hide-mobile">My Submissions</a>'}
       <a href="/report.html" class="btn btn-primary btn-sm">+ Report Found</a>
       <button onclick="logout()" class="btn btn-ghost btn-sm">Logout</button>
     `;
