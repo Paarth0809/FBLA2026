@@ -147,7 +147,7 @@
 
       const mainRow = `<tr>
         <td>${thumb}</td>
-        <td><a href="/item.html?id=${item.id}" style="color:#2563eb;font-weight:600">${item.itemName}</a></td>
+        <td><a href="/item.html?id=${item.id}" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
         <td>${item.category}</td>
         <td>${item.locationFound}</td>
         <td>${formatDate(item.dateFound)}</td>
@@ -187,7 +187,7 @@
             <div style="font-size:0.825rem;color:#64748b;font-style:italic">"${snippet}"</div>
           </div>
           <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;flex-shrink:0">
-            <a href="mailto:${claim.claimerEmail}" style="color:#2563eb;font-size:0.875rem;font-weight:500">
+            <a href="mailto:${claim.claimerEmail}" style="color:#43B02A;font-size:0.875rem;font-weight:500">
               ✉️ ${claim.claimerEmail}
             </a>
             ${claim.claimerPhone
@@ -236,7 +236,7 @@
 
     function missingRow(item) {
       return `<tr>
-        <td><a href="/missing-item.html?id=${item.id}" style="color:#2563eb;font-weight:600">${item.itemName}</a></td>
+        <td><a href="/missing-item.html?id=${item.id}" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
         <td>${item.category}</td>
         <td>${item.lastSeenLocation}</td>
         <td>${formatDate(item.lastSeenDate)}</td>
@@ -289,7 +289,7 @@
 
       // Only show contact info when the admin has approved the claim
       const contactCell = (claim.status === 'approved' && claim.itemContactEmail)
-        ? `<a href="mailto:${claim.itemContactEmail}" style="color:#2563eb;font-weight:500">
+        ? `<a href="mailto:${claim.itemContactEmail}" style="color:#43B02A;font-weight:500">
              ✉️ ${claim.itemContactEmail}
            </a>`
         : `<span class="text-muted" style="font-size:0.875rem">
@@ -297,7 +297,7 @@
            </span>`;
 
       return `<tr>
-        <td><a href="${itemLink}" style="color:#2563eb;font-weight:600">${claim.itemName}</a></td>
+        <td><a href="${itemLink}" style="color:#43B02A;font-weight:600">${claim.itemName}</a></td>
         <td><span class="badge badge-category">${claim.itemType}</span></td>
         <td>${formatDate(claim.createdAt)}</td>
         <td>

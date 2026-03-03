@@ -154,7 +154,7 @@
 
       return `<tr>
         <td>${thumb}</td>
-        <td><a href="/item.html?id=${item.id}" target="_blank" style="color:#2563eb;font-weight:600">${item.itemName}</a></td>
+        <td><a href="/item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
         <td>${item.category}</td>
         <td>${item.locationFound}</td>
         <td>${formatDate(item.dateFound)}</td>
@@ -226,7 +226,7 @@
       `;
 
       return `<tr>
-        <td><a href="/missing-item.html?id=${item.id}" target="_blank" style="color:#2563eb;font-weight:600">${item.itemName}</a></td>
+        <td><a href="/missing-item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
         <td>${item.category}</td>
         <td>${item.lastSeenLocation}</td>
         <td>${formatDate(item.lastSeenDate)}</td>
@@ -295,10 +295,10 @@
         : `/missing-item.html?id=${claim.itemId}`;
 
       return `<tr>
-        <td><a href="${itemLink}" target="_blank" style="color:#2563eb;font-weight:600">${claim.itemName}</a></td>
+        <td><a href="${itemLink}" target="_blank" style="color:#43B02A;font-weight:600">${claim.itemName}</a></td>
         <td><span class="badge badge-category">${claim.itemType}</span></td>
         <td title="${claim.description}">${claim.claimerName}</td>
-        <td><a href="mailto:${claim.claimerEmail}" style="color:#2563eb">${claim.claimerEmail}</a></td>
+        <td><a href="mailto:${claim.claimerEmail}" style="color:#43B02A">${claim.claimerEmail}</a></td>
         <td>${claim.claimerPhone || '—'}</td>
         <td>${formatDate(claim.createdAt)}</td>
         <td>${statusBadge(claim.status)}</td>
