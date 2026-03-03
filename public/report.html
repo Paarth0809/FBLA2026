@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Found Item – School Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="page">
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
+      <div class="nav-links">
+        <a href="/search.html"         class="hide-mobile">Found Items</a>
+        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
+        <div id="nav-auth"></div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container" style="max-width:720px">
+      <a href="/index.html" class="btn btn-ghost btn-sm mb-6">← Back to Home</a>
+
+      <div class="page-header">
+        <h1>Report a Found Item</h1>
+        <p>Found something on campus? Fill out the form below. An administrator will review and publish your submission.</p>
+      </div>
+
+      <!-- Not-logged-in message (shown while auth loads, hidden after) -->
+      <div id="auth-required" class="card hidden">
+        <div class="card-body text-center">
+          <div style="font-size:2rem;margin-bottom:0.75rem">🔒</div>
+          <h3 class="font-bold mb-2">Sign In Required</h3>
+          <p class="text-muted mb-6">You need to be signed in to report a found item.</p>
+          <div class="flex gap-4 justify-center">
+            <a href="/login.html?redirect=/report.html" class="btn btn-primary">Sign In</a>
+            <a href="/index.html" class="btn btn-outline">← Back</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- The actual form (hidden until auth confirmed) -->
+      <div id="form-container" class="hidden">
+        <div id="success-box" class="alert alert-success hidden"></div>
+        <div id="error-box"   class="alert alert-error   hidden"></div>
+
+        <div class="card">
+          <div class="card-body">
+            <form id="report-form" enctype="multipart/form-data">
+
+              <div class="form-group">
+                <label class="form-label" for="itemName">Item Name <span class="req">*</span></label>
+                <input class="form-input" type="text" id="itemName" name="itemName"
+                       placeholder="e.g. Blue backpack, iPhone 13, Silver earrings…" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="category">Category <span class="req">*</span></label>
+                <select class="form-select" id="category" name="category" required>
+                  <option value="" disabled selected>Select a category…</option>
+                  <option>Electronics</option>
+                  <option>Clothing</option>
+                  <option>Books &amp; Supplies</option>
+                  <option>Keys &amp; ID Cards</option>
+                  <option>Bags &amp; Backpacks</option>
+                  <option>Sports Equipment</option>
+                  <option>Jewelry &amp; Accessories</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="description">Description <span class="req">*</span></label>
+                <textarea class="form-textarea" id="description" name="description" rows="4"
+                          placeholder="Describe the item — color, brand, size, any distinguishing features…" required minlength="10"></textarea>
+                <span class="form-hint">Minimum 10 characters</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="locationFound">Where Was It Found? <span class="req">*</span></label>
+                <input class="form-input" type="text" id="locationFound" name="locationFound"
+                       placeholder="e.g. Library 2nd floor, Cafeteria table 7, Gym bleachers…" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="dateFound">Date Found <span class="req">*</span></label>
+                <input class="form-input" type="date" id="dateFound" name="dateFound" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contactEmail">Your Contact Email <span class="req">*</span></label>
+                <input class="form-input" type="email" id="contactEmail" name="contactEmail"
+                       placeholder="you@school.edu" required>
+                <span class="form-hint">We'll reach out if someone claims this item.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Photo <span style="color:#6b7280;font-weight:400">(optional)</span></label>
+                <div class="upload-zone" id="upload-zone">
+                  <input type="file" id="photo" name="photo" accept="image/*">
+                  <div class="upload-icon">📷</div>
+                  <p class="upload-text"><span>Click to upload</span> or drag &amp; drop</p>
+                  <p class="form-hint mt-1">JPG, PNG, GIF — max 5 MB</p>
+                </div>
+                <div class="photo-preview hidden" id="preview-container">
+                  <img id="photo-preview-img" alt="Preview">
+                  <button type="button" onclick="clearPhoto()" class="btn btn-ghost btn-sm mt-2">✕ Remove photo</button>
+                </div>
+              </div>
+
+              <div class="flex gap-4 mt-6">
+                <button type="submit" id="submit-btn" class="btn btn-primary" style="flex:1">
+                  Submit Found Item
+                </button>
+                <a href="/index.html" class="btn btn-outline">Cancel</a>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div><!-- /form-container -->
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    // Set today as the max date for dateFound
+    document.getElementById('dateFound').max = new Date().toISOString().split('T')[0];
+
+    // Auth guard — wait until user info is loaded
+    document.addEventListener('userLoaded', function(e) {
+      const user = e.detail;
+      if (!user) {
+        document.getElementById('auth-required').classList.remove('hidden');
+      } else {
+        document.getElementById('form-container').classList.remove('hidden');
+        // Pre-fill contact email with the logged-in user's email
+        document.getElementById('contactEmail').value = user.email;
+      }
+    });
+
+    // Photo preview
+    document.getElementById('photo').addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Photo must be under 5 MB.', 'error');
+        this.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('photo-preview-img').src = e.target.result;
+        document.getElementById('preview-container').classList.remove('hidden');
+        document.getElementById('upload-zone').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function clearPhoto() {
+      document.getElementById('photo').value = '';
+      document.getElementById('preview-container').classList.add('hidden');
+      document.getElementById('upload-zone').style.display = '';
+    }
+
+    // Form submission
+    document.getElementById('report-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn      = document.getElementById('submit-btn');
+      const errorBox = document.getElementById('error-box');
+      const successBox = document.getElementById('success-box');
+      errorBox.classList.add('hidden');
+      successBox.classList.add('hidden');
+      btn.disabled    = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        // Use FormData so the photo file is included automatically
+        const formData = new FormData(this);
+        await api.post('/items', formData);
+
+        successBox.textContent = '✓ Item submitted! An administrator will review it shortly. Redirecting…';
+        successBox.classList.remove('hidden');
+        setTimeout(() => window.location.href = '/search.html', 2000);
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('hidden');
+        btn.disabled    = false;
+        btn.textContent = 'Submit Found Item';
+      }
+    });
+  </script>
+</body>
+</html>

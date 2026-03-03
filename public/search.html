@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Found Items – School Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="page">
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
+      <div class="nav-links">
+        <a href="/search.html"         style="color:#2563eb;font-weight:700">Found Items</a>
+        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
+        <div id="nav-auth"></div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <h1>Search Found Items</h1>
+        <p>Browse items that have been turned in on campus, or search by keyword and category.</p>
+      </div>
+
+      <!-- Search form -->
+      <div class="search-bar">
+        <form id="search-form">
+          <input  class="form-input search-input" type="text" id="keyword"
+                  placeholder="Search by name, description, or location…">
+          <select class="form-select category-select" id="category">
+            <option value="">All Categories</option>
+            <option>Electronics</option>
+            <option>Clothing</option>
+            <option>Books &amp; Supplies</option>
+            <option>Keys &amp; ID Cards</option>
+            <option>Bags &amp; Backpacks</option>
+            <option>Sports Equipment</option>
+            <option>Jewelry &amp; Accessories</option>
+            <option>Other</option>
+          </select>
+          <button type="submit" class="btn btn-primary">🔍 Search</button>
+          <button type="button" id="clear-btn" class="btn btn-ghost hidden">Clear</button>
+        </form>
+      </div>
+
+      <!-- Results area -->
+      <div id="result-count" class="text-sm text-muted mb-4 hidden"></div>
+      <div id="content">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    const CATEGORIES = ['Electronics','Clothing','Books & Supplies','Keys & ID Cards','Bags & Backpacks','Sports Equipment','Jewelry & Accessories','Other'];
+
+    async function loadItems(keyword, category) {
+      const content = document.getElementById('content');
+      const countEl = document.getElementById('result-count');
+      content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+      countEl.classList.add('hidden');
+
+      try {
+        let url = '/items?';
+        if (keyword)  url += `keyword=${encodeURIComponent(keyword)}&`;
+        if (category) url += `category=${encodeURIComponent(category)}`;
+
+        const items = await api.get(url);
+        countEl.textContent = `${items.length} item${items.length !== 1 ? 's' : ''} found`;
+        countEl.classList.remove('hidden');
+
+        if (items.length === 0) {
+          content.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">📦</div>
+              <h3>No items found</h3>
+              <p>${keyword || category ? 'Try different search terms.' : 'No items have been reported yet.'}</p>
+            </div>`;
+          return;
+        }
+
+        content.innerHTML = `<div class="items-grid">${items.map(itemCard).join('')}</div>`;
+      } catch (err) {
+        content.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+      }
+    }
+
+    function itemCard(item) {
+      const img = item.photo
+        ? `<img src="/uploads/${item.photo}" alt="${item.itemName}">`
+        : `<span title="${item.category}">${categoryEmoji(item.category)}</span>`;
+      return `
+        <div class="item-card">
+          <div class="item-card-img">${img}</div>
+          <div class="item-card-body">
+            <div class="item-card-top">
+              <span class="item-card-name">${item.itemName}</span>
+              <span class="badge badge-category">${item.category}</span>
+            </div>
+            <p class="item-card-desc">${item.description}</p>
+            <div class="item-meta">
+              <div class="item-meta-row"><span class="icon">📍</span> ${item.locationFound}</div>
+              <div class="item-meta-row"><span class="icon">📅</span> ${formatDate(item.dateFound)}</div>
+            </div>
+            <a href="/item.html?id=${item.id}" class="btn btn-primary w-full">View Details</a>
+          </div>
+        </div>`;
+    }
+
+    // Form submit
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const kw  = document.getElementById('keyword').value.trim();
+      const cat = document.getElementById('category').value;
+      document.getElementById('clear-btn').classList.toggle('hidden', !kw && !cat);
+      loadItems(kw, cat);
+    });
+
+    // Clear button
+    document.getElementById('clear-btn').addEventListener('click', function() {
+      document.getElementById('keyword').value  = '';
+      document.getElementById('category').value = '';
+      this.classList.add('hidden');
+      loadItems('', '');
+    });
+
+    // Load all items on page open
+    loadItems('', '');
+  </script>
+</body>
+</html>

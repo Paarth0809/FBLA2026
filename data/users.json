@@ -1,0 +1,26 @@
+[
+  {
+    "id": "admin-001",
+    "name": "Administrator",
+    "email": "admin@school.edu",
+    "passwordHash": "$2a$10$dn5bJKd/fi5LqNdI2ZdofeNEZqP8Q9Bl0uinjTwxTY/kvYjsZTo7a",
+    "role": "admin",
+    "createdAt": "2026-03-02T23:28:41.243Z"
+  },
+  {
+    "id": "user-001",
+    "name": "Alex Chen",
+    "email": "student@school.edu",
+    "passwordHash": "$2a$10$IQUaUlMxbgcI518VyJsF.eSkTDG06lB5RaiUviJWkcz7KDfaFuC.W",
+    "role": "user",
+    "createdAt": "2026-03-02T23:28:41.317Z"
+  },
+  {
+    "id": "3404cf95-c607-4121-911f-338684bf65ce",
+    "name": "Paarth Rathod",
+    "email": "paarth0809@gmail.com",
+    "passwordHash": "$2a$10$G08mzxxxLKNUr/vxPGZNvuiEPoc.rWvP2lIVJKEcn/GztMucv0N6i",
+    "role": "user",
+    "createdAt": "2026-03-02T23:47:52.440Z"
+  }
+]

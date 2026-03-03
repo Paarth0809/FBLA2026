@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit a Claim – School Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="page">
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
+      <div class="nav-links">
+        <a href="/search.html"         class="hide-mobile">Found Items</a>
+        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
+        <div id="nav-auth"></div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container" style="max-width:680px">
+      <a href="#" id="back-link" class="btn btn-ghost btn-sm mb-6">← Back to Item</a>
+
+      <div class="page-header">
+        <h1>Submit a Claim</h1>
+        <p id="item-subtitle" class="text-muted">Claiming: <strong id="item-name-display">…</strong></p>
+      </div>
+
+      <div id="auth-required" class="card hidden">
+        <div class="card-body text-center">
+          <div style="font-size:2rem;margin-bottom:0.75rem">🔒</div>
+          <h3 class="font-bold mb-2">Sign In Required</h3>
+          <p class="text-muted mb-6">You need to be signed in to submit a claim.</p>
+          <a href="#" id="login-link" class="btn btn-primary">Sign In</a>
+        </div>
+      </div>
+
+      <div id="form-container" class="hidden">
+        <div class="alert alert-info mb-6">
+          ℹ️ Provide as many identifying details as possible. The admin will review your claim and contact you.
+        </div>
+
+        <div id="success-box" class="alert alert-success hidden"></div>
+        <div id="error-box"   class="alert alert-error   hidden"></div>
+
+        <div class="card">
+          <div class="card-body">
+            <form id="claim-form">
+              <div class="form-group">
+                <label class="form-label" for="claimerName">Your Full Name <span class="req">*</span></label>
+                <input class="form-input" type="text" id="claimerName" name="claimerName" required
+                       placeholder="First and last name">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="claimerEmail">Your Email <span class="req">*</span></label>
+                <input class="form-input" type="email" id="claimerEmail" name="claimerEmail" required
+                       placeholder="you@school.edu">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="claimerPhone">Phone Number <span style="color:#6b7280;font-weight:400">(optional)</span></label>
+                <input class="form-input" type="tel" id="claimerPhone" name="claimerPhone"
+                       placeholder="555-123-4567">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="description">
+                  Proof of Ownership <span class="req">*</span>
+                </label>
+                <textarea class="form-textarea" id="description" name="description" rows="5" required minlength="20"
+                          placeholder="Describe how you know this is yours — what's inside it, unique markings, purchase details, or anything only the owner would know…"></textarea>
+                <span class="form-hint">Be specific. This helps the admin verify your claim. Minimum 20 characters.</span>
+              </div>
+
+              <div class="flex gap-4 mt-6">
+                <button type="submit" id="submit-btn" class="btn btn-primary" style="flex:1">
+                  Submit Claim
+                </button>
+                <a href="#" id="cancel-link" class="btn btn-outline">Cancel</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    const params   = new URLSearchParams(window.location.search);
+    const itemId   = params.get('id');
+    const itemType = params.get('type') || 'found';
+
+    // Set up back links
+    const backUrl = itemType === 'found'
+      ? `/item.html?id=${itemId}`
+      : `/missing-item.html?id=${itemId}`;
+    document.getElementById('back-link').href   = backUrl;
+    document.getElementById('cancel-link').href = backUrl;
+    document.getElementById('login-link').href  =
+      `/login.html?redirect=/claim.html?id=${itemId}%26type=${itemType}`;
+
+    // Load item name for display
+    async function loadItemName() {
+      if (!itemId) return;
+      try {
+        const endpoint = itemType === 'found' ? `/items/${itemId}` : `/missing-items/${itemId}`;
+        const item = await api.get(endpoint);
+        document.getElementById('item-name-display').textContent = item.itemName;
+        document.title = `Claim "${item.itemName}" – School Lost & Found`;
+      } catch { /* ignore */ }
+    }
+    loadItemName();
+
+    // Auth guard
+    document.addEventListener('userLoaded', function(e) {
+      const user = e.detail;
+      if (!user) {
+        document.getElementById('auth-required').classList.remove('hidden');
+      } else {
+        document.getElementById('form-container').classList.remove('hidden');
+        document.getElementById('claimerEmail').value = user.email;
+        document.getElementById('claimerName').value  = user.name;
+      }
+    });
+
+    document.getElementById('claim-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errorBox   = document.getElementById('error-box');
+      const successBox = document.getElementById('success-box');
+      errorBox.classList.add('hidden');
+      successBox.classList.add('hidden');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+
+      try {
+        await api.post('/claims', {
+          itemId,
+          itemType,
+          claimerName:  document.getElementById('claimerName').value.trim(),
+          claimerEmail: document.getElementById('claimerEmail').value.trim(),
+          claimerPhone: document.getElementById('claimerPhone').value.trim(),
+          description:  document.getElementById('description').value.trim()
+        });
+        successBox.textContent = '✓ Claim submitted! The admin will review it and contact you soon.';
+        successBox.classList.remove('hidden');
+        document.getElementById('claim-form').style.display = 'none';
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = 'Submit Claim';
+      }
+    });
+  </script>
+</body>
+</html>

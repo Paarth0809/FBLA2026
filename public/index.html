@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Lost & Found</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="page">
+
+  <!-- ── Navbar ──────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="brand">🔍 School Lost & Found</a>
+      <div class="nav-links">
+        <a href="/search.html"         class="hide-mobile">Found Items</a>
+        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
+        <div id="nav-auth"></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <h1>Lost Something?<br>We're Here to Help.</h1>
+      <p>
+        Our campus lost and found system helps you report found items,
+        search for missing belongings, and reunite them with their owners.
+      </p>
+
+      <!-- Always visible: search buttons -->
+      <div class="hero-actions">
+        <a href="/search.html"         class="btn btn-primary btn-lg">🔍 Search Found Items</a>
+        <a href="/search-missing.html" class="btn btn-outline btn-lg">⚠️ Search Missing Items</a>
+      </div>
+
+      <!-- Shown only when logged in -->
+      <div id="report-actions" class="hero-actions mt-6 hidden">
+        <a href="/report.html"         class="btn btn-lg" style="background:#f0fdf4;color:#166534;border:2px solid #bbf7d0">📋 Report Found Item</a>
+        <a href="/report-missing.html" class="btn btn-lg" style="background:#fff7ed;color:#9a3412;border:2px solid #fed7aa">⚠️ Report Missing Item</a>
+      </div>
+
+      <!-- Shown only when NOT logged in -->
+      <div id="signin-cta" class="signin-cta mt-6">
+        <p class="title">Sign In Required to Report Items</p>
+        <p class="sub">Create an account or sign in to report found or missing items.</p>
+        <div class="flex gap-4 justify-center flex-wrap">
+          <a href="/login.html"  class="btn btn-primary">Sign In</a>
+          <a href="/signup.html" class="btn btn-outline">Create Account</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How It Works ────────────────────────────────────────── -->
+  <section class="section section-white">
+    <div class="container">
+      <h2 class="section-title">How It Works</h2>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>Report Found Items</h3>
+          <p>Found something on campus? Sign in and fill out a quick form with details about the item, where you found it, and optionally upload a photo.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>Search &amp; Browse</h3>
+          <p>Lost something? Search our database by keyword or category to see if anyone has turned in your item. No account needed to search.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>Submit a Claim</h3>
+          <p>Found your item listed? Submit a claim with proof of ownership. The admin team will review it and help coordinate the return.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Admin Section ────────────────────────────────────────── -->
+  <section id="admin-section" class="section section-blue">
+    <div class="container" style="max-width:600px">
+      <div class="card">
+        <div class="card-body text-center">
+          <div style="font-size:2.5rem;margin-bottom:0.75rem">🛡️</div>
+          <h3 class="font-bold" style="font-size:1.125rem;margin-bottom:0.5rem">For Administrators</h3>
+          <p class="text-muted mb-6" style="font-size:0.9375rem">
+            School administrators can access the admin dashboard to approve item submissions,
+            manage claims, and oversee the entire lost and found system.
+          </p>
+          <a href="/login.html" class="btn btn-outline">Admin Login</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2026 School Lost &amp; Found System. All rights reserved.</p>
+      <p id="footer-user" class="text-sm mt-2"></p>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js"></script>
+  <script>
+    document.addEventListener('userLoaded', function(e) {
+      const user = e.detail;
+
+      if (user) {
+        // Show report buttons, hide sign-in CTA
+        document.getElementById('report-actions').classList.remove('hidden');
+        document.getElementById('signin-cta').classList.add('hidden');
+
+        // Hide the "For Administrators" section if already logged in
+        if (user.role !== 'admin') {
+          document.getElementById('admin-section').classList.add('hidden');
+        }
+
+        document.getElementById('footer-user').textContent =
+          `Logged in as: ${user.email} (${user.role})`;
+      }
+    });
+  </script>
+</body>
+</html>
