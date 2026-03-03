@@ -2,7 +2,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '../../data');
+// Allow tests to point at a separate folder so they never corrupt real data
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, '../../data');
 
 // Make sure the data folder exists when this module loads
 if (!fs.existsSync(DATA_DIR)) {

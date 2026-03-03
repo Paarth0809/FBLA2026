@@ -94,4 +94,9 @@ router.post('/', requireAuth, upload.single('photo'), (req, res) => {
   }
 });
 
+// Catch multer errors (file too large, wrong type) and return JSON instead of HTML
+router.use((err, req, res, next) => {
+  res.status(400).json({ error: err.message || 'File upload error.' });
+});
+
 module.exports = router;
