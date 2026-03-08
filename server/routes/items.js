@@ -43,6 +43,15 @@ router.get('/', (req, res) => {
   res.json(items);
 });
 
+// DELETE /api/items/mine/resolved — remove the current user's claimed/rejected found items
+router.delete('/mine/resolved', requireAuth, (req, res) => {
+  const resolved = ['claimed', 'rejected'];
+  const all = readJSON('items.json');
+  const kept = all.filter(i => !(i.submittedBy === req.session.userId && resolved.includes(i.status)));
+  writeJSON('items.json', kept);
+  res.json({ removed: all.length - kept.length });
+});
+
 // GET /api/items/mine — all found items submitted by the logged-in user
 router.get('/mine', requireAuth, (req, res) => {
   const items = readJSON('items.json')

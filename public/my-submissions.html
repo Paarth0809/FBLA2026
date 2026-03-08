@@ -120,7 +120,15 @@
           return;
         }
 
-        el.innerHTML = `
+        const resolvedFound = items.filter(i => ['claimed', 'rejected'].includes(i.status));
+        const clearFoundBtn = resolvedFound.length > 0 ? `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem">
+            <button onclick="clearFoundHistory()" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb;color:#6b7280">
+              🗑 Clear Resolved (${resolvedFound.length})
+            </button>
+          </div>` : '';
+
+        el.innerHTML = clearFoundBtn + `
           <div class="table-wrap">
             <table>
               <thead>
@@ -137,6 +145,15 @@
       } catch (err) {
         el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
+    }
+
+    async function clearFoundHistory() {
+      if (!confirm('Remove all claimed and rejected found items from your history? Active submissions will not be affected.')) return;
+      try {
+        await api.delete('/items/mine/resolved');
+        showToast('History cleared.', 'success');
+        loadFound();
+      } catch (err) { showToast(err.message, 'error'); }
     }
 
     // Returns the item row PLUS a sub-row for any claims received on it
@@ -215,7 +232,15 @@
           return;
         }
 
-        el.innerHTML = `
+        const resolvedMissing = items.filter(i => ['found', 'rejected'].includes(i.status));
+        const clearMissingBtn = resolvedMissing.length > 0 ? `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem">
+            <button onclick="clearMissingHistory()" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb;color:#6b7280">
+              🗑 Clear Resolved (${resolvedMissing.length})
+            </button>
+          </div>` : '';
+
+        el.innerHTML = clearMissingBtn + `
           <div class="table-wrap">
             <table>
               <thead>
@@ -232,6 +257,15 @@
       } catch (err) {
         el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
+    }
+
+    async function clearMissingHistory() {
+      if (!confirm('Remove all found and rejected missing items from your history? Active submissions will not be affected.')) return;
+      try {
+        await api.delete('/missing-items/mine/resolved');
+        showToast('History cleared.', 'success');
+        loadMissing();
+      } catch (err) { showToast(err.message, 'error'); }
     }
 
     function missingRow(item) {
@@ -280,7 +314,15 @@
           return;
         }
 
-        el.innerHTML = `
+        const resolvedClaims = claims.filter(c => ['approved', 'rejected'].includes(c.status));
+        const clearClaimsBtn = resolvedClaims.length > 0 ? `
+          <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem">
+            <button onclick="clearClaimsHistory()" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb;color:#6b7280">
+              🗑 Clear Resolved (${resolvedClaims.length})
+            </button>
+          </div>` : '';
+
+        el.innerHTML = clearClaimsBtn + `
           <div class="table-wrap">
             <table>
               <thead>
@@ -296,6 +338,15 @@
       } catch (err) {
         el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
+    }
+
+    async function clearClaimsHistory() {
+      if (!confirm('Remove all approved and rejected claims from your history? Pending claims will not be affected.')) return;
+      try {
+        await api.delete('/claims/mine/resolved');
+        showToast('History cleared.', 'success');
+        loadMyClaims();
+      } catch (err) { showToast(err.message, 'error'); }
     }
 
     function myClaimRow(claim) {

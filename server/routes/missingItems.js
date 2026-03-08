@@ -42,6 +42,15 @@ router.get('/', (req, res) => {
   res.json(items);
 });
 
+// DELETE /api/missing-items/mine/resolved — remove the current user's found/rejected missing items
+router.delete('/mine/resolved', requireAuth, (req, res) => {
+  const resolved = ['found', 'rejected'];
+  const all = readJSON('missing-items.json');
+  const kept = all.filter(i => !(i.submittedBy === req.session.userId && resolved.includes(i.status)));
+  writeJSON('missing-items.json', kept);
+  res.json({ removed: all.length - kept.length });
+});
+
 // GET /api/missing-items/mine — all missing items submitted by the logged-in user
 router.get('/mine', requireAuth, (req, res) => {
   const items = readJSON('missing-items.json')

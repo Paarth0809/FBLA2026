@@ -5,6 +5,15 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// DELETE /api/claims/mine/resolved — remove the current user's approved/rejected claims
+router.delete('/mine/resolved', requireAuth, (req, res) => {
+  const resolved = ['approved', 'rejected'];
+  const all = readJSON('claims.json');
+  const kept = all.filter(c => !(c.submittedBy === req.session.userId && resolved.includes(c.status)));
+  writeJSON('claims.json', kept);
+  res.json({ removed: all.length - kept.length });
+});
+
 // GET /api/claims/mine — claims submitted BY the current user (claimer view)
 // Enriched with the item's contactEmail so the claimer can reach the finder
 // when the admin approves the claim.
