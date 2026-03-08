@@ -235,6 +235,10 @@
     }
 
     function missingRow(item) {
+      const markFoundBtn = item.status === 'approved'
+        ? `<button onclick="markMissingFound('${item.id}')" class="btn btn-success btn-sm mt-1">✓ Mark as Found</button>`
+        : '';
+
       return `<tr>
         <td><a href="/missing-item.html?id=${item.id}" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
         <td>${item.category}</td>
@@ -243,8 +247,20 @@
         <td>
           ${statusBadge(item.status)}
           <div class="form-hint mt-1">${STATUS_HINT[item.status] || ''}</div>
+          ${markFoundBtn}
         </td>
       </tr>`;
+    }
+
+    async function markMissingFound(id) {
+      if (!confirm('Mark this item as found? This will remove it from the public missing items board.')) return;
+      try {
+        await api.put(`/missing-items/${id}/mark-found`);
+        showToast('Item marked as found!', 'success');
+        loadMissing();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
     }
 
     // ── My Claims tab ─────────────────────────────────────────────────────────

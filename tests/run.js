@@ -197,9 +197,10 @@ async function runTests() {
   console.log('\n🔍  School Lost & Found — Test Suite');
   console.log('════════════════════════════════════════════════\n');
 
-  let userCookie  = '';
-  let adminCookie = '';
-  let newItemId   = '';
+  let userCookie   = '';
+  let user001Cookie = ''; // cookie for the seeded user-001 (submitter of fixture missing items)
+  let adminCookie  = '';
+  let newItemId    = '';
   let newMissingId = '';
 
   // ══════════════════════════════════════════════════
@@ -269,6 +270,7 @@ async function runTests() {
     const r = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'student123' });
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.role === 'user', `Expected role=user, got ${r.body.role}`);
+    user001Cookie = r.cookie;
   });
 
   await test('/auth/me — authenticated as admin → 200, correct data', async () => {
@@ -595,12 +597,18 @@ async function runTests() {
     assert(r.body.status === 'rejected', `Expected status=rejected`);
   });
 
-  await test('PUT /admin/missing-items/:id/mark-found → 200, status=found', async () => {
-    const r = await req('PUT', '/api/admin/missing-items/missing-002/mark-found', null, adminCookie);
+  await test('PUT /missing-items/:id/mark-found (owner) → 200, status=found', async () => {
+    const r = await req('PUT', '/api/missing-items/missing-002/mark-found', null, user001Cookie);
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.status === 'found', `Expected status=found`);
     // Restore
     await req('PUT', '/api/admin/missing-items/missing-002/approve', null, adminCookie);
+  });
+
+  await test('PUT /missing-items/:id/mark-found (non-owner) → 403', async () => {
+    // userCookie is a freshly signed-up user who did not submit missing-002
+    const r = await req('PUT', '/api/missing-items/missing-002/mark-found', null, userCookie);
+    assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
 
   await test('PUT /admin/missing-items/:id — non-existent → 404', async () => {

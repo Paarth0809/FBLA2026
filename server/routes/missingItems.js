@@ -50,6 +50,18 @@ router.get('/mine', requireAuth, (req, res) => {
   res.json(items);
 });
 
+// PUT /api/missing-items/:id/mark-found — only the original submitter can mark it found
+router.put('/:id/mark-found', requireAuth, (req, res) => {
+  const items = readJSON('missing-items.json');
+  const i = items.findIndex(x => x.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
+  if (items[i].submittedBy !== req.session.userId)
+    return res.status(403).json({ error: 'You can only update your own reports.' });
+  items[i].status = 'found';
+  writeJSON('missing-items.json', items);
+  res.json(items[i]);
+});
+
 // GET /api/missing-items/:id
 router.get('/:id', (req, res) => {
   const item = readJSON('missing-items.json').find(i => i.id === req.params.id);

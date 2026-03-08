@@ -219,8 +219,7 @@
         <button onclick="missingAction('${item.id}','approve')" class="btn btn-success btn-sm">✓ Approve</button>
         <button onclick="missingAction('${item.id}','reject')"  class="btn btn-danger  btn-sm">✕ Reject</button>
       ` : item.status === 'approved' ? `
-        <button onclick="missingAction('${item.id}','mark-found')" class="btn btn-warning btn-sm">Mark Found</button>
-        <button onclick="missingAction('${item.id}','reject')"     class="btn btn-danger  btn-sm">✕ Reject</button>
+        <button onclick="missingAction('${item.id}','reject')" class="btn btn-danger btn-sm">✕ Reject</button>
       ` : `
         <button onclick="missingAction('${item.id}','approve')" class="btn btn-success btn-sm">↩ Re-approve</button>
       `;

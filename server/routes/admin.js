@@ -81,15 +81,6 @@ router.put('/missing-items/:id/reject', (req, res) => {
   res.json(items[i]);
 });
 
-router.put('/missing-items/:id/mark-found', (req, res) => {
-  const items = readJSON('missing-items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items[i].status = 'found';
-  writeJSON('missing-items.json', items);
-  res.json(items[i]);
-});
-
 router.delete('/missing-items/:id', (req, res) => {
   const items = readJSON('missing-items.json');
   const i = items.findIndex(x => x.id === req.params.id);
