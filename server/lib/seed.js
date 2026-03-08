@@ -22,6 +22,14 @@ function seed() {
       role: 'user',
       createdAt: new Date().toISOString()
     });
+    users.push({
+      id: 'user-002',
+      name: 'Jordan Lee',
+      email: 'student2@school.edu',
+      passwordHash: bcrypt.hashSync('student123', 10),
+      role: 'user',
+      createdAt: new Date().toISOString()
+    });
     writeJSON('users.json', users);
     console.log('  ✓ Admin account:   admin@school.edu   / admin123');
     console.log('  ✓ Demo student:    student@school.edu / student123');
