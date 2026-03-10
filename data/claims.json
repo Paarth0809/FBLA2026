@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "684a676e-8f2f-4aaf-a144-67259df1926e",
+    "itemId": "1caaea8c-89bc-4825-ab54-4f9d8372bdb6",
+    "itemType": "found",
+    "itemName": "Macbook",
+    "claimerName": "Jordan Lee",
+    "claimerEmail": "student2@school.edu",
+    "claimerPhone": "",
+    "description": "its mirhfepihfr3[ogr3[g",
+    "submittedBy": "user-002",
+    "status": "approved",
+    "createdAt": "2026-03-08T07:56:00.099Z"
+  },
+  {
+    "id": "dd33dae1-f485-4cdc-beb9-bc5b07ca38f2",
+    "itemId": "50bd1bcc-eb6d-4d54-853f-e14f321342d1",
+    "itemType": "found",
+    "itemName": "Macbook",
+    "claimerName": "Jordan Lee",
+    "claimerEmail": "student2@school.edu",
+    "claimerPhone": "",
+    "description": "pihperighprhgp3rhgp[i3hgp3ihr5gi3yg",
+    "submittedBy": "user-002",
+    "status": "approved",
+    "createdAt": "2026-03-08T08:20:49.888Z"
+  }
+]
