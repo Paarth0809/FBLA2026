@@ -23,32 +23,44 @@
   <!-- ── Hero ────────────────────────────────────────────────── -->
   <section class="hero">
     <div class="container">
-      <h1>Lost Something?<br>We're Here to Help.</h1>
-      <p>
-        Our campus lost and found system helps you report found items,
-        search for missing belongings, and reunite them with their owners.
-      </p>
+      <div class="hero-split">
 
-      <!-- Always visible: search buttons -->
-      <div class="hero-actions">
-        <a href="/search.html"         class="btn btn-primary btn-lg">🔍 Search Found Items</a>
-        <a href="/search-missing.html" class="btn btn-outline btn-lg">⚠️ Search Missing Items</a>
-      </div>
+        <!-- Left: text & CTAs -->
+        <div class="hero-text">
+          <h1>Lost Something?<br>We're Here to Help.</h1>
+          <p>
+            Our campus lost and found system helps you report found items,
+            search for missing belongings, and reunite them with their owners.
+          </p>
 
-      <!-- Shown only when logged in -->
-      <div id="report-actions" class="hero-actions mt-6 hidden">
-        <a href="/report.html"         class="btn btn-lg" style="background:#f0fdf4;color:#166534;border:2px solid #bbf7d0">📋 Report Found Item</a>
-        <a href="/report-missing.html" class="btn btn-lg" style="background:#fff7ed;color:#9a3412;border:2px solid #fed7aa">⚠️ Report Missing Item</a>
-      </div>
+          <!-- Always visible: search buttons -->
+          <div class="hero-actions">
+            <a href="/search.html"         class="btn btn-primary btn-lg">🔍 Search Found Items</a>
+            <a href="/search-missing.html" class="btn btn-outline btn-lg">⚠️ Search Missing Items</a>
+          </div>
 
-      <!-- Shown only when NOT logged in -->
-      <div id="signin-cta" class="signin-cta mt-6">
-        <p class="title">Sign In Required to Report Items</p>
-        <p class="sub">Create an account or sign in to report found or missing items.</p>
-        <div class="flex gap-4 justify-center flex-wrap">
-          <a href="/login.html"  class="btn btn-primary">Sign In</a>
-          <a href="/signup.html" class="btn btn-outline">Create Account</a>
+          <!-- Shown only when logged in -->
+          <div id="report-actions" class="hero-actions mt-6 hidden">
+            <a href="/report.html"         class="btn btn-lg" style="background:#f0fdf4;color:#166534;border:2px solid #bbf7d0">📋 Report Found Item</a>
+            <a href="/report-missing.html" class="btn btn-lg" style="background:#fff7ed;color:#9a3412;border:2px solid #fed7aa">⚠️ Report Missing Item</a>
+          </div>
+
+          <!-- Shown only when NOT logged in -->
+          <div id="signin-cta" class="signin-cta mt-6">
+            <p class="title">Sign In Required to Report Items</p>
+            <p class="sub">Create an account or sign in to report found or missing items.</p>
+            <div class="flex gap-4 justify-center flex-wrap">
+              <a href="/login.html"  class="btn btn-primary">Sign In</a>
+              <a href="/signup.html" class="btn btn-outline">Create Account</a>
+            </div>
+          </div>
         </div>
+
+        <!-- Right: school photo -->
+        <div class="hero-photo">
+          <img src="/images/school.jpg" alt="Green Level High School campus">
+        </div>
+
       </div>
     </div>
   </section>

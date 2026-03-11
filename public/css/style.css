@@ -230,6 +230,33 @@ main       { flex: 1; padding: 2.5rem 0; }
 .signin-cta .title { font-weight: 700; color: #0d2d6b; font-size: 1rem; margin-bottom: 0.375rem; }
 .signin-cta .sub   { font-size: 0.875rem; color: #43B02A; margin-bottom: 1.25rem; }
 
+/* ── Hero split layout (text + school photo) ────────────────── */
+.hero-split {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  text-align: left;
+}
+.hero-text { flex: 1; min-width: 0; }
+.hero-text h1 { text-align: left; }
+.hero-text p  { text-align: left; margin-left: 0; margin-right: 0; }
+.hero-text .hero-actions { justify-content: flex-start; }
+.hero-photo {
+  flex: 0 0 44%;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+}
+.hero-photo img { width: 100%; display: block; }
+
+@media (max-width: 900px) {
+  .hero-split { flex-direction: column; text-align: center; gap: 2rem; }
+  .hero-text h1 { text-align: center; }
+  .hero-text p  { text-align: center; margin: 0 auto 2rem; }
+  .hero-text .hero-actions { justify-content: center; }
+  .hero-photo { width: 100%; max-width: 520px; margin: 0 auto; flex: none; }
+}
+
 /* ── How It Works ───────────────────────────────────────────── */
 .section       { padding: 4rem 0; }
 .section-white { background: #fff; }
