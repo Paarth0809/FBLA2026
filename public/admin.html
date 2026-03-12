@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- admin.html — Admin dashboard
+     Only accessible to users with role === "admin". Any other visitor sees the
+     access-denied message. The dashboard has three tabs (Found Items, Missing Items,
+     Claims) each loaded in parallel on page open.
+     Approve/reject actions call PUT /api/admin/... and refresh the relevant tab.
+     Approving a claim automatically cascades the status to the linked item. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">

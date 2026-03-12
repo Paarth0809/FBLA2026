@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- report.html — Report a found item
+     Protected page — only accessible when logged in. The form is hidden until
+     the userLoaded event confirms authentication; otherwise the auth-required
+     card is shown with a sign-in link.
+     Submits to POST /api/items using FormData so the photo file is included.
+     The contact email is pre-filled from the logged-in user's session. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">

@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- claim.html — Submit an ownership claim on a found or missing item
+     Reads ?id= and ?type= from the URL to know which item is being claimed.
+     Requires login — shows the auth-required card otherwise.
+     Name and email are pre-filled from the session so the user doesn't have to retype them.
+     Submits to POST /api/claims. The claim goes to "pending" until an admin approves it,
+     at which point both the claimer and the finder see each other's contact info. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">

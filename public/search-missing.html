@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- search-missing.html — Public missing items search page
+     Works the same as search.html but queries GET /api/missing-items.
+     Shows an info banner encouraging finders to report or contact the owner. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,11 +11,13 @@
 </head>
 <body class="page">
 
+  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
   <nav class="navbar">
     <div class="container">
       <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
       <div class="nav-links">
         <a href="/search.html"         class="hide-mobile">Found Items</a>
+        <!-- Active link highlighted to show current page -->
         <a href="/search-missing.html" style="color:#43B02A;font-weight:700">Missing Items</a>
         <div id="nav-auth"></div>
       </div>
@@ -26,13 +31,14 @@
         <p>Browse items that students and staff have reported as lost. If you found one of these, please contact the owner!</p>
       </div>
 
+      <!-- Info banner — prompts finders to take action -->
       <div class="alert alert-info mb-6">
         ℹ️ If you've found an item on this list, please
         <a href="/report.html" style="font-weight:600;color:#43B02A">report it as found</a>
         or contact the person directly.
       </div>
 
-      <!-- Search form -->
+      <!-- ── Search form ──────────────────────────────────────────────────── -->
       <div class="search-bar">
         <form id="search-form">
           <input  class="form-input search-input" type="text" id="keyword"
@@ -55,6 +61,8 @@
       </div>
 
       <div id="result-count" class="text-sm text-muted mb-4 hidden"></div>
+
+      <!-- Missing item cards injected here by loadItems() -->
       <div id="content">
         <div class="loading-center"><div class="spinner" role="status" aria-label="Loading items"></div></div>
       </div>
@@ -71,7 +79,7 @@
     async function loadItems(keyword, category) {
       const content = document.getElementById('content');
       const countEl = document.getElementById('result-count');
-      content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+      content.innerHTML = '<div class="loading-center"><div class="spinner" role="status" aria-label="Loading items"></div></div>';
       countEl.classList.add('hidden');
 
       try {
@@ -99,6 +107,7 @@
       }
     }
 
+    // Build the HTML for a single missing item card
     function itemCard(item) {
       const img = item.photo
         ? `<img src="/uploads/${item.photo}" alt="${item.itemName}">`
@@ -136,6 +145,7 @@
       loadItems('', '');
     });
 
+    // Load all approved missing items on page open
     loadItems('', '');
   </script>
 </body>

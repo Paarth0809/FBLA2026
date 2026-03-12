@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!-- report-missing.html — Report a missing item
+     Same auth-gate pattern as report.html — form is hidden until login is confirmed.
+     Submits to POST /api/missing-items. The item goes to "pending" status and
+     won't appear in the public search until an admin approves it.
+     The reporter can later mark it as found from their My Submissions page. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">

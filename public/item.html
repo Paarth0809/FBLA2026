@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!-- item.html — Found item detail page
+     Reads ?id= from the URL, fetches the item from GET /api/items/:id,
+     and renders its full details. If the item is approved and the user is
+     logged in, a "Submit a Claim" button is shown.
+
+     Race-condition note: nav.js (userLoaded) and loadItem() are both async.
+     Either one can resolve first. updateClaimArea() is called from both so
+     the claim button always appears regardless of which resolves last. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,6 +16,7 @@
 </head>
 <body class="page">
 
+  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
   <nav class="navbar">
     <div class="container">
       <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
@@ -22,8 +31,10 @@
   <main>
     <div class="container" style="max-width:900px">
       <a href="/search.html" class="btn btn-ghost btn-sm mb-6">← Back to Search</a>
+
+      <!-- Item content injected by render() after the API call resolves -->
       <div id="content">
-        <div class="loading-center"><div class="spinner"></div></div>
+        <div class="loading-center"><div class="spinner" role="status" aria-label="Loading item"></div></div>
       </div>
     </div>
   </main>
@@ -35,25 +46,29 @@
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
+    // Read the item ID from the URL query string (e.g. /item.html?id=abc-123)
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get('id');
 
     // Holds the item once loaded — shared between loadItem() and updateClaimArea()
     let loadedItem = null;
 
-    // Updates the claim area based on current auth state and item status.
-    // Called from two places to handle whichever resolves last (item or user).
+    // updateClaimArea — injects the correct claim UI based on login state and item status.
+    // Called from both the userLoaded event and after loadItem() resolves, because either
+    // one can finish first depending on network timing.
     function updateClaimArea() {
       const area = document.getElementById('claim-area');
-      if (!area || !loadedItem) return;
-      if (loadedItem.status !== 'approved') return;
+      if (!area || !loadedItem) return;        // not ready yet — the other call will handle it
+      if (loadedItem.status !== 'approved') return; // claimed/rejected items don't need a claim button
 
       if (currentUser) {
+        // Logged-in user: show the claim button linking to claim.html with this item's ID
         area.innerHTML = `
           <a href="/claim.html?id=${loadedItem.id}&type=found" class="btn btn-primary btn-lg w-full mt-4">
             📋 This Is Mine — Submit a Claim
           </a>`;
       } else {
+        // Logged-out visitor: prompt them to sign in first
         area.innerHTML = `
           <div class="alert alert-info">
             <span>ℹ️</span>
@@ -63,8 +78,7 @@
       }
     }
 
-    // Registered at top level so the listener is always in place before either
-    // async call (loadUser or loadItem) resolves. Handles: item loads before user.
+    // Register the listener before any async calls so it's always in place
     document.addEventListener('userLoaded', updateClaimArea);
 
     async function loadItem() {
@@ -78,18 +92,21 @@
         document.title = `${item.itemName} – School Lost & Found`;
         loadedItem = item;
         render(item);
-        // Call directly in case userLoaded already fired before loadItem resolved.
+        // Call directly in case userLoaded already fired before this resolved
         updateClaimArea();
       } catch (err) {
         content.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
     }
 
+    // Builds and injects the full item detail layout into #content
     function render(item) {
+      // Show photo if uploaded, otherwise display a large category emoji
       const img = item.photo
         ? `<img src="/uploads/${item.photo}" alt="${item.itemName}">`
         : `<span style="font-size:5rem">${categoryEmoji(item.category)}</span>`;
 
+      // Show a success banner when the item has already been claimed
       const claimedBanner = (item.status === 'claimed')
         ? `<div class="alert alert-success mb-4">✓ This item has been claimed and returned to its owner.</div>`
         : '';
@@ -126,6 +143,7 @@
               </div>
             </div>
 
+            <!-- Claim button area — populated by updateClaimArea() -->
             <div id="claim-area" class="mt-6">
               <!-- Claim button injected by updateClaimArea() -->
             </div>

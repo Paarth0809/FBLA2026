@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!-- search.html — Public found items search page
+     Loads all approved found items on page open, then re-fetches when the
+     user submits the search form. Filtering by keyword and category happens
+     on the server — the query parameters are passed to GET /api/items. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,10 +12,12 @@
 </head>
 <body class="page">
 
+  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
   <nav class="navbar">
     <div class="container">
       <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
       <div class="nav-links">
+        <!-- Active link highlighted in green to show current page -->
         <a href="/search.html"         style="color:#43B02A;font-weight:700">Found Items</a>
         <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
         <div id="nav-auth"></div>
@@ -26,7 +32,8 @@
         <p>Browse items that have been turned in on campus, or search by keyword and category.</p>
       </div>
 
-      <!-- Search form -->
+      <!-- ── Search form ──────────────────────────────────────────────────── -->
+      <!-- aria-labels on these inputs because there are no visible <label> elements -->
       <div class="search-bar">
         <form id="search-form">
           <input  class="form-input search-input" type="text" id="keyword"
@@ -44,12 +51,15 @@
             <option>Other</option>
           </select>
           <button type="submit" class="btn btn-primary">🔍 Search</button>
+          <!-- Clear button — only shown when active filters are applied -->
           <button type="button" id="clear-btn" class="btn btn-ghost hidden">Clear</button>
         </form>
       </div>
 
-      <!-- Results area -->
+      <!-- Result count shown above the grid -->
       <div id="result-count" class="text-sm text-muted mb-4 hidden"></div>
+
+      <!-- Item cards injected here by loadItems() -->
       <div id="content">
         <div class="loading-center"><div class="spinner" role="status" aria-label="Loading items"></div></div>
       </div>
@@ -63,20 +73,22 @@
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
-    const CATEGORIES = ['Electronics','Clothing','Books & Supplies','Keys & ID Cards','Bags & Backpacks','Sports Equipment','Jewelry & Accessories','Other'];
-
+    // Fetch items from the API and render the card grid
     async function loadItems(keyword, category) {
       const content = document.getElementById('content');
       const countEl = document.getElementById('result-count');
-      content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+      content.innerHTML = '<div class="loading-center"><div class="spinner" role="status" aria-label="Loading items"></div></div>';
       countEl.classList.add('hidden');
 
       try {
+        // Build the query string — only append params that have values
         let url = '/items?';
         if (keyword)  url += `keyword=${encodeURIComponent(keyword)}&`;
         if (category) url += `category=${encodeURIComponent(category)}`;
 
         const items = await api.get(url);
+
+        // Show result count
         countEl.textContent = `${items.length} item${items.length !== 1 ? 's' : ''} found`;
         countEl.classList.remove('hidden');
 
@@ -90,13 +102,16 @@
           return;
         }
 
+        // Render a grid of item cards
         content.innerHTML = `<div class="items-grid">${items.map(itemCard).join('')}</div>`;
       } catch (err) {
         content.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
     }
 
+    // Build the HTML for a single found item card
     function itemCard(item) {
+      // Show the photo if one was uploaded, otherwise fall back to a category emoji
       const img = item.photo
         ? `<img src="/uploads/${item.photo}" alt="${item.itemName}">`
         : `<span title="${item.category}">${categoryEmoji(item.category)}</span>`;
@@ -118,16 +133,17 @@
         </div>`;
     }
 
-    // Form submit
+    // Re-fetch when the search form is submitted
     document.getElementById('search-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const kw  = document.getElementById('keyword').value.trim();
       const cat = document.getElementById('category').value;
+      // Show the Clear button only when a filter is active
       document.getElementById('clear-btn').classList.toggle('hidden', !kw && !cat);
       loadItems(kw, cat);
     });
 
-    // Clear button
+    // Clear button resets both inputs and reloads all items
     document.getElementById('clear-btn').addEventListener('click', function() {
       document.getElementById('keyword').value  = '';
       document.getElementById('category').value = '';
@@ -135,7 +151,7 @@
       loadItems('', '');
     });
 
-    // Load all items on page open
+    // Load all approved found items on initial page open
     loadItems('', '');
   </script>
 </body>

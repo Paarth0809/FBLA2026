@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- index.html — Homepage / landing page
+     Shows the hero section with search CTAs, explains how the system works,
+     and adjusts the visible buttons based on whether the user is logged in. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,7 +11,8 @@
 </head>
 <body class="page">
 
-  <!-- ── Navbar ──────────────────────────────────────────────── -->
+  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
+  <!-- nav.js fills in #nav-auth with login/logout buttons based on session -->
   <nav class="navbar">
     <div class="container">
       <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost & Found</a>
@@ -20,12 +24,13 @@
     </div>
   </nav>
 
-  <!-- ── Hero ────────────────────────────────────────────────── -->
+  <!-- ── Hero ────────────────────────────────────────────────────────────── -->
+  <!-- Split layout: text on left, school photo on right -->
   <section class="hero">
     <div class="container">
       <div class="hero-split">
 
-        <!-- Left: text & CTAs -->
+        <!-- Left: headline, description, and call-to-action buttons -->
         <div class="hero-text">
           <h1>Lost Something?<br>We're Here to Help.</h1>
           <p>
@@ -33,19 +38,19 @@
             search for missing belongings, and reunite them with their owners.
           </p>
 
-          <!-- Always visible: search buttons -->
+          <!-- These search buttons are always visible — no login required to browse -->
           <div class="hero-actions">
             <a href="/search.html"         class="btn btn-primary btn-lg">🔍 Search Found Items</a>
             <a href="/search-missing.html" class="btn btn-outline btn-lg">⚠️ Search Missing Items</a>
           </div>
 
-          <!-- Shown only when logged in -->
+          <!-- Report buttons — only shown once the user is confirmed logged in -->
           <div id="report-actions" class="hero-actions mt-6 hidden">
             <a href="/report.html"         class="btn btn-lg" style="background:#f0fdf4;color:#166534;border:2px solid #bbf7d0">📋 Report Found Item</a>
             <a href="/report-missing.html" class="btn btn-lg" style="background:#fff7ed;color:#9a3412;border:2px solid #fed7aa">⚠️ Report Missing Item</a>
           </div>
 
-          <!-- Shown only when NOT logged in -->
+          <!-- Sign-in prompt — only shown when the user is NOT logged in -->
           <div id="signin-cta" class="signin-cta mt-6">
             <p class="title">Sign In Required to Report Items</p>
             <p class="sub">Create an account or sign in to report found or missing items.</p>
@@ -56,7 +61,7 @@
           </div>
         </div>
 
-        <!-- Right: school photo -->
+        <!-- Right: Green Level High School campus photo -->
         <div class="hero-photo">
           <img src="/images/school.jpg" alt="Green Level High School campus">
         </div>
@@ -65,7 +70,8 @@
     </div>
   </section>
 
-  <!-- ── How It Works ────────────────────────────────────────── -->
+  <!-- ── How It Works ────────────────────────────────────────────────────── -->
+  <!-- Simple 3-step explainer so first-time visitors understand the flow -->
   <section class="section section-white">
     <div class="container">
       <h2 class="section-title">How It Works</h2>
@@ -89,7 +95,8 @@
     </div>
   </section>
 
-  <!-- ── Admin Section ────────────────────────────────────────── -->
+  <!-- ── Admin Section ────────────────────────────────────────────────────── -->
+  <!-- Only shown to logged-out visitors — hidden for normal users once signed in -->
   <section id="admin-section" class="section section-blue">
     <div class="container" style="max-width:600px">
       <div class="card">
@@ -106,7 +113,7 @@
     </div>
   </section>
 
-  <!-- ── Footer ──────────────────────────────────────────────── -->
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
   <footer class="footer">
     <div class="container">
       <p>© 2026 School Lost &amp; Found System. All rights reserved.</p>
@@ -114,22 +121,28 @@
     </div>
   </footer>
 
+  <!-- api.js must load before nav.js since nav.js calls api.get() -->
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
+    // Listen for the userLoaded event fired by nav.js once the session is checked.
+    // We use this event (instead of running code immediately) because the
+    // /api/auth/me check is async — we don't know the login state right away.
     document.addEventListener('userLoaded', function(e) {
       const user = e.detail;
 
       if (user) {
-        // Show report buttons, hide sign-in CTA
+        // Logged in: show the report buttons and hide the sign-in prompt
         document.getElementById('report-actions').classList.remove('hidden');
         document.getElementById('signin-cta').classList.add('hidden');
 
-        // Hide the "For Administrators" section if already logged in
+        // Hide the "For Administrators" section for regular users —
+        // it's only relevant to people who haven't logged in yet
         if (user.role !== 'admin') {
           document.getElementById('admin-section').classList.add('hidden');
         }
 
+        // Show who is currently logged in at the bottom of the page
         document.getElementById('footer-user').textContent =
           `Logged in as: ${user.email} (${user.role})`;
       }

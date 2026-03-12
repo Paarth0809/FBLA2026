@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!-- missing-item.html — Missing item detail page
+     Reads ?id= from the URL, fetches the report from GET /api/missing-items/:id,
+     and shows all details including the owner's contact email so a finder can
+     reach out directly. Shows a "found and returned" banner if status is "found". -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -8,6 +12,7 @@
 </head>
 <body class="page">
 
+  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
   <nav class="navbar">
     <div class="container">
       <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
@@ -22,8 +27,10 @@
   <main>
     <div class="container" style="max-width:900px">
       <a href="/search-missing.html" class="btn btn-ghost btn-sm mb-6">← Back to Missing Items</a>
+
+      <!-- Full item details injected here by render() -->
       <div id="content">
-        <div class="loading-center"><div class="spinner"></div></div>
+        <div class="loading-center"><div class="spinner" role="status" aria-label="Loading item"></div></div>
       </div>
     </div>
   </main>
@@ -35,6 +42,7 @@
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
+    // Read the missing item ID from the URL
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get('id');
 
@@ -46,6 +54,7 @@
       }
       try {
         const item = await api.get(`/missing-items/${itemId}`);
+        // Update the browser tab title to include the item name
         document.title = `${item.itemName} (Missing) – School Lost & Found`;
         render(item);
       } catch (err) {
@@ -53,17 +62,20 @@
       }
     }
 
+    // Builds and injects the full missing item detail layout
     function render(item) {
       const img = item.photo
         ? `<img src="/uploads/${item.photo}" alt="${item.itemName}">`
         : `<span style="font-size:5rem">${categoryEmoji(item.category)}</span>`;
 
+      // Show a success banner if the item has been marked as found
       const foundBanner = (item.status === 'found')
         ? `<div class="alert alert-success mb-4">✓ Great news! This item has been found and returned.</div>`
         : '';
 
       document.getElementById('content').innerHTML = `
         ${foundBanner}
+        <!-- Warning banner to remind visitors this item is still missing -->
         <div class="alert alert-warning mb-4">
           ⚠️ This item has been reported as <strong>missing</strong>.
           If you've found it, please
@@ -98,6 +110,7 @@
                 <div class="detail-label">Reported By</div>
                 <div class="detail-value">${item.submitterName}</div>
               </div>
+              <!-- Contact email is always shown on missing item pages so finders can reach out -->
               <div class="detail-field">
                 <div class="detail-label">✉️ Contact</div>
                 <div class="detail-value">
@@ -106,6 +119,7 @@
               </div>
             </div>
 
+            <!-- Button to report this item as found — links to the report-found form -->
             <div class="mt-6">
               <a href="/report.html" class="btn btn-success btn-lg w-full">
                 ✓ I Found This Item — Report It
