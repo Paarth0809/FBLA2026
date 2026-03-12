@@ -75,13 +75,7 @@
 
       document.getElementById('content').innerHTML = `
         ${foundBanner}
-        <!-- Warning banner to remind visitors this item is still missing -->
-        <div class="alert alert-warning mb-4">
-          ⚠️ This item has been reported as <strong>missing</strong>.
-          If you've found it, please
-          <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a>
-          or contact the owner directly.
-        </div>
+        <div class="alert alert-warning mb-4">⚠️ This item has been reported as <strong>missing</strong>. If you've found it, please <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a> or contact the owner directly.</div>
         <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
           <h1 style="font-size:1.75rem;font-weight:800">${item.itemName}</h1>
           ${statusBadge(item.status)}
