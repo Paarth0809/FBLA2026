@@ -1,30 +1,44 @@
 [
   {
-    "id": "50b0cf89-43d4-4f9f-95dd-fe54889ba6f4",
-    "itemName": "northface jacket",
-    "category": "Clothing",
-    "description": "black, puffy, has a northface logo",
+    "id": "ff6f429f-f6a8-48e9-8f62-89f5d8cb8f57",
+    "itemName": "Macbook",
+    "category": "Electronics",
+    "description": "Sliver, thin, apple logo, has some stickers on it.",
     "lastSeenLocation": "cafeteria",
-    "lastSeenDate": "2026-03-02",
+    "lastSeenDate": "2026-03-12",
     "contactEmail": "student@school.edu",
-    "photo": "022222bc-e6ac-42f3-ac3c-10df39ef6520.jpg",
+    "photo": "f6c5c7bf-b31d-4e42-879e-1a1a89694cb3.jpeg",
     "status": "found",
     "submittedBy": "user-001",
     "submitterName": "Alex Chen",
-    "createdAt": "2026-03-08T07:54:48.790Z"
+    "createdAt": "2026-03-12T05:22:59.147Z"
   },
   {
-    "id": "87b3de8b-3cf4-4423-81f2-b07b82900192",
-    "itemName": "northface jacket",
-    "category": "Clothing",
-    "description": "black top big t shirt billie goonlash",
-    "lastSeenLocation": "cafeteria",
-    "lastSeenDate": "2026-03-04",
+    "id": "4b921b4d-b11d-4c44-9d76-8dbcc2373065",
+    "itemName": "Macbook",
+    "category": "Electronics",
+    "description": "sliver, sleek, has stickers",
+    "lastSeenLocation": "library",
+    "lastSeenDate": "2026-03-12",
     "contactEmail": "student@school.edu",
-    "photo": "e7dac38e-ba3a-460a-9c6a-80eebd568de6.jpg",
+    "photo": "ee263ecf-01d2-4dd3-a183-cfda1858480e.jpeg",
     "status": "found",
     "submittedBy": "user-001",
     "submitterName": "Alex Chen",
-    "createdAt": "2026-03-08T08:16:32.713Z"
+    "createdAt": "2026-03-12T05:34:55.585Z"
+  },
+  {
+    "id": "f8a1ed29-ced8-4fc9-903b-b101db1caaaa",
+    "itemName": "phone",
+    "category": "Electronics",
+    "description": "iphone 12 pro max.",
+    "lastSeenLocation": "math class",
+    "lastSeenDate": "2026-03-12",
+    "contactEmail": "student@school.edu",
+    "photo": null,
+    "status": "approved",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-03-12T06:16:08.058Z"
   }
 ]

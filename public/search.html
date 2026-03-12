@@ -10,7 +10,7 @@
 
   <nav class="navbar">
     <div class="container">
-      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
+      <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
       <div class="nav-links">
         <a href="/search.html"         style="color:#43B02A;font-weight:700">Found Items</a>
         <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
@@ -30,8 +30,9 @@
       <div class="search-bar">
         <form id="search-form">
           <input  class="form-input search-input" type="text" id="keyword"
-                  placeholder="Search by name, description, or location…">
-          <select class="form-select category-select" id="category">
+                  placeholder="Search by name, description, or location…"
+                  aria-label="Search found items by keyword, description, or location">
+          <select class="form-select category-select" id="category" aria-label="Filter by category">
             <option value="">All Categories</option>
             <option>Electronics</option>
             <option>Clothing</option>
@@ -50,7 +51,7 @@
       <!-- Results area -->
       <div id="result-count" class="text-sm text-muted mb-4 hidden"></div>
       <div id="content">
-        <div class="loading-center"><div class="spinner"></div></div>
+        <div class="loading-center"><div class="spinner" role="status" aria-label="Loading items"></div></div>
       </div>
     </div>
   </main>

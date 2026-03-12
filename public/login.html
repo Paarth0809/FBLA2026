@@ -12,13 +12,13 @@
     <div class="auth-card">
 
       <div style="text-align:center;margin-bottom:1.5rem">
-        <a href="/index.html" class="brand" style="font-size:1.25rem;display:inline-flex">🔍 School Lost &amp; Found</a>
+        <a href="/index.html" class="brand" style="font-size:1.25rem;display:inline-flex" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
       </div>
 
       <h2>Welcome back</h2>
       <p class="sub">Sign in to your account to report items or submit claims.</p>
 
-      <div id="error-box" class="alert alert-error hidden"></div>
+      <div id="error-box" class="alert alert-error hidden" role="alert"></div>
 
       <form id="login-form">
         <div class="form-group">
@@ -41,9 +41,9 @@
       <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e5e7eb">
         <p class="text-sm text-muted text-center mb-2">Demo accounts:</p>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
-          <button onclick="fillDemo('admin@school.edu','admin123')"    class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb">⚙️ Admin</button>
-          <button onclick="fillDemo('student@school.edu','student123')" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb">👤 Student 1</button>
-          <button onclick="fillDemo('student2@school.edu','student123')" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb">👤 Student 2</button>
+          <button onclick="fillDemo('admin@school.edu','admin123')"    class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb" aria-label="Fill in admin demo credentials">⚙️ Admin</button>
+          <button onclick="fillDemo('student@school.edu','student123')" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb" aria-label="Fill in Student 1 demo credentials">👤 Student 1</button>
+          <button onclick="fillDemo('student2@school.edu','student123')" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb" aria-label="Fill in Student 2 demo credentials">👤 Student 2</button>
         </div>
       </div>
     </div>

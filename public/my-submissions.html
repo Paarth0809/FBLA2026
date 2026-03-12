@@ -10,7 +10,7 @@
 
   <nav class="navbar">
     <div class="container">
-      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
+      <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
       <div class="nav-links">
         <a href="/search.html"         class="hide-mobile">Found Items</a>
         <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
@@ -34,27 +34,40 @@
       </div>
 
       <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('found',   this)">📦 Found Items I Reported</button>
-        <button class="tab"        onclick="switchTab('missing', this)">⚠️ Missing Items I Reported</button>
-        <button class="tab"        onclick="switchTab('claims',  this)">📋 My Claims</button>
+      <div class="tabs" role="tablist" aria-label="My submissions sections">
+        <button class="tab active" onclick="switchTab('found',   this)" role="tab" aria-selected="true"  aria-controls="tab-found">📦 Found Items I Reported</button>
+        <button class="tab"        onclick="switchTab('missing', this)" role="tab" aria-selected="false" aria-controls="tab-missing">⚠️ Missing Items I Reported</button>
+        <button class="tab"        onclick="switchTab('claims',  this)" role="tab" aria-selected="false" aria-controls="tab-claims">📋 My Claims</button>
       </div>
 
       <!-- Tab: Found Items -->
-      <div id="tab-found" class="tab-panel active">
-        <div id="found-content"><div class="loading-center"><div class="spinner"></div></div></div>
+      <div id="tab-found" class="tab-panel active" role="tabpanel" aria-label="Found items I reported">
+        <div id="found-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading your found items"></div></div></div>
       </div>
 
       <!-- Tab: Missing Items -->
-      <div id="tab-missing" class="tab-panel">
-        <div id="missing-content"><div class="loading-center"><div class="spinner"></div></div></div>
+      <div id="tab-missing" class="tab-panel" role="tabpanel" aria-label="Missing items I reported">
+        <div id="missing-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading your missing items"></div></div></div>
       </div>
 
       <!-- Tab: My Claims -->
-      <div id="tab-claims" class="tab-panel">
-        <div id="claims-content"><div class="loading-center"><div class="spinner"></div></div></div>
+      <div id="tab-claims" class="tab-panel" role="tabpanel" aria-label="My claims">
+        <div id="claims-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading your claims"></div></div></div>
       </div>
 
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="container" style="margin-top:3rem;padding-bottom:2.5rem">
+      <div style="border:1px solid #fecaca;border-radius:0.75rem;padding:1.25rem 1.5rem;background:#fff5f5;max-width:480px">
+        <h3 style="font-size:0.9375rem;font-weight:700;color:#b91c1c;margin-bottom:0.25rem">Danger Zone</h3>
+        <p style="font-size:0.875rem;color:#6b7280;margin-bottom:1rem">
+          Permanently delete your account and all items and claims you've submitted. This cannot be undone.
+        </p>
+        <button onclick="deleteAccount()" class="btn btn-sm" style="background:#dc2626;color:white;border:none">
+          Delete My Account
+        </button>
+      </div>
     </div>
   </main>
 
@@ -78,9 +91,10 @@
 
     // ── Tab switching ─────────────────────────────────────────────────────────
     function switchTab(name, btn) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       document.getElementById(`tab-${name}`).classList.add('active');
     }
 
@@ -284,6 +298,17 @@
           ${markFoundBtn}
         </td>
       </tr>`;
+    }
+
+    // ── Delete account ────────────────────────────────────────────────────────
+    async function deleteAccount() {
+      if (!confirm('Are you sure you want to delete your account? This will permanently remove all your items and claims and cannot be undone.')) return;
+      try {
+        await api.delete('/auth/account');
+        window.location.href = '/';
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
     }
 
     async function markMissingFound(id) {

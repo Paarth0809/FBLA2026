@@ -1,28 +1,54 @@
 [
   {
-    "id": "684a676e-8f2f-4aaf-a144-67259df1926e",
-    "itemId": "1caaea8c-89bc-4825-ab54-4f9d8372bdb6",
+    "id": "241e65cc-26f6-4f3a-bd01-29849955f300",
+    "itemId": "9d98ab8d-af80-4183-8f65-836e2208b9a9",
     "itemType": "found",
-    "itemName": "Macbook",
+    "itemName": "northface jacket",
     "claimerName": "Jordan Lee",
     "claimerEmail": "student2@school.edu",
     "claimerPhone": "",
-    "description": "its mirhfepihfr3[ogr3[g",
+    "description": "The jacket has my name labeled on the left hand-side, please accept this claim!",
     "submittedBy": "user-002",
     "status": "approved",
-    "createdAt": "2026-03-08T07:56:00.099Z"
+    "createdAt": "2026-03-12T04:42:05.219Z"
   },
   {
-    "id": "dd33dae1-f485-4cdc-beb9-bc5b07ca38f2",
-    "itemId": "50bd1bcc-eb6d-4d54-853f-e14f321342d1",
+    "id": "d4c50e60-8dc9-46f8-93be-4257f5bf01c0",
+    "itemId": "e75afb88-2b90-41e4-a66a-bff8db16bde4",
     "itemType": "found",
-    "itemName": "Macbook",
+    "itemName": "northface jacket",
     "claimerName": "Jordan Lee",
     "claimerEmail": "student2@school.edu",
     "claimerPhone": "",
-    "description": "pihperighprhgp3rhgp[i3hgp3ihr5gi3yg",
+    "description": "The jacket has my name labeled on the left hand-side, please accept this claim!",
     "submittedBy": "user-002",
     "status": "approved",
-    "createdAt": "2026-03-08T08:20:49.888Z"
+    "createdAt": "2026-03-12T04:58:34.075Z"
+  },
+  {
+    "id": "d08fd922-9f33-4d49-b76d-4a4d3adb094a",
+    "itemId": "38d5d8ce-b03c-4d17-a6b4-214a235ac45f",
+    "itemType": "found",
+    "itemName": "northface jacket",
+    "claimerName": "Paarth Rathod",
+    "claimerEmail": "paarth0809@gmail.com",
+    "claimerPhone": "9197143139",
+    "description": "The jacket has my name labeled on the left hand-side, please accept this claim!",
+    "submittedBy": "user-002",
+    "status": "approved",
+    "createdAt": "2026-03-12T05:24:44.022Z"
+  },
+  {
+    "id": "c51014ea-1994-4df3-90fe-6b881f949b99",
+    "itemId": "ecc549d4-50c4-407a-8c3e-fb6df634ab57",
+    "itemType": "found",
+    "itemName": "northface jacket",
+    "claimerName": "Paarth Rathod",
+    "claimerEmail": "paarth0809@gmail.com",
+    "claimerPhone": "9197143139",
+    "description": "The jacket has my name labeled on the left hand-side, please accept this claim!",
+    "submittedBy": "user-002",
+    "status": "approved",
+    "createdAt": "2026-03-12T05:36:11.907Z"
   }
 ]

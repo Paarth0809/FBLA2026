@@ -10,7 +10,7 @@
 
   <nav class="navbar">
     <div class="container">
-      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
+      <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
       <div class="nav-links">
         <a href="/search.html"         class="hide-mobile">Found Items</a>
         <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
@@ -48,25 +48,25 @@
       </div>
 
       <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('found')">📦 Found Items</button>
-        <button class="tab"        onclick="switchTab('missing')">⚠️ Missing Items</button>
-        <button class="tab"        onclick="switchTab('claims')">📋 Claims</button>
+      <div class="tabs" role="tablist" aria-label="Admin sections">
+        <button class="tab active" onclick="switchTab('found')"   role="tab" aria-selected="true"  aria-controls="tab-found">📦 Found Items</button>
+        <button class="tab"        onclick="switchTab('missing')" role="tab" aria-selected="false" aria-controls="tab-missing">⚠️ Missing Items</button>
+        <button class="tab"        onclick="switchTab('claims')"  role="tab" aria-selected="false" aria-controls="tab-claims">📋 Claims</button>
       </div>
 
       <!-- Tab: Found Items -->
-      <div id="tab-found" class="tab-panel active">
-        <div id="found-content"><div class="loading-center"><div class="spinner"></div></div></div>
+      <div id="tab-found" class="tab-panel active" role="tabpanel" aria-label="Found items">
+        <div id="found-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading found items"></div></div></div>
       </div>
 
       <!-- Tab: Missing Items -->
-      <div id="tab-missing" class="tab-panel">
-        <div id="missing-content"><div class="loading-center"><div class="spinner"></div></div></div>
+      <div id="tab-missing" class="tab-panel" role="tabpanel" aria-label="Missing items">
+        <div id="missing-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading missing items"></div></div></div>
       </div>
 
       <!-- Tab: Claims -->
-      <div id="tab-claims" class="tab-panel">
-        <div id="claims-content"><div class="loading-center"><div class="spinner"></div></div></div>
+      <div id="tab-claims" class="tab-panel" role="tabpanel" aria-label="Claims">
+        <div id="claims-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading claims"></div></div></div>
       </div>
 
     </div>
@@ -92,9 +92,10 @@
 
     // ── Tab switching ─────────────────────────────────────────
     function switchTab(name) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       event.target.classList.add('active');
+      event.target.setAttribute('aria-selected', 'true');
       document.getElementById(`tab-${name}`).classList.add('active');
     }
 
@@ -163,7 +164,7 @@
         <td>
           <div class="table-actions">
             ${actions}
-            <button onclick="deleteFound('${item.id}')" class="btn btn-ghost btn-sm" title="Delete">🗑</button>
+            <button onclick="deleteFound('${item.id}')" class="btn btn-ghost btn-sm" aria-label="Delete ${item.itemName}">🗑</button>
           </div>
         </td>
       </tr>`;
@@ -234,7 +235,7 @@
         <td>
           <div class="table-actions">
             ${actions}
-            <button onclick="deleteMissing('${item.id}')" class="btn btn-ghost btn-sm" title="Delete">🗑</button>
+            <button onclick="deleteMissing('${item.id}')" class="btn btn-ghost btn-sm" aria-label="Delete ${item.itemName}">🗑</button>
           </div>
         </td>
       </tr>`;
@@ -304,8 +305,8 @@
         <td>
           <div class="table-actions">
             ${actions}
-            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" title="View details">👁</button>
-            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" title="Delete">🗑</button>
+            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${claim.claimerName}">👁</button>
+            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="Delete claim from ${claim.claimerName}">🗑</button>
           </div>
         </td>
       </tr>`;
