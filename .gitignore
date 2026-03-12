@@ -2,3 +2,6 @@ node_modules/
 uploads/
 .env
 .DS_Store
+.playwright-mcp/
+test-results/
+.firecrawl/
