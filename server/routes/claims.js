@@ -32,18 +32,25 @@ router.delete('/mine/resolved', requireAuth, (req, res) => {
 // Each claim is enriched with the item's contactEmail so the claimer knows how to
 // reach the finder once their claim is approved by the admin.
 router.get('/mine', requireAuth, (req, res) => {
-  const items   = readJSON('items.json');
-  const missing = readJSON('missing-items.json');
+  const items    = readJSON('items.json');
+  const missing  = readJSON('missing-items.json');
+  const allUsers = readJSON('users.json');
 
   const claims = readJSON('claims.json')
     .filter(c => c.submittedBy === req.session.userId)
     .map(c => {
-      // Look up the relevant item to get its contact email
+      // Only reveal contact info after admin approval to prevent email leaks
       const source = c.itemType === 'found' ? items : missing;
       const item   = source.find(i => i.id === c.itemId);
-      // Add itemContactEmail to the claim object — the frontend shows this
-      // only when the admin has approved the claim
-      return { ...c, itemContactEmail: item ? item.contactEmail : null };
+      if (c.status === 'approved' && item) {
+        const finderUser = allUsers.find(u => u.id === item.submittedBy);
+        return {
+          ...c,
+          itemContactEmail:   item.contactEmail || null,
+          itemSubmitterEmail: finderUser ? finderUser.email : null
+        };
+      }
+      return { ...c, itemContactEmail: null, itemSubmitterEmail: null };
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -54,14 +61,26 @@ router.get('/mine', requireAuth, (req, res) => {
 // Used on the My Submissions page to show the finder who is trying to claim their item.
 router.get('/received', requireAuth, (req, res) => {
   const uid = req.session.userId;
+  const users = readJSON('users.json');
 
   // Build sets of item IDs that belong to this user for quick lookup
   const myFoundIds   = new Set(readJSON('items.json')         .filter(i => i.submittedBy === uid).map(i => i.id));
   const myMissingIds = new Set(readJSON('missing-items.json') .filter(i => i.submittedBy === uid).map(i => i.id));
 
-  // Return all claims that reference one of this user's items
+  // Return all claims that reference one of this user's items.
+  // Enrich each claim with the claimer's actual account email (looked up by submittedBy),
+  // so the finder messages the correct inbox rather than the self-reported claimerEmail
+  // field, which may differ from their account email.
   const claims = readJSON('claims.json')
     .filter(c => myFoundIds.has(c.itemId) || myMissingIds.has(c.itemId))
+    .map(c => {
+      // Only reveal claimer's account email after admin approval to prevent email leaks
+      if (c.status === 'approved') {
+        const claimerUser = users.find(u => u.id === c.submittedBy);
+        return { ...c, claimerAccountEmail: claimerUser ? claimerUser.email : c.claimerEmail };
+      }
+      return { ...c, claimerAccountEmail: null };
+    })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   res.json(claims);

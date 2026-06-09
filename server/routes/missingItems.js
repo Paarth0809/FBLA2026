@@ -16,6 +16,7 @@ const path    = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { readJSON, writeJSON } = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
+const { generateAndSave } = require('../lib/aiProfile');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },  // 5 MB max
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed.'));
@@ -138,6 +139,9 @@ router.post('/', requireAuth, upload.single('photo'), (req, res) => {
     const items = readJSON('missing-items.json');
     items.push(item);
     writeJSON('missing-items.json', items);
+
+    // Fire-and-forget: generate AI profile from photo (if AI matching is enabled)
+    if (item.photo) generateAndSave(item.id, 'missing');
 
     res.json({ message: 'Missing item reported! An administrator will review it shortly.', item });
   } catch (err) {

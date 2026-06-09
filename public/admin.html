@@ -4,12 +4,14 @@
      access-denied message. The dashboard has three tabs (Found Items, Missing Items,
      Claims) each loaded in parallel on page open.
      Approve/reject actions call PUT /api/admin/... and refresh the relevant tab.
-     Approving a claim automatically cascades the status to the linked item. -->
+     Approving a claim automatically cascades the status to the linked item.
+     Each found/missing item row has a 💬 button that opens a read-only message
+     thread viewer so admins can monitor all in-app communications tied to that item. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard – School Lost & Found</title>
+  <title>Admin Dashboard – School Lost &amp; Found</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="page">
@@ -82,6 +84,37 @@
     <div class="container"><p>© 2026 School Lost &amp; Found System. Admin Panel.</p></div>
   </footer>
 
+  <!-- ── Admin: Item Message Thread Viewer Modal ───────────────────────────── -->
+  <!-- Read-only — admins view conversations but cannot send messages from here. -->
+  <div id="msg-viewer-overlay" class="modal-overlay hidden"
+       role="dialog" aria-modal="true" aria-labelledby="msg-viewer-title"
+       onclick="handleMsgViewerOverlay(event)">
+    <div class="modal" style="max-width:600px">
+
+      <div class="modal-header">
+        <div>
+          <h2 id="msg-viewer-title" style="font-size:1rem">💬 Message Thread</h2>
+          <div id="msg-viewer-subtitle" style="font-size:0.8125rem;color:#6b7280;margin-top:0.15rem"></div>
+        </div>
+        <button onclick="closeMsgViewer()" class="modal-close" aria-label="Close message thread">&times;</button>
+      </div>
+
+      <div class="modal-body" style="max-height:65vh;overflow-y:auto">
+        <div id="msg-viewer-content">
+          <div class="loading-center" style="padding:2rem">
+            <div class="spinner" role="status" aria-label="Loading messages"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;align-items:center">
+        <span id="msg-viewer-count" style="font-size:0.8125rem;color:#6b7280"></span>
+        <button onclick="closeMsgViewer()" class="btn btn-outline btn-sm">Close</button>
+      </div>
+
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
@@ -102,12 +135,31 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       event.target.classList.add('active');
       event.target.setAttribute('aria-selected', 'true');
-      document.getElementById(`tab-${name}`).classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
     }
 
     // ── Load everything ───────────────────────────────────────
     async function loadAll() {
       await Promise.all([loadFound(), loadMissing(), loadClaims()]);
+    }
+
+    // ── XSS helpers ───────────────────────────────────────────
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // safeAttr: encode for use inside a double-quoted HTML attribute value.
+    // Unlike escapeHtml, only & and " need encoding here — apostrophes are safe
+    // inside double-quoted attributes and do not confuse the JS string boundary.
+    function safeAttr(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     }
 
     // ── Found Items tab ───────────────────────────────────────
@@ -140,13 +192,13 @@
             </table>
           </div>`;
       } catch (err) {
-        el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
     }
 
     function foundRow(item) {
       const thumb = item.photo
-        ? `<img src="/uploads/${item.photo}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb">`
+        ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb">`
         : `<span style="font-size:1.75rem">${categoryEmoji(item.category)}</span>`;
 
       const actions = item.status === 'pending' ? `
@@ -161,16 +213,22 @@
 
       return `<tr>
         <td>${thumb}</td>
-        <td><a href="/item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
-        <td>${item.category}</td>
-        <td>${item.locationFound}</td>
+        <td><a href="/item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a></td>
+        <td>${escapeHtml(item.category)}</td>
+        <td>${escapeHtml(item.locationFound)}</td>
         <td>${formatDate(item.dateFound)}</td>
-        <td>${item.submitterName}</td>
+        <td>${escapeHtml(item.submitterName)}</td>
         <td>${statusBadge(item.status)}</td>
         <td>
           <div class="table-actions">
             ${actions}
-            <button onclick="deleteFound('${item.id}')" class="btn btn-ghost btn-sm" aria-label="Delete ${item.itemName}">🗑</button>
+            <a href="/item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details">👁 View</a>
+            <button data-msg-viewer-id="${safeAttr(item.id)}"
+                    data-msg-viewer-name="${safeAttr(item.itemName)}"
+                    class="btn btn-ghost btn-sm" title="View messages for this item"
+                    aria-label="View messages for ${escapeHtml(item.itemName)}">💬</button>
+            <button onclick="deleteFound('${item.id}')"
+                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}">🗑</button>
           </div>
         </td>
       </tr>`;
@@ -217,7 +275,7 @@
             </table>
           </div>`;
       } catch (err) {
-        el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
     }
 
@@ -232,16 +290,22 @@
       `;
 
       return `<tr>
-        <td><a href="/missing-item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
-        <td>${item.category}</td>
-        <td>${item.lastSeenLocation}</td>
+        <td><a href="/missing-item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a></td>
+        <td>${escapeHtml(item.category)}</td>
+        <td>${escapeHtml(item.lastSeenLocation)}</td>
         <td>${formatDate(item.lastSeenDate)}</td>
-        <td>${item.submitterName}</td>
+        <td>${escapeHtml(item.submitterName)}</td>
         <td>${statusBadge(item.status)}</td>
         <td>
           <div class="table-actions">
             ${actions}
-            <button onclick="deleteMissing('${item.id}')" class="btn btn-ghost btn-sm" aria-label="Delete ${item.itemName}">🗑</button>
+            <a href="/missing-item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details">👁 View</a>
+            <button data-msg-viewer-id="${safeAttr(item.id)}"
+                    data-msg-viewer-name="${safeAttr(item.itemName)}"
+                    class="btn btn-ghost btn-sm" title="View messages for this item"
+                    aria-label="View messages for ${escapeHtml(item.itemName)}">💬</button>
+            <button onclick="deleteMissing('${item.id}')"
+                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}">🗑</button>
           </div>
         </td>
       </tr>`;
@@ -286,7 +350,7 @@
             </table>
           </div>`;
       } catch (err) {
-        el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
     }
 
@@ -297,22 +361,23 @@
       ` : '';
 
       const itemLink = claim.itemType === 'found'
-        ? `/item.html?id=${claim.itemId}`
-        : `/missing-item.html?id=${claim.itemId}`;
+        ? '/item.html?id=' + claim.itemId
+        : '/missing-item.html?id=' + claim.itemId;
 
       return `<tr>
-        <td><a href="${itemLink}" target="_blank" style="color:#43B02A;font-weight:600">${claim.itemName}</a></td>
-        <td><span class="badge badge-category">${claim.itemType}</span></td>
-        <td title="${claim.description}">${claim.claimerName}</td>
-        <td><a href="mailto:${claim.claimerEmail}" style="color:#43B02A">${claim.claimerEmail}</a></td>
-        <td>${claim.claimerPhone || '—'}</td>
-        <td>${formatDate(claim.createdAt)}</td>
+        <td><a href="${itemLink}" target="_blank" style="color:#43B02A;font-weight:600">${escapeHtml(claim.itemName)}</a></td>
+        <td><span class="badge badge-category">${escapeHtml(claim.itemType)}</span></td>
+        <td title="${escapeHtml(claim.description)}">${escapeHtml(claim.claimerName)}</td>
+        <td><a href="mailto:${escapeHtml(claim.claimerEmail)}" style="color:#43B02A">${escapeHtml(claim.claimerEmail)}</a></td>
+        <td>${escapeHtml(claim.claimerPhone || '—')}</td>
+        <td>${new Date(claim.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
         <td>${statusBadge(claim.status)}</td>
         <td>
           <div class="table-actions">
             ${actions}
-            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${claim.claimerName}">👁</button>
-            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="Delete claim from ${claim.claimerName}">🗑</button>
+            <a href="${itemLink}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details">👁 View</a>
+            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${escapeHtml(claim.claimerName)}">📄</button>
+            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="Delete claim from ${escapeHtml(claim.claimerName)}">🗑</button>
           </div>
         </td>
       </tr>`;
@@ -330,12 +395,109 @@
     }
 
     function viewClaim(id) {
-      // Find the claim and show description in an alert
       api.get('/admin/claims').then(claims => {
         const c = claims.find(x => x.id === id);
-        if (c) alert(`Proof of ownership from ${c.claimerName}:\n\n"${c.description}"`);
+        if (c) alert('Proof of ownership from ' + c.claimerName + ':\n\n"' + c.description + '"');
       });
     }
+
+    // ── Item Message Thread Viewer ────────────────────────────
+    // Opens a read-only modal showing every in-app message associated with the
+    // given itemId, sorted oldest-first so the conversation reads naturally.
+    async function openMsgViewer(itemId, itemName) {
+      const overlay  = document.getElementById('msg-viewer-overlay');
+      const titleEl  = document.getElementById('msg-viewer-title');
+      const subEl    = document.getElementById('msg-viewer-subtitle');
+      const countEl  = document.getElementById('msg-viewer-count');
+      const bodyEl   = document.getElementById('msg-viewer-content');
+
+      titleEl.textContent = '💬 Message Thread';
+      subEl.textContent   = itemName;
+      countEl.textContent = '';
+      bodyEl.innerHTML    =
+        '<div class="loading-center" style="padding:2rem">' +
+          '<div class="spinner" role="status" aria-label="Loading messages"></div>' +
+        '</div>';
+
+      overlay.classList.remove('hidden');
+
+      try {
+        const messages = await api.get('/admin/messages?itemId=' + encodeURIComponent(itemId));
+        renderMsgThread(bodyEl, countEl, messages);
+      } catch (err) {
+        bodyEl.innerHTML =
+          '<div class="alert alert-error" style="margin:1rem">' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    function renderMsgThread(bodyEl, countEl, messages) {
+      // Guard against a non-array response (e.g. server not yet restarted with new route)
+      if (!Array.isArray(messages)) {
+        bodyEl.innerHTML =
+          '<div class="alert alert-error" style="margin:0.5rem 0">' +
+          'Could not load messages — please restart the server and try again.</div>';
+        return;
+      }
+      if (messages.length === 0) {
+        bodyEl.innerHTML =
+          '<div class="empty-state" style="padding:2.5rem 1rem">' +
+            '<div class="icon">💬</div>' +
+            '<h3>No messages yet</h3>' +
+            '<p class="text-muted">No in-app messages have been sent for this item.</p>' +
+          '</div>';
+        countEl.textContent = '0 messages';
+        return;
+      }
+
+      countEl.textContent = messages.length + ' message' + (messages.length !== 1 ? 's' : '');
+
+      bodyEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:0.875rem;padding:0.25rem 0">' +
+        messages.map(function(msg) {
+          const ts = new Date(msg.timestamp).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit'
+          });
+
+          const replyTag = msg.replyToId
+            ? '<span style="font-size:0.75rem;color:#43B02A;font-weight:600;margin-left:0.5rem">↩ reply</span>'
+            : '';
+
+          return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.625rem;padding:0.875rem 1rem">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">' +
+              '<div>' +
+                '<span style="font-weight:700;color:#111827">' + escapeHtml(msg.senderName) + '</span>' +
+                '<span style="color:#9ca3af;font-size:0.8125rem"> → </span>' +
+                '<span style="color:#374151;font-size:0.875rem">' + escapeHtml(msg.receiverName) + '</span>' +
+                replyTag +
+              '</div>' +
+              '<span style="font-size:0.75rem;color:#9ca3af;white-space:nowrap">' + escapeHtml(ts) + '</span>' +
+            '</div>' +
+            '<div style="font-size:0.875rem;color:#374151;line-height:1.6;white-space:pre-wrap;word-break:break-word">' +
+              escapeHtml(msg.content) +
+            '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }
+
+    function closeMsgViewer() {
+      document.getElementById('msg-viewer-overlay').classList.add('hidden');
+    }
+
+    function handleMsgViewerOverlay(e) {
+      if (e.target === document.getElementById('msg-viewer-overlay')) closeMsgViewer();
+    }
+
+    // Escape key closes the message viewer
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeMsgViewer();
+    });
+
+    // Delegation listener for data-* 💬 buttons (avoids inline-onclick JS string issues)
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-msg-viewer-id]');
+      if (btn) openMsgViewer(btn.dataset.msgViewerId, btn.dataset.msgViewerName);
+    });
   </script>
 </body>
 </html>

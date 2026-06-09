@@ -2,6 +2,8 @@
 // This file boots the Express application, wires up all middleware and routes,
 // and starts listening for HTTP requests on port 3000.
 
+require('dotenv').config();   // load .env (AI_MATCHING_ENABLED, GEMINI_API_KEY, etc.)
+
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
@@ -59,6 +61,8 @@ app.use('/api/items',         require('./routes/items'));        // found items 
 app.use('/api/missing-items', require('./routes/missingItems')); // missing items
 app.use('/api/claims',        require('./routes/claims'));       // ownership claims on found/missing items
 app.use('/api/admin',         require('./routes/admin'));        // admin-only approval/rejection actions
+app.use('/api/messages',      require('./routes/messages'));     // in-app messaging between finders and claimers
+app.use('/api/matches',       require('./routes/matches'));      // AI-powered item matching
 
 // ── Frontend ───────────────────────────────────────────────────────────────────
 // Serve every file inside public/ (HTML, CSS, JS, images) as a static asset.

@@ -105,7 +105,7 @@
                   <input type="file" id="photo" name="photo" accept="image/*" aria-describedby="photo-hint">
                   <div class="upload-icon">📷</div>
                   <p class="upload-text"><span>Click to upload</span> or drag &amp; drop</p>
-                  <p class="form-hint mt-1" id="photo-hint">JPG, PNG, GIF — max 5 MB</p>
+                  <p class="form-hint mt-1" id="photo-hint">JPG, PNG, GIF — max 10 MB</p>
                 </div>
                 <div class="photo-preview hidden" id="preview-container">
                   <img id="photo-preview-img" alt="Preview">
@@ -149,7 +149,7 @@
     document.getElementById('photo').addEventListener('change', function() {
       const file = this.files[0];
       if (!file) return;
-      if (file.size > 5 * 1024 * 1024) { showToast('Photo must be under 5 MB.', 'error'); this.value = ''; return; }
+      if (file.size > 10 * 1024 * 1024) { showToast('Photo must be under 10 MB.', 'error'); this.value = ''; return; }
       const reader = new FileReader();
       reader.onload = e => {
         document.getElementById('photo-preview-img').src = e.target.result;

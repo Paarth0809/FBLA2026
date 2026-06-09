@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <!-- my-submissions.html — Student's personal submission tracker
-     Shows three tabs for the logged-in user:
-       1. Found Items I Reported  — items they submitted, with any claims received on them
+     Shows four tabs for the logged-in user:
+       1. Found Items I Reported  — items they submitted, with claims received and
+                                    a "Message Claimer" button when a claim is approved
        2. Missing Items I Reported — with a "Mark as Found" button for approved reports
-       3. My Claims               — claims they submitted, with contact info when approved
+       3. My Claims               — claims they submitted; shows "Message Finder" button
+                                    when an admin approves the claim
+       4. Messages                — full in-app inbox with reply functionality
      Each tab has a "Clear Resolved" button that removes closed entries without
      affecting anything still pending or active.
      Also contains a Danger Zone section for permanently deleting the account. -->
@@ -11,7 +14,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Submissions – School Lost & Found</title>
+  <title>My Submissions – School Lost &amp; Found</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="page">
@@ -43,9 +46,11 @@
 
       <!-- Tabs -->
       <div class="tabs" role="tablist" aria-label="My submissions sections">
-        <button class="tab active" onclick="switchTab('found',   this)" role="tab" aria-selected="true"  aria-controls="tab-found">📦 Found Items I Reported</button>
-        <button class="tab"        onclick="switchTab('missing', this)" role="tab" aria-selected="false" aria-controls="tab-missing">⚠️ Missing Items I Reported</button>
-        <button class="tab"        onclick="switchTab('claims',  this)" role="tab" aria-selected="false" aria-controls="tab-claims">📋 My Claims</button>
+        <button class="tab active" onclick="switchTab('found',    this)" role="tab" aria-selected="true"  aria-controls="tab-found">📦 Found Items I Reported</button>
+        <button class="tab"        onclick="switchTab('missing',  this)" role="tab" aria-selected="false" aria-controls="tab-missing">⚠️ Missing Items I Reported</button>
+        <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims">📋 My Claims</button>
+        <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn">🔗 Matches</button>
+        <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn">💬 Messages</button>
       </div>
 
       <!-- Tab: Found Items -->
@@ -61,6 +66,16 @@
       <!-- Tab: My Claims -->
       <div id="tab-claims" class="tab-panel" role="tabpanel" aria-label="My claims">
         <div id="claims-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading your claims"></div></div></div>
+      </div>
+
+      <!-- Tab: Matches -->
+      <div id="tab-matches" class="tab-panel" role="tabpanel" aria-label="AI-powered item matches">
+        <div id="matches-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading matches"></div></div></div>
+      </div>
+
+      <!-- Tab: Messages (Inbox) -->
+      <div id="tab-messages" class="tab-panel" role="tabpanel" aria-label="My messages inbox">
+        <div id="messages-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading messages"></div></div></div>
       </div>
 
     </div>
@@ -83,6 +98,53 @@
     <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
   </footer>
 
+  <!-- ── Compose / Reply Message Modal ────────────────────────────────────── -->
+  <!-- Clicking the dark overlay (but not the card inside) closes the modal.  -->
+  <div id="msg-modal-overlay" class="modal-overlay hidden"
+       role="dialog" aria-modal="true" aria-labelledby="msg-modal-title"
+       onclick="handleOverlayClick(event)">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h2 id="msg-modal-title">Send Message</h2>
+        <button onclick="closeMessageModal()" class="modal-close" aria-label="Close message modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Context banner: To / Regarding -->
+        <div id="msg-modal-context" class="msg-context"></div>
+
+        <!-- Quoted original message — only visible for replies -->
+        <div id="msg-reply-quote" class="msg-reply-quote hidden"></div>
+
+        <div class="form-group" style="margin-bottom:0.375rem">
+          <label class="form-label" for="msg-textarea">
+            Message <span class="req">*</span>
+          </label>
+          <textarea id="msg-textarea" class="form-textarea"
+                    rows="5" maxlength="1000"
+                    placeholder="Type your message here…"
+                    oninput="updateCharCount()"></textarea>
+          <div class="form-hint" style="text-align:right">
+            <span id="msg-char-count">0</span> / 1000
+          </div>
+        </div>
+
+        <!-- Inline validation error -->
+        <div id="msg-error" class="alert alert-error hidden"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button onclick="closeMessageModal()" class="btn btn-ghost"
+                style="color:#6b7280;border:1px solid #e5e7eb">Cancel</button>
+        <button onclick="sendMessage()" id="msg-send-btn" class="btn btn-primary">
+          ✉️ Send Message
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
@@ -92,18 +154,24 @@
         window.location.href = '/login.html?redirect=/my-submissions.html';
         return;
       }
+      _myEmail = e.detail.email || '';
       loadFound();
       loadMissing();
       loadMyClaims();
+      loadMatches();
+      loadMessages();
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
     function switchTab(name, btn) {
-      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
-      document.getElementById(`tab-${name}`).classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
     }
 
     // ── Status hints ──────────────────────────────────────────────────────────
@@ -121,11 +189,29 @@
       rejected: 'Your claim was not approved by the admin.'
     };
 
+    // ── XSS helpers ───────────────────────────────────────────────────────────
+    // escapeHtml — sanitize strings before inserting into innerHTML
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // safeAttr — escape a value for use inside an HTML attribute (e.g. data-*)
+    function safeAttr(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+
     // ── Found Items tab (+ received claims) ───────────────────────────────────
     async function loadFound() {
       const el = document.getElementById('found-content');
       try {
-        // Fetch my items and any claims people have made on them in parallel
+        // Fetch the user's found items and any claims made on them in parallel
         const [items, receivedClaims] = await Promise.all([
           api.get('/items/mine'),
           api.get('/claims/received')
@@ -165,7 +251,7 @@
             </table>
           </div>`;
       } catch (err) {
-        el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
     }
 
@@ -181,14 +267,14 @@
     // Returns the item row PLUS a sub-row for any claims received on it
     function foundRows(item, allClaims) {
       const thumb = item.photo
-        ? `<img src="/uploads/${item.photo}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb">`
+        ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb">`
         : `<span style="font-size:1.6rem">${categoryEmoji(item.category)}</span>`;
 
       const mainRow = `<tr>
         <td>${thumb}</td>
-        <td><a href="/item.html?id=${item.id}" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
-        <td>${item.category}</td>
-        <td>${item.locationFound}</td>
+        <td><a href="/item.html?id=${escapeHtml(item.id)}" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a></td>
+        <td>${escapeHtml(item.category)}</td>
+        <td>${escapeHtml(item.locationFound)}</td>
         <td>${formatDate(item.dateFound)}</td>
         <td>
           ${statusBadge(item.status)}
@@ -205,7 +291,7 @@
             <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.6rem">
               📬 ${claims.length} claim${claims.length > 1 ? 's' : ''} received — contact info below
             </div>
-            ${claims.map(claimCard).join('')}
+            ${claims.map(c => claimCard(c, item)).join('')}
           </div>
         </td>
       </tr>`;
@@ -213,26 +299,43 @@
       return mainRow + claimsSubRow;
     }
 
-    // A single claim card shown inside the sub-row
-    function claimCard(claim) {
+    // A single claim card shown inside the found-items sub-row.
+    // item is passed so we can fall back to item.itemName if the claim doesn't store one.
+    function claimCard(claim, item) {
       const snippet = claim.description.length > 120
         ? claim.description.slice(0, 120) + '…'
         : claim.description;
 
+      // "Message Claimer" button — only shown when admin has approved the claim.
+      // Uses data-* attributes to avoid embedding quotes in onclick strings (XSS-safe).
+      const msgBtn = claim.status === 'approved'
+        ? `<button
+             data-msg-to="${safeAttr(claim.claimerAccountEmail || claim.claimerEmail)}"
+             data-msg-item-id="${safeAttr(claim.itemId)}"
+             data-msg-item-name="${safeAttr(claim.itemName || item.itemName)}"
+             data-msg-label="${safeAttr(claim.claimerName)}"
+             class="btn btn-outline btn-sm"
+             style="font-size:0.75rem;padding:0.25rem 0.625rem"
+             title="Send an in-app message to this claimer">
+             💬 Message Claimer
+           </button>`
+        : '';
+
       return `
         <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem 1rem;margin-bottom:0.5rem;display:flex;gap:1.25rem;align-items:flex-start;flex-wrap:wrap">
           <div style="flex:1;min-width:180px">
-            <div style="font-weight:600;margin-bottom:0.15rem">${claim.claimerName}</div>
-            <div style="font-size:0.825rem;color:#64748b;font-style:italic">"${snippet}"</div>
+            <div style="font-weight:600;margin-bottom:0.15rem">${escapeHtml(claim.claimerName)}</div>
+            <div style="font-size:0.825rem;color:#64748b;font-style:italic">"${escapeHtml(snippet)}"</div>
           </div>
-          <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;flex-shrink:0">
-            <a href="mailto:${claim.claimerEmail}" style="color:#43B02A;font-size:0.875rem;font-weight:500">
-              ✉️ ${claim.claimerEmail}
+          <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;flex-shrink:0">
+            <a href="mailto:${escapeHtml(claim.claimerEmail)}" style="color:#43B02A;font-size:0.875rem;font-weight:500">
+              ✉️ ${escapeHtml(claim.claimerEmail)}
             </a>
             ${claim.claimerPhone
-              ? `<span style="font-size:0.875rem;color:#374151">📞 ${claim.claimerPhone}</span>`
+              ? `<span style="font-size:0.875rem;color:#374151">📞 ${escapeHtml(claim.claimerPhone)}</span>`
               : ''}
             ${statusBadge(claim.status)}
+            ${msgBtn}
           </div>
         </div>`;
     }
@@ -277,7 +380,7 @@
             </table>
           </div>`;
       } catch (err) {
-        el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
     }
 
@@ -292,13 +395,13 @@
 
     function missingRow(item) {
       const markFoundBtn = item.status === 'approved'
-        ? `<button onclick="markMissingFound('${item.id}')" class="btn btn-success btn-sm mt-1">✓ Mark as Found</button>`
+        ? `<button onclick="markMissingFound('${escapeHtml(item.id)}')" class="btn btn-success btn-sm mt-1">✓ Mark as Found</button>`
         : '';
 
       return `<tr>
-        <td><a href="/missing-item.html?id=${item.id}" style="color:#43B02A;font-weight:600">${item.itemName}</a></td>
-        <td>${item.category}</td>
-        <td>${item.lastSeenLocation}</td>
+        <td><a href="/missing-item.html?id=${escapeHtml(item.id)}" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a></td>
+        <td>${escapeHtml(item.category)}</td>
+        <td>${escapeHtml(item.lastSeenLocation)}</td>
         <td>${formatDate(item.lastSeenDate)}</td>
         <td>
           ${statusBadge(item.status)}
@@ -322,7 +425,7 @@
     async function markMissingFound(id) {
       if (!confirm('Mark this item as found? This will remove it from the public missing items board.')) return;
       try {
-        await api.put(`/missing-items/${id}/mark-found`);
+        await api.put('/missing-items/' + id + '/mark-found');
         showToast('Item marked as found!', 'success');
         loadMissing();
       } catch (err) {
@@ -369,7 +472,7 @@
             </table>
           </div>`;
       } catch (err) {
-        el.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
       }
     }
 
@@ -384,21 +487,38 @@
 
     function myClaimRow(claim) {
       const itemLink = claim.itemType === 'found'
-        ? `/item.html?id=${claim.itemId}`
-        : `/missing-item.html?id=${claim.itemId}`;
+        ? '/item.html?id=' + escapeHtml(claim.itemId)
+        : '/missing-item.html?id=' + escapeHtml(claim.itemId);
 
-      // Only show contact info when the admin has approved the claim
-      const contactCell = (claim.status === 'approved' && claim.itemContactEmail)
-        ? `<a href="mailto:${claim.itemContactEmail}" style="color:#43B02A;font-weight:500">
-             ✉️ ${claim.itemContactEmail}
-           </a>`
-        : `<span class="text-muted" style="font-size:0.875rem">
-             ${claim.status === 'approved' ? 'Contact front office' : '—'}
-           </span>`;
+      // Contact cell: only reveal finder's email when admin has approved the claim.
+      // Also show a "Message Finder" button that opens the in-app compose modal.
+      let contactCell;
+      if (claim.status === 'approved' && claim.itemContactEmail) {
+        contactCell = `
+          <div style="display:flex;flex-direction:column;gap:0.4rem;align-items:flex-start">
+            <a href="mailto:${escapeHtml(claim.itemContactEmail)}" style="color:#43B02A;font-weight:500">
+              ✉️ ${escapeHtml(claim.itemContactEmail)}
+            </a>
+            <button
+              data-msg-to="${safeAttr(claim.itemSubmitterEmail || claim.itemContactEmail)}"
+              data-msg-item-id="${safeAttr(claim.itemId)}"
+              data-msg-item-name="${safeAttr(claim.itemName)}"
+              data-msg-label="the finder"
+              class="btn btn-outline btn-sm"
+              style="font-size:0.75rem;padding:0.25rem 0.625rem"
+              title="Send an in-app message to the finder">
+              💬 Message Finder
+            </button>
+          </div>`;
+      } else {
+        contactCell = `<span class="text-muted" style="font-size:0.875rem">
+          ${claim.status === 'approved' ? 'Contact front office' : '—'}
+        </span>`;
+      }
 
       return `<tr>
-        <td><a href="${itemLink}" style="color:#43B02A;font-weight:600">${claim.itemName}</a></td>
-        <td><span class="badge badge-category">${claim.itemType}</span></td>
+        <td><a href="${itemLink}" style="color:#43B02A;font-weight:600">${escapeHtml(claim.itemName)}</a></td>
+        <td><span class="badge badge-category">${escapeHtml(claim.itemType)}</span></td>
         <td>${formatDate(claim.createdAt)}</td>
         <td>
           ${statusBadge(claim.status)}
@@ -407,6 +527,414 @@
         <td>${contactCell}</td>
       </tr>`;
     }
+
+    // ── Matches tab ──────────────────────────────────────────────────────────
+    let _matchesNotified = false; // only show login toast once per page load
+
+    async function loadMatches() {
+      const el = document.getElementById('matches-content');
+      try {
+        const data = await api.get('/matches/my-missing');
+        const results = data.matches || [];
+
+        // Filter to only groups that have at least one match
+        const withMatches = results.filter(r => r.foundMatches.length > 0);
+
+        // Update tab button badge
+        const matchBtn = document.getElementById('matches-tab-btn');
+        if (matchBtn) {
+          const total = withMatches.reduce((n, g) => n + g.foundMatches.length, 0);
+          matchBtn.textContent = total > 0 ? '🔗 Matches (' + total + ')' : '🔗 Matches';
+        }
+
+        // On first load, notify the user if matches exist
+        if (!_matchesNotified && withMatches.length > 0) {
+          _matchesNotified = true;
+          const total = withMatches.reduce((n, g) => n + g.foundMatches.length, 0);
+          showToast(
+            '🔗 ' + total + ' potential match' + (total !== 1 ? 'es' : '') +
+            ' found for your missing item' + (withMatches.length !== 1 ? 's' : '') +
+            '! Check the Matches tab.',
+            'success'
+          );
+        }
+
+        if (results.length === 0) {
+          el.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🔗</div>
+              <h3>No missing items to match</h3>
+              <p class="text-muted">Report a missing item and we'll automatically look for potential matches among found items.</p>
+              <a href="/report-missing.html" class="btn btn-primary mt-4">Report a Missing Item</a>
+            </div>`;
+          return;
+        }
+
+        if (withMatches.length === 0) {
+          el.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🔍</div>
+              <h3>No matches found yet</h3>
+              <p class="text-muted">We're comparing your missing items against found items. Check back as new items are reported.</p>
+            </div>`;
+          return;
+        }
+
+        el.innerHTML = withMatches.map(group => matchGroup(group)).join('');
+      } catch (err) {
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function matchGroup(group) {
+      const mi = group.missingItem;
+      return `
+        <div class="match-group">
+          <div class="match-group-header">
+            <div>
+              <span style="font-size:1.2rem">${categoryEmoji(mi.category)}</span>
+              <strong>${escapeHtml(mi.itemName)}</strong>
+              <span class="text-muted" style="font-size:0.8125rem;margin-left:0.5rem">${escapeHtml(mi.category)}</span>
+            </div>
+            <span class="text-muted" style="font-size:0.8125rem">${group.foundMatches.length} match${group.foundMatches.length !== 1 ? 'es' : ''}</span>
+          </div>
+          <div class="match-cards">
+            ${group.foundMatches.map(m => matchCard(m)).join('')}
+          </div>
+        </div>`;
+    }
+
+    function matchCard(match) {
+      const item = match.item;
+      const strength = match.score >= 60 ? 'Strong' : match.score >= 30 ? 'Possible' : 'Weak';
+      const strengthClass = match.score >= 60 ? 'match-strong' : match.score >= 30 ? 'match-possible' : 'match-weak';
+
+      const thumb = item.photo
+        ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="" class="match-thumb">`
+        : `<div class="match-thumb-placeholder">${categoryEmoji(item.category)}</div>`;
+
+      const reasonTags = match.reasons.map(r => `<span class="match-reason">${escapeHtml(r)}</span>`).join('');
+
+      return `
+        <div class="match-card-item">
+          ${thumb}
+          <div class="match-card-body">
+            <div class="match-card-top">
+              <a href="/item.html?id=${escapeHtml(item.id)}" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a>
+              <span class="badge ${strengthClass}">${strength} Match</span>
+            </div>
+            <div class="text-muted" style="font-size:0.8125rem;margin-bottom:0.375rem">
+              📍 ${escapeHtml(item.locationFound)} &middot; ${formatDate(item.dateFound)}
+            </div>
+            <div class="match-reasons">${reasonTags}</div>
+            <a href="/claim.html?itemId=${escapeHtml(item.id)}&type=found" class="btn btn-outline btn-sm" style="margin-top:0.5rem">Claim This Item</a>
+          </div>
+        </div>`;
+    }
+
+    // ── Messages tab ──────────────────────────────────────────────────────────
+    // _inboxMessages caches the last-fetched messages so reply buttons can look
+    // up message objects by index without re-fetching from the server.
+    let _inboxMessages = [];
+    let _myEmail = '';
+
+    async function loadMessages() {
+      const el = document.getElementById('messages-content');
+      try {
+        const [inbox, sent] = await Promise.all([
+          api.get('/messages/inbox'),
+          api.get('/messages/sent')
+        ]);
+
+        // Merge and deduplicate (a reply to your own thread appears in both)
+        const seen = new Set();
+        const merged = [];
+        for (const m of [...inbox, ...sent]) {
+          if (!seen.has(m.id)) { seen.add(m.id); merged.push(m); }
+        }
+        merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        _inboxMessages = merged;
+        renderMessages(el, merged);
+
+        // Update the tab label to show a message count
+        const btn = document.getElementById('messages-tab-btn');
+        if (btn) {
+          btn.textContent = merged.length > 0
+            ? '💬 Messages (' + merged.length + ')'
+            : '💬 Messages';
+        }
+      } catch (err) {
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function renderMessages(el, messages) {
+      if (messages.length === 0) {
+        el.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">💬</div>
+            <h3>No messages yet</h3>
+            <p class="text-muted">
+              Messages from finders and claimers appear here once claims are approved.
+            </p>
+          </div>`;
+        return;
+      }
+
+      el.innerHTML = `<div class="msg-list">${messages.map(msgCard).join('')}</div>`;
+    }
+
+    function msgCard(msg, idx) {
+      const timeStr  = formatMessageTime(msg.timestamp);
+      const safeBody = escapeHtml(msg.content);
+      const safeItem = escapeHtml(msg.itemName || 'Lost & Found Item');
+      const isSent   = msg.senderEmail === _myEmail;
+
+      // Show a quote snippet only if this message is itself a reply
+      const quoteBlock = msg.replyToId
+        ? `<div class="msg-reply-quote">↩ Reply to an earlier message</div>`
+        : '';
+
+      // Direction label: "To: …" for sent messages, "From: …" for received
+      const dirLabel = isSent
+        ? `<div class="msg-sender-name">To: ${escapeHtml(msg.receiverName || 'User')}</div>
+           <div class="msg-sender-email">${escapeHtml(msg.receiverEmail)}</div>`
+        : `<div class="msg-sender-name">From: ${escapeHtml(msg.senderName)}</div>
+           <div class="msg-sender-email">${escapeHtml(msg.senderEmail)}</div>`;
+
+      // Only show Reply button on received messages
+      const replyBtn = isSent ? '' : `
+          <button
+            data-reply-idx="${idx}"
+            class="btn btn-outline btn-sm"
+            style="font-size:0.8rem">
+            ↩ Reply
+          </button>`;
+
+      const deleteBtn = `
+          <button
+            data-delete-msg-id="${safeAttr(msg.id)}"
+            class="btn btn-ghost btn-sm"
+            style="font-size:0.8rem;color:#ef4444;border:1px solid #fecaca"
+            title="Delete this message">
+            🗑 Delete
+          </button>`;
+
+      return `
+        <div class="msg-card" id="msg-card-${safeAttr(msg.id)}">
+          <div class="msg-card-header">
+            <div>
+              ${dirLabel}
+            </div>
+            <div class="msg-time">${timeStr}</div>
+          </div>
+          <div class="msg-regarding">📦 Re: ${safeItem}</div>
+          ${quoteBlock}
+          <div class="msg-body">${safeBody}</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem">
+            ${replyBtn}
+            ${deleteBtn}
+          </div>
+        </div>`;
+    }
+
+    // Human-readable relative timestamp
+    function formatMessageTime(isoStr) {
+      if (!isoStr) return '';
+      const d       = new Date(isoStr);
+      const diffMs  = Date.now() - d.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 1)  return 'Just now';
+      if (diffMin < 60) return diffMin + 'm ago';
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24)  return diffHr + 'h ago';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // ── Delete a message ──────────────────────────────────────────────────────
+    async function deleteMessage(id) {
+      if (!confirm('Delete this message? This cannot be undone.')) return;
+      try {
+        await api.delete('/messages/' + id);
+        // Remove card from DOM immediately without a full reload
+        const card = document.getElementById('msg-card-' + id);
+        if (card) card.remove();
+        // If no cards remain, re-render the empty state
+        const list = document.querySelector('.msg-list');
+        if (list && list.children.length === 0) {
+          document.getElementById('messages-content').innerHTML = `
+            <div class="empty-state">
+              <div class="icon">💬</div>
+              <h3>No messages yet</h3>
+              <p class="text-muted">Messages from finders and claimers appear here once claims are approved.</p>
+            </div>`;
+        }
+        showToast('Message deleted.', 'success');
+        loadMessages(); // refresh count in tab label
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // ── Global click delegation ───────────────────────────────────────────────
+    // Handles "Message Finder", "Message Claimer" (data-msg-to), and
+    // "Reply" (data-reply-idx) buttons that live inside dynamically rendered HTML.
+    document.addEventListener('click', function(e) {
+      // Compose modal — triggered from Found Items or My Claims tabs
+      const msgBtn = e.target.closest('[data-msg-to]');
+      if (msgBtn) {
+        openMessageModal(
+          msgBtn.dataset.msgTo,
+          msgBtn.dataset.msgItemId,
+          msgBtn.dataset.msgItemName,
+          msgBtn.dataset.msgLabel
+        );
+        return;
+      }
+
+      // Reply modal — triggered from Messages tab inbox
+      const replyBtn = e.target.closest('[data-reply-idx]');
+      if (replyBtn) {
+        openReplyModal(parseInt(replyBtn.dataset.replyIdx, 10));
+        return;
+      }
+
+      // Delete message — triggered from Messages tab
+      const delBtn = e.target.closest('[data-delete-msg-id]');
+      if (delBtn) {
+        deleteMessage(delBtn.dataset.deleteMsgId);
+      }
+    });
+
+    // ── Message Modal ─────────────────────────────────────────────────────────
+    // Holds the receiver / item context for the currently open modal
+    let _msgState = { receiverEmail: '', itemId: '', itemName: '', replyToId: null };
+
+    // Open the compose modal to message a finder or claimer
+    function openMessageModal(receiverEmail, itemId, itemName, receiverLabel) {
+      _msgState = { receiverEmail, itemId, itemName, replyToId: null };
+
+      document.getElementById('msg-modal-title').textContent = 'Send Message';
+      document.getElementById('msg-modal-context').innerHTML =
+        '<strong>To:</strong> ' + escapeHtml(receiverLabel || receiverEmail) +
+        ' &nbsp;|&nbsp; <strong>Re:</strong> ' + escapeHtml(itemName);
+
+      const quoteEl = document.getElementById('msg-reply-quote');
+      quoteEl.textContent = '';
+      quoteEl.classList.add('hidden');
+
+      _resetModalForm();
+      document.getElementById('msg-modal-overlay').classList.remove('hidden');
+      document.getElementById('msg-textarea').focus();
+    }
+
+    // Open the reply modal pre-filled with context from an inbox message
+    function openReplyModal(idx) {
+      const msg = _inboxMessages[idx];
+      if (!msg) return;
+
+      _msgState = {
+        receiverEmail: msg.senderEmail,
+        itemId:        msg.itemId,
+        itemName:      msg.itemName,
+        replyToId:     msg.id
+      };
+
+      document.getElementById('msg-modal-title').textContent = 'Reply to Message';
+      document.getElementById('msg-modal-context').innerHTML =
+        '<strong>To:</strong> ' + escapeHtml(msg.senderName) + ' (' + escapeHtml(msg.senderEmail) + ')' +
+        ' &nbsp;|&nbsp; <strong>Re:</strong> ' + escapeHtml(msg.itemName || 'item');
+
+      const quoteEl = document.getElementById('msg-reply-quote');
+      const preview = msg.content.length > 200 ? msg.content.slice(0, 200) + '…' : msg.content;
+      quoteEl.textContent = '"' + preview + '"';
+      quoteEl.classList.remove('hidden');
+
+      _resetModalForm();
+      document.getElementById('msg-modal-overlay').classList.remove('hidden');
+      document.getElementById('msg-textarea').focus();
+    }
+
+    function _resetModalForm() {
+      document.getElementById('msg-textarea').value  = '';
+      document.getElementById('msg-char-count').textContent = '0';
+      document.getElementById('msg-error').classList.add('hidden');
+      document.getElementById('msg-send-btn').disabled = false;
+      document.getElementById('msg-send-btn').textContent = '✉️ Send Message';
+    }
+
+    function closeMessageModal() {
+      document.getElementById('msg-modal-overlay').classList.add('hidden');
+    }
+
+    // Close when clicking the dark background, not the modal card itself
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('msg-modal-overlay')) {
+        closeMessageModal();
+      }
+    }
+
+    // Live character count update
+    function updateCharCount() {
+      const len = document.getElementById('msg-textarea').value.length;
+      document.getElementById('msg-char-count').textContent = len;
+    }
+
+    // Send button handler — performs client-side validation before hitting the API
+    async function sendMessage() {
+      const content  = document.getElementById('msg-textarea').value.trim();
+      const errorEl  = document.getElementById('msg-error');
+      const sendBtn  = document.getElementById('msg-send-btn');
+
+      // Syntactic validation: field is required
+      if (!content) {
+        errorEl.textContent = 'Please enter a message before sending.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // Semantic validation: message must be meaningful and within limits
+      if (content.length < 5) {
+        errorEl.textContent = 'Your message is too short — please include at least 5 characters.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      if (content.length > 1000) {
+        errorEl.textContent = 'Message exceeds 1000 characters. Please shorten it.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      errorEl.classList.add('hidden');
+      sendBtn.disabled     = true;
+      sendBtn.textContent  = 'Sending…';
+
+      try {
+        await api.post('/messages', {
+          receiverEmail: _msgState.receiverEmail,
+          itemId:        _msgState.itemId,
+          itemName:      _msgState.itemName,
+          content,
+          replyToId:     _msgState.replyToId
+        });
+
+        closeMessageModal();
+        showToast('Message sent!', 'success');
+        // Refresh the inbox so a reply appears immediately if the user sent to themselves
+        loadMessages();
+      } catch (err) {
+        errorEl.textContent = err.message || 'Failed to send message. Please try again.';
+        errorEl.classList.remove('hidden');
+        sendBtn.disabled    = false;
+        sendBtn.textContent = '✉️ Send Message';
+      }
+    }
+
+    // Keyboard: Escape closes the modal
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeMessageModal();
+    });
   </script>
 </body>
 </html>

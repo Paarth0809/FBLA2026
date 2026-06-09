@@ -111,12 +111,17 @@ router.get('/me', (req, res) => {
 router.delete('/account', requireAuth, (req, res) => {
   const uid = req.session.userId;
 
+  // Capture the user's email before deletion so we can scrub their messages.
+  const allUsers = readJSON('users.json');
+  const userToDelete = allUsers.find(u => u.id === uid);
+  const userEmail = userToDelete ? userToDelete.email.toLowerCase() : null;
+
   // Collect item IDs before deleting so we can clean up claims that reference them
   const myItemIds    = new Set(readJSON('items.json')         .filter(i => i.submittedBy === uid).map(i => i.id));
   const myMissingIds = new Set(readJSON('missing-items.json') .filter(i => i.submittedBy === uid).map(i => i.id));
 
   // Remove the user record
-  writeJSON('users.json',         readJSON('users.json')         .filter(u => u.id !== uid));
+  writeJSON('users.json',         allUsers.filter(u => u.id !== uid));
 
   // Remove all items and missing items this user submitted
   writeJSON('items.json',         readJSON('items.json')         .filter(i => i.submittedBy !== uid));
@@ -128,6 +133,14 @@ router.delete('/account', requireAuth, (req, res) => {
     !myItemIds.has(c.itemId) &&
     !myMissingIds.has(c.itemId)
   ));
+
+  // Remove all messages involving this user (PII cleanup)
+  if (userEmail) {
+    writeJSON('messages.json', readJSON('messages.json').filter(
+      m => m.senderEmail.toLowerCase() !== userEmail &&
+           m.receiverEmail.toLowerCase() !== userEmail
+    ));
+  }
 
   // End the session so the browser is logged out
   req.session.destroy(() => res.json({ message: 'Account deleted.' }));

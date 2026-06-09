@@ -192,6 +192,123 @@ function assert(condition, message) {
   if (!condition) throw new Error(message || 'Assertion failed');
 }
 
+// ── Matching unit tests (pure, no server needed) ──────────────
+function runMatcherTests() {
+  const { scoreMatch, findMatchesForMissingItems, getObjectFamily } = require('../server/lib/matcher');
+
+  console.log('\n🔗  Matching Logic (unit tests)');
+  console.log('────────────────────────────────────────────────');
+
+  function matcherTest(name, fn) {
+    try {
+      fn();
+      console.log(`  ✅  ${name}`);
+      results.passed++;
+    } catch (err) {
+      console.log(`  ❌  ${name}`);
+      console.log(`       → ${err.message}`);
+      results.failed++;
+      results.errors.push({ name, error: err.message });
+    }
+  }
+
+  const airpods  = { itemName: 'AirPods', category: 'Electronics', description: 'Lost my AirPods', lastSeenLocation: 'Cafeteria' };
+  const earbuds  = { itemName: 'White Wireless Earbuds', category: 'Electronics', description: 'White AirPods in charging case', locationFound: 'Gym' };
+  const macbook  = { itemName: 'MacBook Pro', category: 'Electronics', description: '14-inch MacBook Pro', locationFound: 'Library' };
+  const charger  = { itemName: 'MacBook Charger', category: 'Electronics', description: 'USB-C charger', locationFound: 'Cafeteria' };
+  const backpack = { itemName: 'Blue Backpack', category: 'Bags & Backpacks', description: 'Blue Nike backpack', locationFound: 'Cafeteria' };
+  const hydroFlaskMissing = { itemName: 'Blue Hydro Flask', category: 'Other', description: 'Blue 24oz water bottle', lastSeenLocation: 'Cafeteria' };
+  const hydroFlaskFound   = { itemName: 'Red Hydro Flask Water Bottle', category: 'Other', description: '32oz hydro flask', locationFound: 'Track' };
+
+  matcherTest('AirPods matches white wireless earbuds (same family)', () => {
+    const { score, strongSignal, reasons } = scoreMatch(airpods, earbuds);
+    assert(strongSignal, 'Expected strongSignal=true. Reasons: ' + JSON.stringify(reasons));
+    assert(score >= 20, `Expected score >= 20, got ${score}`);
+  });
+
+  matcherTest('AirPods does NOT match MacBook charger', () => {
+    const { score, strongSignal } = scoreMatch(airpods, charger);
+    assert(!strongSignal || score < 20, `Expected no match (score=${score}, strongSignal=${strongSignal})`);
+  });
+
+  matcherTest('Category-only Electronics match is rejected', () => {
+    const { score, strongSignal } = scoreMatch(airpods, macbook);
+    assert(!strongSignal || score < 20, `Expected no match (score=${score}, strongSignal=${strongSignal})`);
+  });
+
+  matcherTest('Same location alone is rejected', () => {
+    const missingAirpods = { ...airpods, lastSeenLocation: 'Cafeteria' };
+    const foundBackpack  = { ...backpack, locationFound: 'Cafeteria' };
+    const { score, strongSignal } = scoreMatch(missingAirpods, foundBackpack);
+    assert(!strongSignal || score < 20, `Expected no match (score=${score}, strongSignal=${strongSignal})`);
+  });
+
+  matcherTest('Hydro Flask matches water bottle (same family)', () => {
+    const { score, strongSignal, reasons } = scoreMatch(hydroFlaskMissing, hydroFlaskFound);
+    assert(strongSignal, 'Expected strongSignal=true. Reasons: ' + JSON.stringify(reasons));
+    assert(score >= 20, `Expected score >= 20, got ${score}`);
+  });
+
+  matcherTest('AI profile keyword overlap (>=2) produces a strong signal', () => {
+    const withAI = {
+      ...airpods,
+      aiProfile: { keywords: ['white', 'earbuds', 'wireless', 'case'], color: 'white', brand: 'apple', material: 'plastic', distinguishingFeatures: [] }
+    };
+    const foundWithAI = {
+      ...earbuds,
+      aiProfile: { keywords: ['white', 'earbuds', 'airpods', 'charging'], color: 'white', brand: 'apple', material: 'plastic', distinguishingFeatures: [] }
+    };
+    const { score, strongSignal, reasons } = scoreMatch(withAI, foundWithAI);
+    assert(strongSignal, 'Expected strongSignal=true from AI overlap. Reasons: ' + JSON.stringify(reasons));
+    assert(score >= 20, `Expected score >= 20, got ${score}`);
+  });
+
+  matcherTest('AI Apple keyword overlap does NOT match different object families', () => {
+    const macbookWithAI = {
+      ...macbook,
+      aiProfile: {
+        keywords: ['laptop', 'computer', 'electronics', 'apple', 'portable'],
+        color: 'space gray',
+        brand: 'apple',
+        material: 'aluminum',
+        distinguishingFeatures: []
+      }
+    };
+    const airpodsWithAI = {
+      ...earbuds,
+      aiProfile: {
+        keywords: ['wireless earbuds', 'electronics', 'apple', 'portable', 'charging case'],
+        color: 'white',
+        brand: 'apple',
+        material: 'plastic',
+        distinguishingFeatures: []
+      }
+    };
+    const { score, strongSignal, reasons } = scoreMatch(macbookWithAI, airpodsWithAI);
+    assert(!strongSignal && score < 20, `Expected no match (score=${score}, strongSignal=${strongSignal}, reasons=${JSON.stringify(reasons)})`);
+  });
+
+  matcherTest('findMatchesForMissingItems returns only earbuds match for AirPods', () => {
+    const missingList = [{ ...airpods, id: 'm1', status: 'approved', submittedBy: 'u1' }];
+    const foundPool   = [
+      { ...charger,  id: 'f1', status: 'approved' },
+      { ...macbook,  id: 'f2', status: 'approved' },
+      { ...earbuds,  id: 'f3', status: 'approved' },
+    ];
+    const groups = findMatchesForMissingItems(missingList, foundPool);
+    const matches = groups[0].foundMatches;
+    assert(matches.length === 1, `Expected 1 match, got ${matches.length}: ${matches.map(m => m.item.itemName)}`);
+    assert(matches[0].item.id === 'f3', 'Expected only earbuds (f3) to match');
+  });
+
+  matcherTest('getObjectFamily identifies AirPods as earbuds family', () => {
+    assert(getObjectFamily('AirPods Pro') === 'earbuds', 'AirPods should be earbuds family');
+    assert(getObjectFamily('Hydro Flask') === 'bottle',  'Hydro Flask should be bottle family');
+    assert(getObjectFamily('MacBook charger') === 'charger', 'MacBook charger should be charger family');
+    assert(getObjectFamily('random item xyz') === null,  'Unknown item should return null');
+  });
+}
+
 // ── Main test suite ───────────────────────────────────────────
 async function runTests() {
   console.log('\n🔍  School Lost & Found — Test Suite');
@@ -753,6 +870,9 @@ async function runTests() {
 
 // ── Entry point ───────────────────────────────────────────────
 (async () => {
+  // Run pure unit tests first (no server needed)
+  runMatcherTests();
+
   console.log('\nStarting test server on port 3001…');
   await startServer();
   try {

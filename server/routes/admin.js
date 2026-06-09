@@ -13,6 +13,7 @@
 const express = require('express');
 const { readJSON, writeJSON } = require('../lib/db');
 const { requireAdmin } = require('../middleware/auth');
+const { generateAndSave } = require('../lib/aiProfile');
 
 const router = express.Router();
 
@@ -38,6 +39,10 @@ router.put('/items/:id/approve', (req, res) => {
   if (i === -1) return res.status(404).json({ error: 'Item not found.' });
   items[i].status = 'approved';
   writeJSON('items.json', items);
+
+  // Generate AI profile on approve if item has a photo and no profile yet
+  if (items[i].photo && !items[i].aiProfile) generateAndSave(items[i].id, 'found');
+
   res.json(items[i]);
 });
 
@@ -90,6 +95,10 @@ router.put('/missing-items/:id/approve', (req, res) => {
   if (i === -1) return res.status(404).json({ error: 'Item not found.' });
   items[i].status = 'approved';
   writeJSON('missing-items.json', items);
+
+  // Generate AI profile on approve if item has a photo and no profile yet
+  if (items[i].photo && !items[i].aiProfile) generateAndSave(items[i].id, 'missing');
+
   res.json(items[i]);
 });
 
@@ -169,6 +178,26 @@ router.delete('/claims/:id', (req, res) => {
   claims.splice(i, 1);
   writeJSON('claims.json', claims);
   res.json({ message: 'Deleted.' });
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  MESSAGES — read-only oversight
+// ════════════════════════════════════════════════════════════════════
+
+// GET /api/admin/messages?itemId=xxx
+// Returns all messages related to a specific item, sorted oldest-first so
+// admins can read the conversation as a chronological thread.
+// itemId is required — omitting it returns a 400 rather than dumping every message.
+router.get('/messages', (req, res) => {
+  const { itemId } = req.query;
+  if (!itemId || typeof itemId !== 'string' || !itemId.trim()) {
+    return res.status(400).json({ error: 'itemId query parameter is required.' });
+  }
+  const messages = readJSON('messages.json');
+  const thread = messages
+    .filter(m => m.itemId === itemId.trim())
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); // oldest first
+  res.json(thread);
 });
 
 module.exports = router;

@@ -1,16 +1,83 @@
 [
   {
-    "id": "1993cfc6-8c9e-4905-8322-8abb2a38d340",
-    "itemName": "r",
-    "category": "Keys & ID Cards",
-    "description": "5555555555",
-    "locationFound": "5",
-    "dateFound": "0005-05-05",
-    "contactEmail": "admin@school.edu",
+    "id": "9f2b7482-d85b-44f9-a98e-c99bab017353",
+    "itemName": "Northface Jacket",
+    "category": "Clothing",
+    "description": "It is black puffy, and warm",
+    "locationFound": "math class",
+    "dateFound": "2026-03-12",
+    "contactEmail": "student@school.edu",
+    "photo": "de32bca5-4bf1-4b6d-b954-90ea4bfdf313.jpg",
+    "status": "claimed",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-03-13T14:49:24.125Z"
+  },
+  {
+    "id": "e284dee4-47bf-42ec-a0d8-7f8592719d82",
+    "itemName": "Airpods",
+    "category": "Electronics",
+    "description": "white and mine",
+    "locationFound": "library",
+    "dateFound": "2026-06-03",
+    "contactEmail": "student@school.edu",
+    "photo": "9eb7f873-8b7f-4276-862c-bfefa99fd792.jpeg",
+    "status": "claimed",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-06-05T01:52:25.057Z"
+  },
+  {
+    "id": "45b8d2c4-05aa-480d-90c2-e6275b5a0580",
+    "itemName": "Airpods",
+    "category": "Electronics",
+    "description": "23r23r4rt23gg",
+    "locationFound": "library",
+    "dateFound": "2026-06-05",
+    "contactEmail": "student@school.edu",
     "photo": null,
     "status": "claimed",
-    "submittedBy": "admin-001",
-    "submitterName": "Administrator",
-    "createdAt": "2026-03-12T05:28:08.273Z"
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-06-07T00:01:06.120Z"
+  },
+  {
+    "id": "23d6d4d8-e47a-483c-a047-06e92eda1aee",
+    "itemName": "Airpods",
+    "category": "Electronics",
+    "description": "uhm, it might have scratches",
+    "locationFound": "library",
+    "dateFound": "2026-06-09",
+    "contactEmail": "student2@school.edu",
+    "photo": "0414661b-a1ca-4ccc-ac88-aa944e675107.jpg",
+    "status": "approved",
+    "submittedBy": "user-002",
+    "submitterName": "Jordan Lee",
+    "createdAt": "2026-06-09T19:31:42.023Z",
+    "aiProfile": {
+      "keywords": [
+        "wireless earbuds",
+        "apple airpods pro",
+        "bluetooth headphones",
+        "white",
+        "charging case",
+        "electronics",
+        "in-ear",
+        "portable audio",
+        "true wireless",
+        "apple"
+      ],
+      "color": "white",
+      "brand": "Apple",
+      "material": "plastic",
+      "distinguishingFeatures": [
+        "white, compact, rounded charging case with lid open",
+        "two white in-ear style earbuds visible inside",
+        "dark ear tips on the earbuds are visible",
+        "small dark opening at the bottom of the case (charging port)",
+        "glossy finish on the case and earbuds"
+      ],
+      "detailedDescription": "The item is a pair of white Apple AirPods Pro, presented in its open charging case. The case is compact, with a smooth, glossy white finish and rounded edges, characteristic of Apple's design. Inside, two individual white in-ear style earbuds are clearly visible, each featuring a black ear tip. The charging case lid is fully open, revealing the internal compartments for the earbuds. The item rests on a light brown wooden surface, possibly a floor or table, with visible wood grain and reflections. A part of a person's arm or leg is visible on the left side of the frame, and a white cable end is partially visible on the bottom right."
+    }
   }
 ]

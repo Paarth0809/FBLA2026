@@ -1,44 +1,108 @@
 [
   {
-    "id": "ff6f429f-f6a8-48e9-8f62-89f5d8cb8f57",
+    "id": "5d6fd96e-5b45-4fa2-84f4-3909b42750aa",
     "itemName": "Macbook",
     "category": "Electronics",
-    "description": "Sliver, thin, apple logo, has some stickers on it.",
-    "lastSeenLocation": "cafeteria",
-    "lastSeenDate": "2026-03-12",
-    "contactEmail": "student@school.edu",
-    "photo": "f6c5c7bf-b31d-4e42-879e-1a1a89694cb3.jpeg",
-    "status": "found",
-    "submittedBy": "user-001",
-    "submitterName": "Alex Chen",
-    "createdAt": "2026-03-12T05:22:59.147Z"
-  },
-  {
-    "id": "4b921b4d-b11d-4c44-9d76-8dbcc2373065",
-    "itemName": "Macbook",
-    "category": "Electronics",
-    "description": "sliver, sleek, has stickers",
+    "description": "sleek, silver",
     "lastSeenLocation": "library",
-    "lastSeenDate": "2026-03-12",
+    "lastSeenDate": "2026-03-13",
     "contactEmail": "student@school.edu",
-    "photo": "ee263ecf-01d2-4dd3-a183-cfda1858480e.jpeg",
-    "status": "found",
-    "submittedBy": "user-001",
-    "submitterName": "Alex Chen",
-    "createdAt": "2026-03-12T05:34:55.585Z"
-  },
-  {
-    "id": "f8a1ed29-ced8-4fc9-903b-b101db1caaaa",
-    "itemName": "phone",
-    "category": "Electronics",
-    "description": "iphone 12 pro max.",
-    "lastSeenLocation": "math class",
-    "lastSeenDate": "2026-03-12",
-    "contactEmail": "student@school.edu",
-    "photo": null,
+    "photo": "f8a8f9f3-a93b-451e-af23-54e62d034cb6.jpeg",
     "status": "approved",
     "submittedBy": "user-001",
     "submitterName": "Alex Chen",
-    "createdAt": "2026-03-12T06:16:08.058Z"
+    "createdAt": "2026-03-13T13:44:40.587Z",
+    "aiProfile": {
+      "keywords": [
+        "laptop",
+        "notebook",
+        "computer",
+        "electronics",
+        "apple",
+        "macbook",
+        "space gray",
+        "portable",
+        "aluminum",
+        "personal computer"
+      ],
+      "color": "Space Gray (body), black (keyboard), screen displays orange/red gradient",
+      "brand": "Apple",
+      "material": "aluminum",
+      "distinguishingFeatures": [
+        "Prominent screen notch at the top center",
+        "Large, dark, multi-touch trackpad",
+        "Recessed black island-style keyboard",
+        "Space Gray metallic finish on the chassis",
+        "Charging cable connected to the left side port"
+      ],
+      "detailedDescription": "This is a modern, sleek laptop with a dark grey (Space Gray) metallic finish. The device features a large, edge-to-edge display with minimal bezels and a distinctive notch at the top center. The screen is currently active, showcasing a vibrant orange and red gradient wallpaper. Below the display is a recessed black island-style keyboard with individual keys, and beneath that, a generously sized, dark multi-touch trackpad is centrally located. A silver braided charging cable is visibly connected to a port on the left side of the laptop's chassis. The overall design emphasizes a minimalist and high-end aesthetic."
+    }
+  },
+  {
+    "id": "e98f4e91-fd1b-46f0-85ee-280a329cf687",
+    "itemName": "Northface Jacket",
+    "category": "Clothing",
+    "description": "Its big black and puffy",
+    "lastSeenLocation": "library",
+    "lastSeenDate": "2026-03-12",
+    "contactEmail": "student@school.edu",
+    "photo": "ccc9c291-7a15-486a-b86e-e7ab8bea73ec.jpg",
+    "status": "found",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-03-13T13:54:41.204Z"
+  },
+  {
+    "id": "c020f4f9-cf91-4d03-96a8-5d68d0b32eea",
+    "itemName": "Macbook",
+    "category": "Electronics",
+    "description": "It's silver, 16 inch, and important",
+    "lastSeenLocation": "math class",
+    "lastSeenDate": "2026-03-12",
+    "contactEmail": "student@school.edu",
+    "photo": "cd3c8f67-7c1c-41e4-b590-0e60905c05a1.jpeg",
+    "status": "approved",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-03-13T14:49:35.883Z"
+  },
+  {
+    "id": "0f85690d-c335-41b1-a9b6-40a685a2b467",
+    "itemName": "Airpods",
+    "category": "Electronics",
+    "description": "small, white, small scratches, pro gen 2",
+    "lastSeenLocation": "library",
+    "lastSeenDate": "2026-06-08",
+    "contactEmail": "student@school.edu",
+    "photo": "1d211f5b-51e5-4eea-841f-721fd8b8ac6c.png",
+    "status": "approved",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-06-09T19:21:40.909Z",
+    "aiProfile": {
+      "keywords": [
+        "airpods pro",
+        "charging case",
+        "wireless earbuds",
+        "apple",
+        "electronics",
+        "white",
+        "portable",
+        "audio accessory",
+        "gen 2",
+        "scratched"
+      ],
+      "color": "white",
+      "brand": "Apple",
+      "material": "plastic",
+      "distinguishingFeatures": [
+        "small black dot on front surface below lid seam",
+        "minor scuffs and scratches visible on the case",
+        "distinctive oval shape with rounded edges",
+        "single LED indicator light on the front",
+        "identified as AirPods Pro 2nd Generation"
+      ],
+      "detailedDescription": "A white Apple AirPods Pro (2nd generation) charging case is depicted, resting on a white fabric with festive red and grey patterns. The case is small, compact, and has a smooth, glossy finish with rounded edges, typical of Apple's design. A clear horizontal seam separates the lid from the main body. On the front surface, below the lid seam, there is a small, subtle LED indicator light and a noticeable small black dot or mark. The surface of the case also shows several minor scuffs and scratches, indicative of regular use."
+    }
   }
 ]

@@ -15,6 +15,7 @@ const path    = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { readJSON, writeJSON } = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
+const { generateAndSave } = require('../lib/aiProfile');
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },  // reject files larger than 5 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // reject files larger than 10 MB
   fileFilter: (req, file, cb) => {
     // Only allow image files — reject PDFs, executables, etc.
     if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -136,6 +137,9 @@ router.post('/', requireAuth, upload.single('photo'), (req, res) => {
     const items = readJSON('items.json');
     items.push(item);
     writeJSON('items.json', items);
+
+    // Fire-and-forget: generate AI profile from photo (if AI matching is enabled)
+    if (item.photo) generateAndSave(item.id, 'found');
 
     res.json({ message: 'Item submitted! An administrator will review it shortly.', item });
   } catch (err) {
