@@ -1,37 +1,73 @@
 <!DOCTYPE html>
-<!-- item.html — Found item detail page
-     Reads ?id= from the URL, fetches the item from GET /api/items/:id,
-     and renders its full details. If the item is approved and the user is
-     logged in, a "Submit a Claim" button is shown.
-
-     Race-condition note: nav.js (userLoaded) and loadItem() are both async.
-     Either one can resolve first. updateClaimArea() is called from both so
-     the claim button always appears regardless of which resolves last. -->
+<!-- item.html — Found item detail page -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Item Details – School Lost & Found</title>
+  <title>Item Details – Green Level Lost &amp; Found</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          "primary": "#006c49", "on-primary": "#ffffff",
+          "primary-container": "#10b981", "on-primary-container": "#00422b",
+          "surface": "#f4fbf4", "surface-bright": "#f4fbf4",
+          "surface-container-lowest": "#ffffff", "surface-container-low": "#eef6ee",
+          "surface-container": "#e8f0e9", "surface-container-high": "#e3eae3",
+          "surface-container-highest": "#dde4dd", "surface-variant": "#dde4dd",
+          "on-surface": "#161d19", "on-surface-variant": "#3c4a42",
+          "outline": "#6c7a71", "outline-variant": "#bbcabf",
+          "inverse-surface": "#2b322d",
+        },
+        fontFamily: { "headline": ["'Plus Jakarta Sans'", "sans-serif"] },
+        maxWidth: { "container": "1280px" },
+      }}
+    }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .detail-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 768px) { .detail-grid { grid-template-columns: 7fr 5fr; } }
+    .detail-img { border-radius: 1rem; border: 1px solid #dde4dd; overflow: hidden; background: #e8f0e9; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    .detail-img img { width: 100%; height: 100%; object-fit: cover; }
+    .detail-fields { display: flex; flex-direction: column; gap: 1rem; }
+    .detail-field { border-bottom: 1px solid #e3eae3; padding-bottom: 0.875rem; }
+    .detail-field:last-child { border-bottom: none; }
+    .detail-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6c7a71; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.375rem; }
+    .detail-value { font-size: 0.9375rem; color: #161d19; }
+  </style>
 </head>
-<body class="page">
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
 
-  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
-  <nav class="navbar">
-    <div class="container">
-      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
-      <div class="nav-links">
-        <a href="/search.html"         class="hide-mobile">Found Items</a>
-        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
-        <div id="nav-auth"></div>
+  <!-- Navbar -->
+  <nav class="fixed top-0 w-full z-50 bg-inverse-surface border-b border-white/5" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
+    <div class="max-w-container mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-lg text-white hover:text-primary-container transition-colors">
+        <span class="material-symbols-outlined filled text-primary-container" style="font-size:22px">search</span>
+        Green Level Lost &amp; Found
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="/search.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Found Items</a>
+        <a href="/search-missing.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Missing Items</a>
+        <div id="nav-auth" class="flex items-center gap-2 ml-2"></div>
       </div>
     </div>
   </nav>
 
-  <main>
-    <div class="container" style="max-width:900px">
-      <a href="/search.html" class="btn btn-ghost btn-sm mb-6">← Back to Search</a>
-
+  <main class="flex-1 pt-16 pb-12">
+    <div class="max-w-container mx-auto px-4 md:px-6 py-8">
+      <!-- Breadcrumb -->
+      <a href="/search.html" class="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary text-sm font-medium transition-colors mb-6">
+        <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+        Back to Found Items
+      </a>
       <!-- Item content injected by render() after the API call resolves -->
       <div id="content">
         <div class="loading-center"><div class="spinner" role="status" aria-label="Loading item"></div></div>
@@ -39,46 +75,54 @@
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
+  <footer class="bg-inverse-surface py-8">
+    <div class="max-w-container mx-auto px-6 text-center">
+      <p class="text-white/50 text-sm">© 2026 Green Level Lost &amp; Found.</p>
+    </div>
   </footer>
 
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
-    // Read the item ID from the URL query string (e.g. /item.html?id=abc-123)
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get('id');
-
-    // Holds the item once loaded — shared between loadItem() and updateClaimArea()
     let loadedItem = null;
 
-    // updateClaimArea — injects the correct claim UI based on login state and item status.
-    // Called from both the userLoaded event and after loadItem() resolves, because either
-    // one can finish first depending on network timing.
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function safeAttr(str) {
+      return escapeHtml(str).replace(/`/g, '&#96;');
+    }
+
     function updateClaimArea() {
       const area = document.getElementById('claim-area');
-      if (!area || !loadedItem) return;        // not ready yet — the other call will handle it
-      if (loadedItem.status !== 'approved') return; // claimed/rejected items don't need a claim button
-
+      if (!area || !loadedItem) return;
+      if (loadedItem.status !== 'approved') return;
+      const loginRedirect = encodeURIComponent('/item.html?id=' + loadedItem.id);
       if (currentUser) {
-        // Logged-in user: show the claim button linking to claim.html with this item's ID
         area.innerHTML = `
-          <a href="/claim.html?id=${loadedItem.id}&type=found" class="btn btn-primary btn-lg w-full mt-4">
-            📋 This Is Mine — Submit a Claim
+          <a href="/claim.html?id=${encodeURIComponent(loadedItem.id)}&type=found" class="btn btn-primary btn-lg w-full mt-4">
+            <span style="font-size:18px" class="material-symbols-outlined">pan_tool</span>
+            This Is Mine — Submit a Claim
           </a>`;
       } else {
-        // Logged-out visitor: prompt them to sign in first
         area.innerHTML = `
           <div class="alert alert-info">
-            <span>ℹ️</span>
-            <span><a href="/login.html?redirect=/item.html?id=${loadedItem.id}" style="font-weight:600;color:#43B02A">Sign in</a>
+            <span class="material-symbols-outlined">info</span>
+            <span><a href="/login.html?redirect=${loginRedirect}" style="font-weight:600;color:#006c49">Sign in</a>
             to submit a claim for this item.</span>
           </div>`;
       }
     }
 
-    // Register the listener before any async calls so it's always in place
     document.addEventListener('userLoaded', updateClaimArea);
 
     async function loadItem() {
@@ -89,63 +133,73 @@
       }
       try {
         const item = await api.get(`/items/${itemId}`);
-        document.title = `${item.itemName} – School Lost & Found`;
+        document.title = `${item.itemName} – Green Level Lost & Found`;
         loadedItem = item;
         render(item);
-        // Call directly in case userLoaded already fired before this resolved
         updateClaimArea();
       } catch (err) {
         content.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
     }
 
-    // Builds and injects the full item detail layout into #content
     function render(item) {
-      // Show photo if uploaded, otherwise display a large category emoji
       const img = item.photo
-        ? `<img src="/uploads/${item.photo}" alt="${item.itemName}">`
+        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}">`
         : `<span style="font-size:5rem">${categoryEmoji(item.category)}</span>`;
 
-      // Show a success banner when the item has already been claimed
       const claimedBanner = (item.status === 'claimed')
-        ? `<div class="alert alert-success mb-4">✓ This item has been claimed and returned to its owner.</div>`
+        ? `<div class="alert alert-success mb-4"><span class="material-symbols-outlined">check_circle</span> This item has been claimed and returned to its owner.</div>`
         : '';
 
       document.getElementById('content').innerHTML = `
         ${claimedBanner}
-        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <h1 style="font-size:1.75rem;font-weight:800">${item.itemName}</h1>
-          ${statusBadge(item.status)}
-        </div>
         <div class="detail-grid">
-          <div class="detail-img">${img}</div>
+          <!-- Left: hero image -->
           <div>
-            <div class="detail-fields">
-              <div class="detail-field">
-                <div class="detail-label">Category</div>
-                <div class="detail-value"><span class="badge badge-category">${item.category}</span></div>
+            <div class="detail-img">${img}</div>
+          </div>
+          <!-- Right: info card + action card -->
+          <div class="flex flex-col gap-4">
+            <!-- Info card -->
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow">
+              <div class="flex items-start justify-between gap-3 mb-4">
+                <h1 class="font-headline font-bold text-2xl text-on-surface leading-tight">${escapeHtml(item.itemName)}</h1>
+                ${statusBadge(item.status)}
               </div>
-              <div class="detail-field">
-                <div class="detail-label">Description</div>
-                <div class="detail-value">${item.description}</div>
-              </div>
-              <div class="detail-field">
-                <div class="detail-label">📍 Where It Was Found</div>
-                <div class="detail-value">${item.locationFound}</div>
-              </div>
-              <div class="detail-field">
-                <div class="detail-label">📅 Date Found</div>
-                <div class="detail-value">${formatDate(item.dateFound)}</div>
-              </div>
-              <div class="detail-field">
-                <div class="detail-label">Reported By</div>
-                <div class="detail-value">${item.submitterName}</div>
+              <div class="detail-fields">
+                <div class="detail-field">
+                  <div class="detail-label"><span class="material-symbols-outlined" style="font-size:14px">category</span>Category</div>
+                  <div class="detail-value"><span class="badge badge-category">${escapeHtml(item.category)}</span></div>
+                </div>
+                <div class="detail-field">
+                  <div class="detail-label"><span class="material-symbols-outlined" style="font-size:14px">description</span>Description</div>
+                  <div class="detail-value">${escapeHtml(item.description)}</div>
+                </div>
+                <div class="detail-field">
+                  <div class="detail-label"><span class="material-symbols-outlined" style="font-size:14px">location_on</span>Where It Was Found</div>
+                  <div class="detail-value">${escapeHtml(item.locationFound)}</div>
+                </div>
+                <div class="detail-field">
+                  <div class="detail-label"><span class="material-symbols-outlined" style="font-size:14px">calendar_today</span>Date Found</div>
+                  <div class="detail-value">${formatDate(item.dateFound)}</div>
+                </div>
+                <div class="detail-field">
+                  <div class="detail-label"><span class="material-symbols-outlined" style="font-size:14px">person</span>Reported By</div>
+                  <div class="detail-value">${escapeHtml(item.submitterName)}</div>
+                </div>
               </div>
             </div>
-
-            <!-- Claim button area — populated by updateClaimArea() -->
-            <div id="claim-area" class="mt-6">
-              <!-- Claim button injected by updateClaimArea() -->
+            <!-- Action card -->
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined filled text-primary" style="font-size:20px">help</span>
+                <span class="font-headline font-bold text-base text-on-surface">Is this yours?</span>
+              </div>
+              <p class="text-on-surface-variant text-sm mb-4 leading-relaxed">
+                If you believe this item belongs to you, submit a claim with proof of ownership. An admin will review it.
+              </p>
+              <!-- Claim button area — populated by updateClaimArea() -->
+              <div id="claim-area"></div>
             </div>
           </div>
         </div>`;

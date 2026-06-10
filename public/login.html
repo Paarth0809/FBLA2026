@@ -7,52 +7,139 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In – School Lost & Found</title>
+  <title>Sign In – Green Level Lost &amp; Found</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          "primary": "#006c49", "on-primary": "#ffffff",
+          "primary-container": "#10b981", "on-primary-container": "#00422b",
+          "error": "#ba1a1a",
+          "surface": "#f4fbf4",
+          "surface-container-lowest": "#ffffff", "surface-container-low": "#eef6ee",
+          "surface-container": "#e8f0e9",
+          "surface-container-highest": "#dde4dd", "surface-variant": "#dde4dd",
+          "on-surface": "#161d19", "on-surface-variant": "#3c4a42",
+          "outline": "#6c7a71", "outline-variant": "#bbcabf",
+          "inverse-surface": "#2b322d",
+        },
+        fontFamily: { "headline": ["'Plus Jakarta Sans'", "sans-serif"] },
+      }}
+    }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  </style>
 </head>
-<body>
+<body class="min-h-screen bg-surface-container-lowest flex">
 
-  <div class="auth-page">
-    <div class="auth-card">
+  <!-- Left panel: school photo + branding (desktop only) -->
+  <div class="hidden md:flex flex-col justify-between w-5/12 bg-inverse-surface p-10 relative overflow-hidden flex-shrink-0">
+    <img src="/images/school.jpg" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30">
+    <div class="absolute inset-0 bg-gradient-to-br from-inverse-surface/80 to-primary/40"></div>
 
-      <!-- Brand link at the top of the auth card -->
-      <div style="text-align:center;margin-bottom:1.5rem">
-        <a href="/index.html" class="brand" style="font-size:1.25rem;display:inline-flex" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
+    <div class="relative z-10">
+      <a href="/index.html" class="flex items-center gap-2 text-white font-headline font-bold text-lg hover:text-primary-container transition-colors">
+        <span class="material-symbols-outlined filled text-primary-container" style="font-size:22px">search</span>
+        Green Level Lost &amp; Found
+      </a>
+    </div>
+
+    <div class="relative z-10">
+      <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
+        <span class="material-symbols-outlined filled text-primary-container" style="font-size:14px">verified</span>
+        Verified Community
       </div>
+      <h2 class="font-headline font-extrabold text-4xl text-white leading-tight tracking-tight mb-4">
+        Welcome<br>back to<br>campus.
+      </h2>
+      <p class="text-white/70 text-sm leading-relaxed auth-visual-copy">
+        Sign in to manage your reports, review claim updates, and message other verified users when a return is ready.
+      </p>
+    </div>
 
-      <h2>Welcome back</h2>
-      <p class="sub">Sign in to your account to report items or submit claims.</p>
+    <div class="relative z-10 auth-visual-facts">
+      <div class="auth-visual-fact">
+        <div class="font-headline font-bold text-lg text-white">Student portal</div>
+        <div class="text-white/60 text-xs mt-0.5">Track found items, missing reports, claims, and messages.</div>
+      </div>
+      <div class="auth-visual-fact">
+        <div class="font-headline font-bold text-lg text-white">Admin review</div>
+        <div class="text-white/60 text-xs mt-0.5">Submissions are reviewed before they appear publicly.</div>
+      </div>
+    </div>
+  </div>
 
-      <!-- Error box — hidden by default, shown with role="alert" so screen readers announce it -->
-      <div id="error-box" class="alert alert-error hidden" role="alert"></div>
+  <!-- Right panel: login form -->
+  <div class="flex-1 flex flex-col justify-center p-8 md:p-12 overflow-y-auto">
+    <div class="max-w-md w-full mx-auto">
 
-      <!-- Login form — submits via JS to avoid a full page reload -->
-      <form id="login-form">
-        <div class="form-group">
-          <label class="form-label" for="email">Email Address</label>
-          <input class="form-input" type="email" id="email" placeholder="you@school.edu" required autofocus>
+      <a href="/index.html" class="flex md:hidden items-center gap-2 font-headline font-bold text-primary mb-8 text-base">
+        <span class="material-symbols-outlined filled text-primary-container" style="font-size:20px">search</span>
+        Green Level Lost &amp; Found
+      </a>
+
+      <h2 class="font-headline font-bold text-3xl text-on-surface mb-1">Welcome back</h2>
+      <p class="text-on-surface-variant text-sm mb-8">Sign in to report items, manage claims, and view submission updates.</p>
+
+      <div id="error-box" class="alert alert-error hidden mb-4" role="alert"></div>
+
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="email">Email Address</label>
+          <div class="relative auth-field">
+            <span class="material-symbols-outlined absolute top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">mail</span>
+            <input class="w-full rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+                   type="email" id="email" placeholder="you@school.edu" required autofocus>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="password">Password</label>
-          <input class="form-input" type="password" id="password" placeholder="••••••••" required>
+        <div>
+          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="password">Password</label>
+          <div class="relative auth-field">
+            <span class="material-symbols-outlined absolute top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">lock</span>
+            <input class="w-full rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+                   type="password" id="password" placeholder="Enter your password" required>
+          </div>
         </div>
-        <button type="submit" id="submit-btn" class="btn btn-primary btn-full" style="margin-top:0.5rem">
+        <button type="submit" id="submit-btn"
+                class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors mt-2"
+                style="box-shadow:0 2px 0 #005236">
+          <span class="material-symbols-outlined" style="font-size:18px">login</span>
           Sign In
         </button>
       </form>
 
-      <!-- Link to the signup page -->
-      <div class="auth-link">
-        Don't have an account? <a href="/signup.html">Create one</a>
-      </div>
+      <p class="text-center text-sm text-on-surface-variant mt-6">
+        Don't have an account? <a href="/signup.html" class="text-primary font-semibold hover:underline">Create one</a>
+      </p>
 
-      <!-- Demo account quick-fill buttons for judging/demonstration -->
-      <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e5e7eb">
-        <p class="text-sm text-muted text-center mb-2">Demo accounts:</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
-          <button onclick="fillDemo('admin@school.edu','admin123')"     class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb" aria-label="Fill in admin demo credentials">⚙️ Admin</button>
-          <button onclick="fillDemo('student@school.edu','student123')" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb" aria-label="Fill in Student 1 demo credentials">👤 Student 1</button>
-          <button onclick="fillDemo('student2@school.edu','student123')" class="btn btn-ghost btn-sm" style="border:1px solid #e5e7eb" aria-label="Fill in Student 2 demo credentials">👤 Student 2</button>
+      <div class="mt-8 pt-5 border-t border-outline-variant/50">
+        <p class="text-xs text-on-surface-variant text-center mb-3 font-medium">Demo accounts for judging</p>
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="fillDemo('admin@school.edu','admin123')"
+                  class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors text-xs font-medium text-on-surface-variant"
+                  aria-label="Fill in admin demo credentials">
+            <span class="material-symbols-outlined" style="font-size:20px">manage_accounts</span>
+            Admin
+          </button>
+          <button onclick="fillDemo('student@school.edu','student123')"
+                  class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors text-xs font-medium text-on-surface-variant"
+                  aria-label="Fill in Student 1 demo credentials">
+            <span class="material-symbols-outlined" style="font-size:20px">person</span>
+            Student 1
+          </button>
+          <button onclick="fillDemo('student2@school.edu','student123')"
+                  class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors text-xs font-medium text-on-surface-variant"
+                  aria-label="Fill in Student 2 demo credentials">
+            <span class="material-symbols-outlined" style="font-size:20px">person</span>
+            Student 2
+          </button>
         </div>
       </div>
     </div>
@@ -85,7 +172,7 @@
       const errorBox = document.getElementById('error-box');
       errorBox.classList.add('hidden');
       btn.disabled    = true;
-      btn.textContent = 'Signing in…';
+      btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Signing in…';
 
       try {
         await api.post('/auth/login', {
@@ -98,7 +185,7 @@
         errorBox.textContent = err.message;
         errorBox.classList.remove('hidden');
         btn.disabled    = false;
-        btn.textContent = 'Sign In';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">login</span> Sign In';
       }
     });
   </script>

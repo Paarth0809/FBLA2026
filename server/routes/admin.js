@@ -40,7 +40,7 @@ router.put('/items/:id/approve', (req, res) => {
   items[i].status = 'approved';
   writeJSON('items.json', items);
 
-  // Generate AI profile on approve if item has a photo and no profile yet
+  // Generate a photo profile on approve if item has a photo and no profile yet
   if (items[i].photo && !items[i].aiProfile) generateAndSave(items[i].id, 'found');
 
   res.json(items[i]);
@@ -96,7 +96,7 @@ router.put('/missing-items/:id/approve', (req, res) => {
   items[i].status = 'approved';
   writeJSON('missing-items.json', items);
 
-  // Generate AI profile on approve if item has a photo and no profile yet
+  // Generate a photo profile on approve if item has a photo and no profile yet
   if (items[i].photo && !items[i].aiProfile) generateAndSave(items[i].id, 'missing');
 
   res.json(items[i]);

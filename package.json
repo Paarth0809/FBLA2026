@@ -1,7 +1,7 @@
 {
   "name": "school-lost-found",
   "version": "1.0.0",
-  "description": "School Lost & Found Website - FBLA 2026",
+  "description": "Green Level Lost & Found Website - FBLA 2026",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

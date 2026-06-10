@@ -138,7 +138,7 @@ router.post('/', requireAuth, upload.single('photo'), (req, res) => {
     items.push(item);
     writeJSON('items.json', items);
 
-    // Fire-and-forget: generate AI profile from photo (if AI matching is enabled)
+    // Fire-and-forget: generate a photo profile when matching is enabled
     if (item.photo) generateAndSave(item.id, 'found');
 
     res.json({ message: 'Item submitted! An administrator will review it shortly.', item });

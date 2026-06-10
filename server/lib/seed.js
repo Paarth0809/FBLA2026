@@ -47,8 +47,8 @@ function seed() {
     });
 
     writeJSON('users.json', users);
-    console.log('  ✓ Admin account:   admin@school.edu   / admin123');
-    console.log('  ✓ Demo student:    student@school.edu / student123');
+    console.log('  Admin account:   admin@school.edu   / admin123');
+    console.log('  Demo student:    student@school.edu / student123');
   }
 }
 

@@ -1,12 +1,8 @@
-// aiProfile.js — Gemini Vision-powered item profile generator
+// aiProfile.js — photo-based item profile generator
 //
-// When AI_MATCHING_ENABLED=true and GEMINI_API_KEY is set, this module
-// sends item photos to Gemini 2.5 Flash's vision API to generate a
-// structured profile (color, brand, material, keywords, etc.). The
-// profile is cached on the item object so Gemini is only called once.
-//
-// Gemini 2.5 Flash has a free tier in Google AI Studio.
-// Get a key at aistudio.google.com.
+// When the matching feature is enabled and a provider key is set, this module
+// generates a structured profile (color, brand, material, keywords, etc.) from
+// item photos. The profile is cached on the item object so the work happens once.
 //
 // If the feature flag is off or the key is missing, everything degrades
 // gracefully — items save normally, matching falls back to keywords.
@@ -29,7 +25,7 @@ function isEnabled() {
   return process.env.AI_MATCHING_ENABLED === 'true' && !!process.env.GEMINI_API_KEY;
 }
 
-// Generate a structured AI profile from an item's photo using Gemini vision.
+// Generate a structured photo profile from an item's image.
 // Returns the profile object or null on failure.
 async function generateProfile(item, photoPath) {
   if (!fs.existsSync(photoPath)) return null;
@@ -61,12 +57,12 @@ Respond with ONLY the JSON object, no markdown, no explanation.`;
   ]);
 
   const text = result.response.text().trim();
-  // Strip markdown code fences if Gemini wraps the JSON
+  // Strip markdown code fences if the provider wraps the JSON
   const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   return JSON.parse(clean);
 }
 
-// Fire-and-forget: generate an AI profile and save it to the item's JSON record.
+// Fire-and-forget: generate a photo profile and save it to the item's JSON record.
 // Never throws — logs errors silently so item submission is never blocked.
 function generateAndSave(itemId, itemType) {
   if (!isEnabled()) return;
@@ -92,9 +88,9 @@ function generateAndSave(itemId, itemType) {
 
       fresh[idx].aiProfile = profile;
       writeJSON(filename, fresh);
-      console.log(`[AI] Profile generated for ${itemType} item: ${item.itemName}`);
+      console.log(`[Matcher] Profile generated for ${itemType} item: ${item.itemName}`);
     } catch (err) {
-      console.error(`[AI] Profile generation failed for ${itemType} ${itemId}:`, err.message);
+      console.error(`[Matcher] Profile generation failed for ${itemType} ${itemId}:`, err.message);
     }
   })();
 }

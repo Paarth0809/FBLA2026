@@ -2,7 +2,7 @@
 // This file boots the Express application, wires up all middleware and routes,
 // and starts listening for HTTP requests on port 3000.
 
-require('dotenv').config();   // load .env (AI_MATCHING_ENABLED, GEMINI_API_KEY, etc.)
+require('dotenv').config();   // load .env settings
 
 const express = require('express');
 const session = require('express-session');
@@ -21,7 +21,7 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 // seed() checks if an admin user already exists before writing anything, so it's
 // safe to call every time the server starts.
 const seed = require('./lib/seed');
-console.log('\n📦 Checking seed data...');
+console.log('\nChecking seed data...');
 seed();
 
 const app = express();
@@ -62,7 +62,7 @@ app.use('/api/missing-items', require('./routes/missingItems')); // missing item
 app.use('/api/claims',        require('./routes/claims'));       // ownership claims on found/missing items
 app.use('/api/admin',         require('./routes/admin'));        // admin-only approval/rejection actions
 app.use('/api/messages',      require('./routes/messages'));     // in-app messaging between finders and claimers
-app.use('/api/matches',       require('./routes/matches'));      // AI-powered item matching
+app.use('/api/matches',       require('./routes/matches'));      // potential item matches
 
 // ── Frontend ───────────────────────────────────────────────────────────────────
 // Serve every file inside public/ (HTML, CSS, JS, images) as a static asset.
@@ -77,7 +77,7 @@ app.get('*', (req, res) => {
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n🔍 School Lost & Found is running!`);
+  console.log(`\nGreen Level Lost & Found is running!`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`   Open: http://localhost:${PORT}`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);

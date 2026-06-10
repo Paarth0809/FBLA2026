@@ -13,11 +13,21 @@
 
 // ── School name ───────────────────────────────────────────────────────────────
 // Change this string to rebrand the app for a different school.
-const SCHOOL_NAME = 'School Lost & Found';
+const SCHOOL_NAME = 'Green Level Lost & Found';
 
 // currentUser holds the logged-in user object (or null if not logged in).
 // It's populated by loadUser() below and used by requireAuth() / requireAdmin().
 let currentUser = null;
+
+function safeText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
 
 // loadUser — fetches the current session user from the server.
 // Called automatically at the bottom of this file when nav.js loads.
@@ -36,32 +46,65 @@ async function loadUser() {
   document.dispatchEvent(new CustomEvent('userLoaded', { detail: currentUser }));
 }
 
-// renderNav — builds the right-side navigation buttons based on login state.
-// Injected into the #nav-auth div that every page's navbar includes.
+// renderNav — builds navigation action groups based on login state.
+// Injected into #nav-auth and optional compact/sidebar nav slots.
 function renderNav() {
-  const el = document.getElementById('nav-auth');
-  if (!el) return;
+  const slots = Array.from(document.querySelectorAll('#nav-auth, #nav-auth-mobile, [data-nav-auth]'));
+  if (slots.length === 0) return;
 
-  if (currentUser) {
-    // Show a greeting and contextual links for logged-in users.
-    // Admins get a direct link to the admin dashboard; regular users get My Submissions.
-    el.innerHTML = `
-      <span class="text-sm text-muted hide-mobile" style="padding:0 0.5rem">
-        Hi, ${currentUser.name.split(' ')[0]}
-      </span>
-      ${currentUser.role === 'admin'
-        ? '<a href="/admin.html" class="btn btn-outline btn-sm">⚙️ Admin</a>'
-        : '<a href="/my-submissions.html" class="btn btn-outline btn-sm hide-mobile">My Submissions</a>'}
-      <a href="/report.html" class="btn btn-primary btn-sm">+ Report Found</a>
-      <button onclick="logout()" class="btn btn-ghost btn-sm">Logout</button>
-    `;
-  } else {
-    // Not logged in — show sign-in and sign-up links
-    el.innerHTML = `
-      <a href="/login.html"  class="btn btn-outline btn-sm">Sign In</a>
-      <a href="/signup.html" class="btn btn-primary btn-sm">Sign Up</a>
+  slots.forEach((el) => {
+    const mode = el.dataset.navAuth ||
+      (el.id === 'nav-auth-mobile' ? 'compact' : (el.classList.contains('w-full') ? 'sidebar' : 'default'));
+    el.innerHTML = currentUser ? renderLoggedInNav(mode) : renderLoggedOutNav(mode);
+  });
+}
+
+function renderLoggedInNav(mode = 'default') {
+  const firstName = (currentUser.name || 'there').split(' ')[0];
+  const isAdmin = currentUser.role === 'admin';
+  const portalHref = isAdmin ? '/admin.html' : '/my-submissions.html';
+  const portalLabel = isAdmin ? 'GLHS Portal' : 'Student Portal';
+  const portalIcon = isAdmin ? 'admin_panel_settings' : 'space_dashboard';
+
+  if (mode === 'sidebar') {
+    return `
+      <div class="auth-panel">
+        <div class="auth-user">Signed in as ${safeText(firstName)}</div>
+        <button onclick="logout()" class="btn btn-ghost btn-sm w-full" type="button">
+          <span class="material-symbols-outlined">logout</span>Sign Out
+        </button>
+      </div>
     `;
   }
+
+  if (mode === 'compact') {
+    return `
+      <a href="${portalHref}" class="btn btn-outline btn-sm">
+        <span class="material-symbols-outlined">${portalIcon}</span>
+        <span class="hide-mobile">${portalLabel}</span>
+      </a>
+    `;
+  }
+
+  return `
+    <span class="nav-user hide-mobile">Hi, ${safeText(firstName)}</span>
+    <a href="${portalHref}" class="btn btn-outline btn-sm">
+      <span class="material-symbols-outlined">${portalIcon}</span>${portalLabel}
+    </a>
+    <button onclick="logout()" class="btn btn-ghost btn-sm" type="button">
+      <span class="material-symbols-outlined">logout</span>Sign Out
+    </button>
+  `;
+}
+
+function renderLoggedOutNav(mode = 'default') {
+  const stackClass = mode === 'sidebar' ? 'auth-panel' : 'auth-actions';
+  return `
+    <div class="${stackClass}">
+      <a href="/login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="/signup.html" class="btn btn-primary btn-sm">Create Account</a>
+    </div>
+  `;
 }
 
 // logout — calls the API to destroy the server session, then redirects home
@@ -105,10 +148,10 @@ function showToast(message, type = 'info') {
     container.className = 'toast-container';
     document.body.appendChild(container);
   }
-  const icons = { success: '✓', error: '✕', info: 'ℹ️' };
+  const icons = { success: 'check_circle', error: 'error', info: 'info' };
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${icons[type] || ''}</span> <span>${message}</span>`;
+  toast.innerHTML = `<span class="material-symbols-outlined">${icons[type] || 'info'}</span><span>${message}</span>`;
   container.appendChild(toast);
   // Auto-remove after 4 seconds
   setTimeout(() => toast.remove(), 4000);
@@ -139,20 +182,21 @@ function statusBadge(status) {
   return `<span class="badge ${cls}">${status}</span>`;
 }
 
-// categoryEmoji — return a representative emoji for each item category.
+// categoryEmoji — return a representative Material icon for each item category.
 // Used as a fallback thumbnail when an item has no photo.
 function categoryEmoji(category) {
   const map = {
-    'Electronics':           '📱',
-    'Clothing':              '👕',
-    'Books & Supplies':      '📚',
-    'Keys & ID Cards':       '🔑',
-    'Bags & Backpacks':      '🎒',
-    'Sports Equipment':      '⚽',
-    'Jewelry & Accessories': '💍',
-    'Other':                 '📦'
+    'Electronics':           'devices',
+    'Clothing':              'checkroom',
+    'Books & Supplies':      'menu_book',
+    'Keys & ID Cards':       'key',
+    'Bags & Backpacks':      'backpack',
+    'Sports Equipment':      'sports_basketball',
+    'Jewelry & Accessories': 'watch',
+    'Other':                 'inventory_2'
   };
-  return map[category] || '📦';
+  const icon = map[category] || 'inventory_2';
+  return `<span class="material-symbols-outlined category-icon" aria-hidden="true">${icon}</span>`;
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────

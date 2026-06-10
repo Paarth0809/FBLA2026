@@ -5,61 +5,153 @@
      Claims) each loaded in parallel on page open.
      Approve/reject actions call PUT /api/admin/... and refresh the relevant tab.
      Approving a claim automatically cascades the status to the linked item.
-     Each found/missing item row has a 💬 button that opens a read-only message
+     Each found/missing item row has a message button that opens a read-only message
      thread viewer so admins can monitor all in-app communications tied to that item. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard – School Lost &amp; Found</title>
+  <title>Admin Dashboard – Green Level Lost &amp; Found</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          "primary": "#006c49", "on-primary": "#ffffff",
+          "primary-container": "#10b981", "on-primary-container": "#00422b",
+          "surface": "#f4fbf4",
+          "surface-container-lowest": "#ffffff", "surface-container-low": "#eef6ee",
+          "surface-container": "#e8f0e9", "surface-container-high": "#e3eae3",
+          "surface-container-highest": "#dde4dd", "surface-variant": "#dde4dd",
+          "on-surface": "#161d19", "on-surface-variant": "#3c4a42",
+          "outline": "#6c7a71", "outline-variant": "#bbcabf",
+          "inverse-surface": "#2b322d",
+        },
+        fontFamily: { "headline": ["'Plus Jakarta Sans'", "sans-serif"] },
+        maxWidth: { "container": "1280px" },
+      }}
+    }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .admin-stat { background:#fff; border:1px solid #bbcabf; border-radius:1rem; padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:0.25rem; box-shadow:0 4px 20px rgba(0,0,0,0.04); }
+    .admin-stat .num { font-family:'Plus Jakarta Sans',sans-serif; font-size:1.875rem; font-weight:700; color:#161d19; line-height:1; }
+    .admin-stat .lbl { font-size:0.8125rem; color:#3c4a42; }
+  </style>
 </head>
-<body class="page">
+<body class="bg-surface min-h-screen flex">
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
-      <div class="nav-links">
-        <a href="/search.html"         class="hide-mobile">Found Items</a>
-        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
-        <div id="nav-auth"></div>
-      </div>
+  <!-- Admin sidebar (desktop) -->
+  <aside class="admin-sidebar hidden md:flex flex-col w-64 bg-inverse-surface fixed left-0 top-0 bottom-0 z-40 overflow-y-auto">
+    <!-- Brand -->
+    <div class="p-5 border-b border-white/10">
+      <a href="/index.html" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined filled text-on-primary-container" style="font-size:18px">school</span>
+        </div>
+        <div>
+          <div class="font-headline font-bold text-white text-sm leading-tight">GLHS Portal</div>
+          <div class="text-xs text-white/50">Admin Dashboard</div>
+        </div>
+      </a>
     </div>
-  </nav>
 
-  <!-- Access denied (shown before auth resolves) -->
-  <div id="access-denied" class="hidden" style="padding:4rem 1rem;text-align:center">
-    <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
-    <h2 style="font-size:1.5rem;font-weight:800;margin-bottom:0.5rem">Admin Access Required</h2>
-    <p class="text-muted mb-6">This page is only accessible to administrators.</p>
-    <a href="/login.html" class="btn btn-primary">Sign In as Admin</a>
+    <!-- Nav links -->
+    <nav class="flex-1 p-3 flex flex-col gap-0.5" aria-label="Admin navigation">
+      <a href="/admin.html"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/15 transition-colors">
+        <span class="material-symbols-outlined filled" style="font-size:18px">admin_panel_settings</span>
+        Dashboard
+      </a>
+      <div class="border-t border-white/10 my-2"></div>
+      <a href="/search.html"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+        <span class="material-symbols-outlined" style="font-size:18px">search</span>
+        Found Items (Public)
+      </a>
+      <a href="/search-missing.html"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+        <span class="material-symbols-outlined" style="font-size:18px">manage_search</span>
+        Missing Items (Public)
+      </a>
+    </nav>
+
+    <!-- Back to public site + auth -->
+    <div class="p-3 border-t border-white/10 flex flex-col gap-2">
+      <a href="/index.html" class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+        <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+        Back to Public Site
+      </a>
+      <div id="nav-auth" class="w-full"></div>
+    </div>
+  </aside>
+
+  <!-- Mobile top bar -->
+  <div class="md:hidden fixed top-0 left-0 right-0 z-40 bg-inverse-surface h-14 flex items-center gap-3 px-4" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
+    <a href="/index.html" class="text-white/70 hover:text-white transition-colors" aria-label="Back to home">
+      <span class="material-symbols-outlined" style="font-size:22px">arrow_back</span>
+    </a>
+    <span class="font-headline font-bold text-white text-base flex-1">Admin Dashboard</span>
+  </div>
+
+  <!-- Access denied (shown before auth resolves or for non-admins) -->
+  <div id="access-denied" class="hidden flex-1 md:ml-64 flex items-center justify-center p-8">
+    <div class="text-center max-w-sm">
+      <div class="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mx-auto mb-5">
+        <span class="material-symbols-outlined text-outline" style="font-size:32px">lock</span>
+      </div>
+      <h2 class="font-headline font-bold text-2xl text-on-surface mb-2">Admin Access Required</h2>
+      <p class="text-on-surface-variant text-sm mb-6">This page is only accessible to administrators.</p>
+      <a href="/login.html" class="btn btn-primary">Sign In as Admin</a>
+    </div>
   </div>
 
   <!-- Main dashboard (hidden until admin confirmed) -->
-  <main id="dashboard" class="hidden">
-    <div class="container">
+  <main id="dashboard" class="admin-shell-main hidden flex-1 md:ml-64 pt-14 md:pt-0 min-h-screen">
+    <div class="max-w-container mx-auto p-4 md:p-8">
 
-      <div class="admin-header">
+      <!-- Page header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-2 md:pt-8">
         <div>
-          <h1>⚙️ Admin Dashboard</h1>
-          <p class="text-muted">Manage item submissions and claims.</p>
+          <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Admin Dashboard</h1>
+          <p class="text-on-surface-variant text-sm">Manage item submissions and claims.</p>
         </div>
-        <a href="/index.html" class="btn btn-ghost btn-sm">← Public Site</a>
       </div>
 
       <!-- Stats row -->
-      <div class="stats-row" id="stats-row">
-        <div class="stat-card"><div class="num" id="stat-found">—</div><div class="lbl">Found Items</div></div>
-        <div class="stat-card"><div class="num" id="stat-pending">—</div><div class="lbl">Pending Review</div></div>
-        <div class="stat-card"><div class="num" id="stat-missing">—</div><div class="lbl">Missing Items</div></div>
-        <div class="stat-card"><div class="num" id="stat-claims">—</div><div class="lbl">Open Claims</div></div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="stats-row">
+        <div class="admin-stat">
+          <span class="material-symbols-outlined filled text-primary mb-1" style="font-size:22px">inventory_2</span>
+          <div class="num" id="stat-found">—</div>
+          <div class="lbl">Found Items</div>
+        </div>
+        <div class="admin-stat">
+          <span class="material-symbols-outlined filled text-yellow-600 mb-1" style="font-size:22px">pending</span>
+          <div class="num" id="stat-pending">—</div>
+          <div class="lbl">Pending Review</div>
+        </div>
+        <div class="admin-stat">
+          <span class="material-symbols-outlined filled text-orange-500 mb-1" style="font-size:22px">warning</span>
+          <div class="num" id="stat-missing">—</div>
+          <div class="lbl">Missing Items</div>
+        </div>
+        <div class="admin-stat">
+          <span class="material-symbols-outlined filled text-blue-600 mb-1" style="font-size:22px">assignment</span>
+          <div class="num" id="stat-claims">—</div>
+          <div class="lbl">Open Claims</div>
+        </div>
       </div>
 
       <!-- Tabs -->
       <div class="tabs" role="tablist" aria-label="Admin sections">
-        <button class="tab active" onclick="switchTab('found')"   role="tab" aria-selected="true"  aria-controls="tab-found">📦 Found Items</button>
-        <button class="tab"        onclick="switchTab('missing')" role="tab" aria-selected="false" aria-controls="tab-missing">⚠️ Missing Items</button>
-        <button class="tab"        onclick="switchTab('claims')"  role="tab" aria-selected="false" aria-controls="tab-claims">📋 Claims</button>
+        <button class="tab active" onclick="switchTab('found')"   role="tab" aria-selected="true"  aria-controls="tab-found"><span class="material-symbols-outlined">inventory_2</span> Found Items</button>
+        <button class="tab"        onclick="switchTab('missing')" role="tab" aria-selected="false" aria-controls="tab-missing"><span class="material-symbols-outlined">manage_search</span> Missing Items</button>
+        <button class="tab"        onclick="switchTab('claims')"  role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">assignment</span> Claims</button>
       </div>
 
       <!-- Tab: Found Items -->
@@ -80,12 +172,7 @@
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="container"><p>© 2026 School Lost &amp; Found System. Admin Panel.</p></div>
-  </footer>
-
   <!-- ── Admin: Item Message Thread Viewer Modal ───────────────────────────── -->
-  <!-- Read-only — admins view conversations but cannot send messages from here. -->
   <div id="msg-viewer-overlay" class="modal-overlay hidden"
        role="dialog" aria-modal="true" aria-labelledby="msg-viewer-title"
        onclick="handleMsgViewerOverlay(event)">
@@ -93,7 +180,7 @@
 
       <div class="modal-header">
         <div>
-          <h2 id="msg-viewer-title" style="font-size:1rem">💬 Message Thread</h2>
+          <h2 id="msg-viewer-title" style="font-size:1rem"><span class="material-symbols-outlined" style="font-size:18px">forum</span> Message Thread</h2>
           <div id="msg-viewer-subtitle" style="font-size:0.8125rem;color:#6b7280;margin-top:0.15rem"></div>
         </div>
         <button onclick="closeMsgViewer()" class="modal-close" aria-label="Close message thread">&times;</button>
@@ -123,8 +210,10 @@
       const user = e.detail;
       if (!user || user.role !== 'admin') {
         document.getElementById('access-denied').classList.remove('hidden');
+        document.getElementById('access-denied').style.display = 'flex';
       } else {
         document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('dashboard').style.display = 'block';
         loadAll();
       }
     });
@@ -154,9 +243,6 @@
         .replace(/'/g, '&#39;');
     }
 
-    // safeAttr: encode for use inside a double-quoted HTML attribute value.
-    // Unlike escapeHtml, only & and " need encoding here — apostrophes are safe
-    // inside double-quoted attributes and do not confuse the JS string boundary.
     function safeAttr(str) {
       if (str === null || str === undefined) return '';
       return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -172,7 +258,7 @@
           items.filter(i => i.status === 'pending').length;
 
         if (items.length === 0) {
-          el.innerHTML = '<div class="empty-state"><div class="icon">📦</div><h3>No items yet</h3></div>';
+          el.innerHTML = '<div class="empty-state"><div class="icon"><span class="material-symbols-outlined">inventory_2</span></div><h3>No items yet</h3></div>';
           return;
         }
 
@@ -198,22 +284,22 @@
 
     function foundRow(item) {
       const thumb = item.photo
-        ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb">`
+        ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid #bbcabf">`
         : `<span style="font-size:1.75rem">${categoryEmoji(item.category)}</span>`;
 
       const actions = item.status === 'pending' ? `
-        <button onclick="foundAction('${item.id}','approve')" class="btn btn-success btn-sm">✓ Approve</button>
-        <button onclick="foundAction('${item.id}','reject')"  class="btn btn-danger  btn-sm">✕ Reject</button>
+        <button onclick="foundAction('${item.id}','approve')" class="btn btn-success btn-sm"><span class="material-symbols-outlined">check</span>Approve</button>
+        <button onclick="foundAction('${item.id}','reject')"  class="btn btn-danger  btn-sm"><span class="material-symbols-outlined">close</span>Reject</button>
       ` : item.status === 'approved' ? `
-        <button onclick="foundAction('${item.id}','mark-claimed')" class="btn btn-warning btn-sm">Mark Claimed</button>
-        <button onclick="foundAction('${item.id}','reject')"       class="btn btn-danger  btn-sm">✕ Reject</button>
+        <button onclick="foundAction('${item.id}','mark-claimed')" class="btn btn-warning btn-sm"><span class="material-symbols-outlined">task_alt</span>Mark Claimed</button>
+        <button onclick="foundAction('${item.id}','reject')"       class="btn btn-danger  btn-sm"><span class="material-symbols-outlined">close</span>Reject</button>
       ` : `
-        <button onclick="foundAction('${item.id}','approve')" class="btn btn-success btn-sm">↩ Re-approve</button>
+        <button onclick="foundAction('${item.id}','approve')" class="btn btn-success btn-sm"><span class="material-symbols-outlined">undo</span>Re-approve</button>
       `;
 
       return `<tr>
         <td>${thumb}</td>
-        <td><a href="/item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a></td>
+        <td><a href="/item.html?id=${item.id}" target="_blank" style="color:#006c49;font-weight:600">${escapeHtml(item.itemName)}</a></td>
         <td>${escapeHtml(item.category)}</td>
         <td>${escapeHtml(item.locationFound)}</td>
         <td>${formatDate(item.dateFound)}</td>
@@ -222,13 +308,13 @@
         <td>
           <div class="table-actions">
             ${actions}
-            <a href="/item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details">👁 View</a>
+            <a href="/item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details"><span class="material-symbols-outlined">visibility</span>View</a>
             <button data-msg-viewer-id="${safeAttr(item.id)}"
                     data-msg-viewer-name="${safeAttr(item.itemName)}"
                     class="btn btn-ghost btn-sm" title="View messages for this item"
-                    aria-label="View messages for ${escapeHtml(item.itemName)}">💬</button>
+                    aria-label="View messages for ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">forum</span></button>
             <button onclick="deleteFound('${item.id}')"
-                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}">🗑</button>
+                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">delete</span></button>
           </div>
         </td>
       </tr>`;
@@ -256,7 +342,7 @@
         document.getElementById('stat-missing').textContent = items.length;
 
         if (items.length === 0) {
-          el.innerHTML = '<div class="empty-state"><div class="icon">🔎</div><h3>No missing items yet</h3></div>';
+          el.innerHTML = '<div class="empty-state"><div class="icon"><span class="material-symbols-outlined">manage_search</span></div><h3>No missing items yet</h3></div>';
           return;
         }
 
@@ -281,16 +367,16 @@
 
     function missingRow(item) {
       const actions = item.status === 'pending' ? `
-        <button onclick="missingAction('${item.id}','approve')" class="btn btn-success btn-sm">✓ Approve</button>
-        <button onclick="missingAction('${item.id}','reject')"  class="btn btn-danger  btn-sm">✕ Reject</button>
+        <button onclick="missingAction('${item.id}','approve')" class="btn btn-success btn-sm"><span class="material-symbols-outlined">check</span>Approve</button>
+        <button onclick="missingAction('${item.id}','reject')"  class="btn btn-danger  btn-sm"><span class="material-symbols-outlined">close</span>Reject</button>
       ` : item.status === 'approved' ? `
-        <button onclick="missingAction('${item.id}','reject')" class="btn btn-danger btn-sm">✕ Reject</button>
+        <button onclick="missingAction('${item.id}','reject')" class="btn btn-danger btn-sm"><span class="material-symbols-outlined">close</span>Reject</button>
       ` : `
-        <button onclick="missingAction('${item.id}','approve')" class="btn btn-success btn-sm">↩ Re-approve</button>
+        <button onclick="missingAction('${item.id}','approve')" class="btn btn-success btn-sm"><span class="material-symbols-outlined">undo</span>Re-approve</button>
       `;
 
       return `<tr>
-        <td><a href="/missing-item.html?id=${item.id}" target="_blank" style="color:#43B02A;font-weight:600">${escapeHtml(item.itemName)}</a></td>
+        <td><a href="/missing-item.html?id=${item.id}" target="_blank" style="color:#006c49;font-weight:600">${escapeHtml(item.itemName)}</a></td>
         <td>${escapeHtml(item.category)}</td>
         <td>${escapeHtml(item.lastSeenLocation)}</td>
         <td>${formatDate(item.lastSeenDate)}</td>
@@ -299,13 +385,13 @@
         <td>
           <div class="table-actions">
             ${actions}
-            <a href="/missing-item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details">👁 View</a>
+            <a href="/missing-item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details"><span class="material-symbols-outlined">visibility</span>View</a>
             <button data-msg-viewer-id="${safeAttr(item.id)}"
                     data-msg-viewer-name="${safeAttr(item.itemName)}"
                     class="btn btn-ghost btn-sm" title="View messages for this item"
-                    aria-label="View messages for ${escapeHtml(item.itemName)}">💬</button>
+                    aria-label="View messages for ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">forum</span></button>
             <button onclick="deleteMissing('${item.id}')"
-                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}">🗑</button>
+                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">delete</span></button>
           </div>
         </td>
       </tr>`;
@@ -331,7 +417,7 @@
           claims.filter(c => c.status === 'pending').length;
 
         if (claims.length === 0) {
-          el.innerHTML = '<div class="empty-state"><div class="icon">📋</div><h3>No claims yet</h3></div>';
+          el.innerHTML = '<div class="empty-state"><div class="icon"><span class="material-symbols-outlined">assignment</span></div><h3>No claims yet</h3></div>';
           return;
         }
 
@@ -356,8 +442,8 @@
 
     function claimRow(claim) {
       const actions = claim.status === 'pending' ? `
-        <button onclick="claimAction('${claim.id}','approve')" class="btn btn-success btn-sm">✓ Approve</button>
-        <button onclick="claimAction('${claim.id}','reject')"  class="btn btn-danger  btn-sm">✕ Reject</button>
+        <button onclick="claimAction('${claim.id}','approve')" class="btn btn-success btn-sm"><span class="material-symbols-outlined">check</span>Approve</button>
+        <button onclick="claimAction('${claim.id}','reject')"  class="btn btn-danger  btn-sm"><span class="material-symbols-outlined">close</span>Reject</button>
       ` : '';
 
       const itemLink = claim.itemType === 'found'
@@ -365,19 +451,19 @@
         : '/missing-item.html?id=' + claim.itemId;
 
       return `<tr>
-        <td><a href="${itemLink}" target="_blank" style="color:#43B02A;font-weight:600">${escapeHtml(claim.itemName)}</a></td>
+        <td><a href="${itemLink}" target="_blank" style="color:#006c49;font-weight:600">${escapeHtml(claim.itemName)}</a></td>
         <td><span class="badge badge-category">${escapeHtml(claim.itemType)}</span></td>
         <td title="${escapeHtml(claim.description)}">${escapeHtml(claim.claimerName)}</td>
-        <td><a href="mailto:${escapeHtml(claim.claimerEmail)}" style="color:#43B02A">${escapeHtml(claim.claimerEmail)}</a></td>
+        <td><a href="mailto:${escapeHtml(claim.claimerEmail)}" style="color:#006c49">${escapeHtml(claim.claimerEmail)}</a></td>
         <td>${escapeHtml(claim.claimerPhone || '—')}</td>
         <td>${new Date(claim.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
         <td>${statusBadge(claim.status)}</td>
         <td>
           <div class="table-actions">
             ${actions}
-            <a href="${itemLink}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details">👁 View</a>
-            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${escapeHtml(claim.claimerName)}">📄</button>
-            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="Delete claim from ${escapeHtml(claim.claimerName)}">🗑</button>
+            <a href="${itemLink}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details"><span class="material-symbols-outlined">visibility</span>View</a>
+            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${escapeHtml(claim.claimerName)}"><span class="material-symbols-outlined">description</span></button>
+            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="Delete claim from ${escapeHtml(claim.claimerName)}"><span class="material-symbols-outlined">delete</span></button>
           </div>
         </td>
       </tr>`;
@@ -402,8 +488,6 @@
     }
 
     // ── Item Message Thread Viewer ────────────────────────────
-    // Opens a read-only modal showing every in-app message associated with the
-    // given itemId, sorted oldest-first so the conversation reads naturally.
     async function openMsgViewer(itemId, itemName) {
       const overlay  = document.getElementById('msg-viewer-overlay');
       const titleEl  = document.getElementById('msg-viewer-title');
@@ -411,7 +495,7 @@
       const countEl  = document.getElementById('msg-viewer-count');
       const bodyEl   = document.getElementById('msg-viewer-content');
 
-      titleEl.textContent = '💬 Message Thread';
+      titleEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">forum</span> Message Thread';
       subEl.textContent   = itemName;
       countEl.textContent = '';
       bodyEl.innerHTML    =
@@ -431,7 +515,6 @@
     }
 
     function renderMsgThread(bodyEl, countEl, messages) {
-      // Guard against a non-array response (e.g. server not yet restarted with new route)
       if (!Array.isArray(messages)) {
         bodyEl.innerHTML =
           '<div class="alert alert-error" style="margin:0.5rem 0">' +
@@ -441,7 +524,7 @@
       if (messages.length === 0) {
         bodyEl.innerHTML =
           '<div class="empty-state" style="padding:2.5rem 1rem">' +
-            '<div class="icon">💬</div>' +
+            '<div class="icon"><span class="material-symbols-outlined">forum</span></div>' +
             '<h3>No messages yet</h3>' +
             '<p class="text-muted">No in-app messages have been sent for this item.</p>' +
           '</div>';
@@ -459,20 +542,20 @@
           });
 
           const replyTag = msg.replyToId
-            ? '<span style="font-size:0.75rem;color:#43B02A;font-weight:600;margin-left:0.5rem">↩ reply</span>'
+            ? '<span style="font-size:0.75rem;color:#006c49;font-weight:600;margin-left:0.5rem">reply</span>'
             : '';
 
-          return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.625rem;padding:0.875rem 1rem">' +
+          return '<div style="background:#eef6ee;border:1px solid #bbcabf;border-radius:0.625rem;padding:0.875rem 1rem">' +
             '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">' +
               '<div>' +
-                '<span style="font-weight:700;color:#111827">' + escapeHtml(msg.senderName) + '</span>' +
-                '<span style="color:#9ca3af;font-size:0.8125rem"> → </span>' +
-                '<span style="color:#374151;font-size:0.875rem">' + escapeHtml(msg.receiverName) + '</span>' +
+                '<span style="font-weight:700;color:#161d19">' + escapeHtml(msg.senderName) + '</span>' +
+                '<span style="color:#6c7a71;font-size:0.8125rem"> → </span>' +
+                '<span style="color:#3c4a42;font-size:0.875rem">' + escapeHtml(msg.receiverName) + '</span>' +
                 replyTag +
               '</div>' +
-              '<span style="font-size:0.75rem;color:#9ca3af;white-space:nowrap">' + escapeHtml(ts) + '</span>' +
+              '<span style="font-size:0.75rem;color:#6c7a71;white-space:nowrap">' + escapeHtml(ts) + '</span>' +
             '</div>' +
-            '<div style="font-size:0.875rem;color:#374151;line-height:1.6;white-space:pre-wrap;word-break:break-word">' +
+            '<div style="font-size:0.875rem;color:#3c4a42;line-height:1.6;white-space:pre-wrap;word-break:break-word">' +
               escapeHtml(msg.content) +
             '</div>' +
           '</div>';
@@ -488,12 +571,10 @@
       if (e.target === document.getElementById('msg-viewer-overlay')) closeMsgViewer();
     }
 
-    // Escape key closes the message viewer
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeMsgViewer();
     });
 
-    // Delegation listener for data-* 💬 buttons (avoids inline-onclick JS string issues)
     document.addEventListener('click', function(e) {
       const btn = e.target.closest('[data-msg-viewer-id]');
       if (btn) openMsgViewer(btn.dataset.msgViewerId, btn.dataset.msgViewerName);

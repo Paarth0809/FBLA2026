@@ -1,311 +1,234 @@
 <!DOCTYPE html>
-<!-- missing-item.html — Missing item detail page
-     Reads ?id= from the URL, fetches the report from GET /api/missing-items/:id,
-     and shows all details including the owner's contact email so a finder can
-     reach out directly. Shows a "found and returned" banner if status is "found".
-     When a logged-in user who did NOT submit this report views the page, a
-     "Message Owner" button appears next to the contact email, opening the
-     in-app compose modal so they can send a direct message without leaving the page. -->
+<!-- missing-item.html — Missing item detail page -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Missing Item Details – School Lost &amp; Found</title>
+  <title>Missing Item Details – Green Level Lost &amp; Found</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          "primary": "#006c49", "on-primary": "#ffffff",
+          "primary-container": "#10b981", "on-primary-container": "#00422b",
+          "surface": "#f4fbf4",
+          "surface-container-lowest": "#ffffff", "surface-container-low": "#eef6ee",
+          "surface-container": "#e8f0e9", "surface-container-high": "#e3eae3",
+          "surface-container-highest": "#dde4dd", "surface-variant": "#dde4dd",
+          "on-surface": "#161d19", "on-surface-variant": "#3c4a42",
+          "outline": "#6c7a71", "outline-variant": "#bbcabf",
+          "inverse-surface": "#2b322d",
+        },
+        fontFamily: { "headline": ["'Plus Jakarta Sans'", "sans-serif"] },
+        maxWidth: { "container": "1280px" },
+      }}
+    }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .detail-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 768px) { .detail-grid { grid-template-columns: 7fr 5fr; } }
+    .detail-img { border-radius: 1rem; border: 1px solid #dde4dd; overflow: hidden; background: #e8f0e9; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    .detail-img img { width: 100%; height: 100%; object-fit: cover; }
+    .detail-fields { display: flex; flex-direction: column; gap: 1rem; }
+    .detail-field { border-bottom: 1px solid #e3eae3; padding-bottom: 0.875rem; }
+    .detail-field:last-child { border-bottom: none; }
+    .detail-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6c7a71; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.375rem; }
+    .detail-value { font-size: 0.9375rem; color: #161d19; }
+  </style>
 </head>
-<body class="page">
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
 
-  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
-  <nav class="navbar">
-    <div class="container">
-      <a href="/index.html" class="brand">🔍 School Lost &amp; Found</a>
-      <div class="nav-links">
-        <a href="/search.html"         class="hide-mobile">Found Items</a>
-        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
-        <div id="nav-auth"></div>
+  <!-- Navbar -->
+  <nav class="fixed top-0 w-full z-50 bg-inverse-surface border-b border-white/5" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
+    <div class="max-w-container mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-lg text-white hover:text-primary-container transition-colors">
+        <span class="material-symbols-outlined filled text-primary-container" style="font-size:22px">search</span>
+        Green Level Lost &amp; Found
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="/search.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Found Items</a>
+        <a href="/search-missing.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Missing Items</a>
+        <div id="nav-auth" class="flex items-center gap-2 ml-2"></div>
       </div>
     </div>
   </nav>
 
-  <main>
-    <div class="container" style="max-width:900px">
-      <a href="/search-missing.html" class="btn btn-ghost btn-sm mb-6">← Back to Missing Items</a>
-
-      <!-- Full item details injected here by render() -->
+  <main class="flex-1 pt-16 pb-12">
+    <div class="max-w-container mx-auto px-4 md:px-6 py-8">
+      <a href="/search-missing.html" class="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary text-sm font-medium transition-colors mb-6">
+        <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+        Back to Missing Items
+      </a>
       <div id="content">
         <div class="loading-center"><div class="spinner" role="status" aria-label="Loading item"></div></div>
       </div>
     </div>
   </main>
 
-  <footer class="footer">
-    <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
+  <footer class="bg-inverse-surface py-8">
+    <div class="max-w-container mx-auto px-6 text-center">
+      <p class="text-white/50 text-sm">© 2026 Green Level Lost &amp; Found.</p>
+    </div>
   </footer>
 
-  <!-- ── Compose Message Modal ─────────────────────────────────────────────── -->
-  <!-- The same modal structure used on my-submissions.html — CSS already loaded. -->
+  <!-- Compose Message Modal -->
   <div id="msg-modal-overlay" class="modal-overlay hidden"
        role="dialog" aria-modal="true" aria-labelledby="msg-modal-title"
        onclick="handleOverlayClick(event)">
     <div class="modal">
-
       <div class="modal-header">
         <h2 id="msg-modal-title">Message Owner</h2>
         <button onclick="closeMessageModal()" class="modal-close" aria-label="Close modal">&times;</button>
       </div>
-
       <div class="modal-body">
         <div id="msg-modal-context" class="msg-context"></div>
         <div class="form-group" style="margin-bottom:0.375rem">
-          <label class="form-label" for="msg-textarea">
-            Message <span class="req">*</span>
-          </label>
-          <textarea id="msg-textarea" class="form-textarea"
-                    rows="5" maxlength="1000"
-                    placeholder="Type your message here…"
-                    oninput="updateCharCount()"></textarea>
-          <div class="form-hint" style="text-align:right">
-            <span id="msg-char-count">0</span> / 1000
-          </div>
+          <label class="form-label" for="msg-textarea">Message <span class="req">*</span></label>
+          <textarea id="msg-textarea" class="form-textarea" rows="5" maxlength="1000"
+                    placeholder="Type your message here…" oninput="updateCharCount()"></textarea>
+          <div class="form-hint" style="text-align:right"><span id="msg-char-count">0</span> / 1000</div>
         </div>
         <div id="msg-error" class="alert alert-error hidden"></div>
       </div>
-
       <div class="modal-footer">
-        <button onclick="closeMessageModal()" class="btn btn-ghost"
-                style="color:#6b7280;border:1px solid #e5e7eb">Cancel</button>
-        <button onclick="sendMessage()" id="msg-send-btn" class="btn btn-primary">
-          ✉️ Send Message
-        </button>
+        <button onclick="closeMessageModal()" class="btn btn-ghost" style="color:#6b7280;border:1px solid #e5e7eb">Cancel</button>
+        <button onclick="sendMessage()" id="msg-send-btn" class="btn btn-primary"><span class="material-symbols-outlined">send</span> Send Message</button>
       </div>
-
     </div>
   </div>
 
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
   <script>
-    // Read the missing item ID from the URL query string
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get('id');
-
-    // _currentItem is set once the API call resolves; used by maybeShowMessageBtn()
     let _currentItem = null;
 
-    // ── XSS helpers ───────────────────────────────────────────────────────────
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
-    // ── Load item ─────────────────────────────────────────────────────────────
     async function loadItem() {
       const content = document.getElementById('content');
-      if (!itemId) {
-        content.innerHTML = '<div class="alert alert-error">No item ID provided.</div>';
-        return;
-      }
+      if (!itemId) { content.innerHTML = '<div class="alert alert-error">No item ID provided.</div>'; return; }
       try {
         const item = await api.get('/missing-items/' + itemId);
-        document.title = item.itemName + ' (Missing) – School Lost & Found';
+        document.title = item.itemName + ' (Missing) – Green Level Lost & Found';
         _currentItem = item;
         render(item);
-        // In case userLoaded already fired before the API call completed
         maybeShowMessageBtn();
       } catch (err) {
         content.innerHTML = '<div class="alert alert-error">' + escapeHtml(err.message) + '</div>';
       }
     }
 
-    // ── Auth guard (userLoaded fires once nav.js resolves the session) ─────────
-    // This may fire before OR after loadItem() resolves, so both paths call
-    // maybeShowMessageBtn() independently — only the second call will actually
-    // inject the button (first call exits early because the other piece isn't ready).
-    document.addEventListener('userLoaded', function() {
-      maybeShowMessageBtn();
-    });
+    document.addEventListener('userLoaded', function() { maybeShowMessageBtn(); });
 
-    // Conditionally inject the "Message Owner" button into the placeholder div.
-    // Safe to call multiple times — it checks both _currentItem and currentUser.
     function maybeShowMessageBtn() {
       const placeholder = document.getElementById('msg-btn-placeholder');
       if (!placeholder || !_currentItem || !currentUser) return;
-
-      // Don't show the button if the viewer submitted this report themselves
       if (currentUser.id === _currentItem.submittedBy) return;
-
       placeholder.innerHTML =
-        '<button onclick="openMessageModal()" class="btn btn-outline btn-sm mt-1" ' +
-        'style="font-size:0.8125rem">' +
-        '💬 Message Owner' +
+        '<button onclick="openMessageModal()" class="btn btn-outline btn-sm mt-2">' +
+        '<span class="material-symbols-outlined" style="font-size:16px">chat</span> Message Owner' +
         '</button>';
     }
 
-    // ── Render item detail ────────────────────────────────────────────────────
-    // Builds and injects the full missing item detail layout.
-    // All user-supplied strings pass through escapeHtml() before entering innerHTML.
     function render(item) {
       const img = item.photo
         ? '<img src="/uploads/' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.itemName) + '">'
         : '<span style="font-size:5rem">' + categoryEmoji(item.category) + '</span>';
 
-      // Show a success banner if the item has already been marked as found
       const foundBanner = (item.status === 'found')
-        ? '<div class="alert alert-success mb-4">✓ Great news! This item has been found and returned.</div>'
+        ? '<div class="alert alert-success mb-4"><span class="material-symbols-outlined">check_circle</span> Great news! This item has been found and returned.</div>'
         : '';
 
       document.getElementById('content').innerHTML =
         foundBanner +
-        '<div class="alert alert-warning mb-4">⚠️ This item has been reported as <strong>missing</strong>. ' +
-        'If you\'ve found it, please <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a> ' +
-        'or contact the owner directly.</div>' +
-        '<div class="flex items-center justify-between mb-6 flex-wrap gap-4">' +
-          '<h1 style="font-size:1.75rem;font-weight:800">' + escapeHtml(item.itemName) + '</h1>' +
-          statusBadge(item.status) +
-        '</div>' +
+        '<div class="alert alert-warning mb-4"><span class="material-symbols-outlined">warning</span> This item has been reported as <strong>missing</strong>. ' +
+        'If you\'ve found it, please <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a> or contact the owner.</div>' +
         '<div class="detail-grid">' +
-          '<div class="detail-img">' + img + '</div>' +
-          '<div>' +
-            '<div class="detail-fields">' +
-              '<div class="detail-field">' +
-                '<div class="detail-label">Category</div>' +
-                '<div class="detail-value"><span class="badge badge-category">' + escapeHtml(item.category) + '</span></div>' +
+          '<div><div class="detail-img">' + img + '</div></div>' +
+          '<div class="flex flex-col gap-4">' +
+            '<div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow">' +
+              '<div class="flex items-start justify-between gap-3 mb-4">' +
+                '<h1 class="font-headline font-bold text-2xl text-on-surface leading-tight">' + escapeHtml(item.itemName) + '</h1>' +
+                statusBadge(item.status) +
               '</div>' +
-              '<div class="detail-field">' +
-                '<div class="detail-label">Description</div>' +
-                '<div class="detail-value">' + escapeHtml(item.description) + '</div>' +
-              '</div>' +
-              '<div class="detail-field">' +
-                '<div class="detail-label">📍 Last Seen Location</div>' +
-                '<div class="detail-value">' + escapeHtml(item.lastSeenLocation) + '</div>' +
-              '</div>' +
-              '<div class="detail-field">' +
-                '<div class="detail-label">📅 Date Last Seen</div>' +
-                '<div class="detail-value">' + formatDate(item.lastSeenDate) + '</div>' +
-              '</div>' +
-              '<div class="detail-field">' +
-                '<div class="detail-label">Reported By</div>' +
-                '<div class="detail-value">' + escapeHtml(item.submitterName) + '</div>' +
-              '</div>' +
-              // Contact email is always shown on missing item pages so finders can reach out.
-              // #msg-btn-placeholder is filled by maybeShowMessageBtn() once auth resolves.
-              '<div class="detail-field">' +
-                '<div class="detail-label">✉️ Contact</div>' +
-                '<div class="detail-value">' +
-                  '<a href="mailto:' + escapeHtml(item.contactEmail) + '" style="color:#43B02A">' +
-                    escapeHtml(item.contactEmail) +
-                  '</a>' +
+              '<div class="detail-fields">' +
+                '<div class="detail-field"><div class="detail-label">Category</div><div class="detail-value"><span class="badge badge-category">' + escapeHtml(item.category) + '</span></div></div>' +
+                '<div class="detail-field"><div class="detail-label">Description</div><div class="detail-value">' + escapeHtml(item.description) + '</div></div>' +
+                '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">location_on</span> Last Seen Location</div><div class="detail-value">' + escapeHtml(item.lastSeenLocation) + '</div></div>' +
+                '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">calendar_today</span> Date Last Seen</div><div class="detail-value">' + formatDate(item.lastSeenDate) + '</div></div>' +
+                '<div class="detail-field"><div class="detail-label">Reported By</div><div class="detail-value">' + escapeHtml(item.submitterName) + '</div></div>' +
+                '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">mail</span> Contact</div><div class="detail-value">' +
+                  '<a href="mailto:' + escapeHtml(item.contactEmail) + '" style="color:#006c49">' + escapeHtml(item.contactEmail) + '</a>' +
                   '<div id="msg-btn-placeholder"></div>' +
-                '</div>' +
+                '</div></div>' +
               '</div>' +
             '</div>' +
-            // Button to report this item as found — links to the report-found form
-            '<div class="mt-6">' +
-              '<a href="/report.html" class="btn btn-success btn-lg w-full">' +
-                '✓ I Found This Item — Report It' +
-              '</a>' +
-            '</div>' +
+            '<a href="/report.html" class="btn btn-success btn-lg w-full">' +
+              '<span class="material-symbols-outlined" style="font-size:18px">check_circle</span> I Found This Item — Report It' +
+            '</a>' +
           '</div>' +
         '</div>';
     }
 
-    // ── Message modal state ───────────────────────────────────────────────────
     let _msgState = { receiverEmail: '', itemId: '', itemName: '' };
 
     function openMessageModal() {
       if (!_currentItem) return;
-      _msgState = {
-        receiverEmail: _currentItem.contactEmail,
-        itemId:        _currentItem.id,
-        itemName:      _currentItem.itemName
-      };
-
+      _msgState = { receiverEmail: _currentItem.contactEmail, itemId: _currentItem.id, itemName: _currentItem.itemName };
       document.getElementById('msg-modal-title').textContent = 'Message Owner';
       document.getElementById('msg-modal-context').innerHTML =
         '<strong>To:</strong> ' + escapeHtml(_currentItem.submitterName) +
         ' &nbsp;|&nbsp; <strong>Re:</strong> ' + escapeHtml(_currentItem.itemName);
-
       _resetModalForm();
       document.getElementById('msg-modal-overlay').classList.remove('hidden');
       document.getElementById('msg-textarea').focus();
     }
 
-    function closeMessageModal() {
-      document.getElementById('msg-modal-overlay').classList.add('hidden');
-    }
-
-    function handleOverlayClick(e) {
-      if (e.target === document.getElementById('msg-modal-overlay')) closeMessageModal();
-    }
-
-    function updateCharCount() {
-      document.getElementById('msg-char-count').textContent =
-        document.getElementById('msg-textarea').value.length;
-    }
-
+    function closeMessageModal() { document.getElementById('msg-modal-overlay').classList.add('hidden'); }
+    function handleOverlayClick(e) { if (e.target === document.getElementById('msg-modal-overlay')) closeMessageModal(); }
+    function updateCharCount() { document.getElementById('msg-char-count').textContent = document.getElementById('msg-textarea').value.length; }
     function _resetModalForm() {
       document.getElementById('msg-textarea').value = '';
       document.getElementById('msg-char-count').textContent = '0';
       document.getElementById('msg-error').classList.add('hidden');
       document.getElementById('msg-send-btn').disabled = false;
-      document.getElementById('msg-send-btn').textContent = '✉️ Send Message';
+      document.getElementById('msg-send-btn').innerHTML = '<span class="material-symbols-outlined">send</span> Send Message';
     }
 
     async function sendMessage() {
       const content = document.getElementById('msg-textarea').value.trim();
       const errorEl = document.getElementById('msg-error');
       const sendBtn = document.getElementById('msg-send-btn');
-
-      // Syntactic validation: field is required
-      if (!content) {
-        errorEl.textContent = 'Please enter a message before sending.';
-        errorEl.classList.remove('hidden');
-        return;
-      }
-
-      // Semantic validation: meaningful content within limits
-      if (content.length < 5) {
-        errorEl.textContent = 'Your message is too short — please include at least 5 characters.';
-        errorEl.classList.remove('hidden');
-        return;
-      }
-      if (content.length > 1000) {
-        errorEl.textContent = 'Message exceeds 1000 characters. Please shorten it.';
-        errorEl.classList.remove('hidden');
-        return;
-      }
-
+      if (!content) { errorEl.textContent = 'Please enter a message before sending.'; errorEl.classList.remove('hidden'); return; }
+      if (content.length < 5) { errorEl.textContent = 'Your message is too short — please include at least 5 characters.'; errorEl.classList.remove('hidden'); return; }
+      if (content.length > 1000) { errorEl.textContent = 'Message exceeds 1000 characters.'; errorEl.classList.remove('hidden'); return; }
       errorEl.classList.add('hidden');
-      sendBtn.disabled    = true;
-      sendBtn.textContent = 'Sending…';
-
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
       try {
-        await api.post('/messages', {
-          receiverEmail: _msgState.receiverEmail,
-          itemId:        _msgState.itemId,
-          itemName:      _msgState.itemName,
-          content
-        });
+        await api.post('/messages', { receiverEmail: _msgState.receiverEmail, itemId: _msgState.itemId, itemName: _msgState.itemName, content });
         closeMessageModal();
         showToast('Message sent!', 'success');
       } catch (err) {
         errorEl.textContent = err.message || 'Failed to send message. Please try again.';
         errorEl.classList.remove('hidden');
-        sendBtn.disabled    = false;
-        sendBtn.textContent = '✉️ Send Message';
+        sendBtn.disabled = false; sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span> Send Message';
       }
     }
 
-    // Escape key closes the modal
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeMessageModal();
-    });
-
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMessageModal(); });
     loadItem();
   </script>
 </body>

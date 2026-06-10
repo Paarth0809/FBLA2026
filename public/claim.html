@@ -1,103 +1,160 @@
 <!DOCTYPE html>
-<!-- claim.html — Submit an ownership claim on a found or missing item
-     Reads ?id= and ?type= from the URL to know which item is being claimed.
-     Requires login — shows the auth-required card otherwise.
-     Name and email are pre-filled from the session so the user doesn't have to retype them.
-     Submits to POST /api/claims. The claim goes to "pending" until an admin approves it,
-     at which point both the claimer and the finder see each other's contact info. -->
+<!-- claim.html — Submit an ownership claim on a found or missing item -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submit a Claim – School Lost & Found</title>
+  <title>Submit a Claim – Green Level Lost &amp; Found</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          "primary": "#006c49", "on-primary": "#ffffff",
+          "primary-container": "#10b981", "on-primary-container": "#00422b",
+          "surface": "#f4fbf4",
+          "surface-container-lowest": "#ffffff", "surface-container-low": "#eef6ee",
+          "surface-container": "#e8f0e9", "surface-container-high": "#e3eae3",
+          "surface-container-highest": "#dde4dd", "surface-variant": "#dde4dd",
+          "on-surface": "#161d19", "on-surface-variant": "#3c4a42",
+          "outline": "#6c7a71", "outline-variant": "#bbcabf",
+          "inverse-surface": "#2b322d",
+        },
+        fontFamily: { "headline": ["'Plus Jakarta Sans'", "sans-serif"] },
+      }}
+    }
+  </script>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  </style>
 </head>
-<body class="page">
+<body class="min-h-screen bg-surface flex">
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="/index.html" class="brand" aria-label="School Lost and Found — go to homepage">🔍 School Lost &amp; Found</a>
-      <div class="nav-links">
-        <a href="/search.html"         class="hide-mobile">Found Items</a>
-        <a href="/search-missing.html" class="hide-mobile">Missing Items</a>
-        <div id="nav-auth"></div>
+  <!-- Student sidebar -->
+  <aside class="student-sidebar hidden md:flex flex-col w-64 bg-surface-container-low border-r border-outline-variant fixed left-0 top-0 h-full z-40 p-4 gap-1">
+    <div class="flex items-center gap-3 px-2 py-4 mb-3">
+      <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined filled text-on-primary-container" style="font-size:20px">school</span>
+      </div>
+      <div>
+        <div class="font-headline font-bold text-sm text-primary leading-tight">Student Portal</div>
+        <div class="text-xs text-on-surface-variant">Green Level High</div>
       </div>
     </div>
-  </nav>
+    <a href="/report.html" class="flex items-center justify-center gap-2 bg-primary text-white py-2.5 px-4 rounded-xl font-semibold text-sm mb-3 hover:bg-primary/90 transition-colors">
+      <span class="material-symbols-outlined" style="font-size:16px">add</span>
+      Report New Item
+    </a>
+    <nav class="flex flex-col gap-0.5 flex-1">
+      <a href="/my-submissions.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined" style="font-size:20px">assignment</span>My Submissions
+      </a>
+      <a href="/claim.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-primary-container/30 text-primary">
+        <span class="material-symbols-outlined filled" style="font-size:20px">pan_tool</span>Claims
+      </a>
+      <a href="/search.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined" style="font-size:20px">search</span>Browse Found Items
+      </a>
+    </nav>
+    <button onclick="logout()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container transition-colors mt-auto">
+      <span class="material-symbols-outlined" style="font-size:20px">logout</span>Logout
+    </button>
+  </aside>
 
-  <main>
-    <div class="container" style="max-width:680px">
-      <a href="#" id="back-link" class="btn btn-ghost btn-sm mb-6">← Back to Item</a>
+  <!-- Mobile top bar -->
+  <div class="fixed top-0 left-0 right-0 z-50 md:hidden bg-inverse-surface h-14 flex items-center px-4 gap-3" style="box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+    <a href="/my-submissions.html" class="text-white/70 hover:text-white">
+      <span class="material-symbols-outlined" style="font-size:22px">arrow_back</span>
+    </a>
+    <span class="font-headline font-bold text-white text-base flex-1">Submit a Claim</span>
+    <div id="nav-auth" class="hidden"></div>
+  </div>
 
-      <div class="page-header">
-        <h1>Submit a Claim</h1>
-        <p id="item-subtitle" class="text-muted">Claiming: <strong id="item-name-display">…</strong></p>
+  <!-- Main content -->
+  <main class="student-shell-main flex-1 md:ml-64 pt-14 md:pt-0 pb-12 overflow-y-auto bg-surface">
+    <div class="max-w-2xl mx-auto px-4 md:px-8 py-8">
+
+      <a href="#" id="back-link" class="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary text-sm font-medium transition-colors mb-6">
+        <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+        Back to Item
+      </a>
+
+      <div class="mb-6">
+        <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Submit a Claim</h1>
+        <p class="text-on-surface-variant text-sm">Claiming: <strong id="item-name-display" class="text-on-surface">…</strong></p>
       </div>
 
-      <div id="auth-required" class="card hidden">
-        <div class="card-body text-center">
-          <div style="font-size:2rem;margin-bottom:0.75rem">🔒</div>
-          <h3 class="font-bold mb-2">Sign In Required</h3>
-          <p class="text-muted mb-6">You need to be signed in to submit a claim.</p>
+      <div id="auth-required" class="hidden">
+        <div class="bg-surface-container-lowest rounded-2xl p-8 text-center card-shadow border border-outline-variant">
+          <span class="material-symbols-outlined text-on-surface-variant block mb-4" style="font-size:40px">lock</span>
+          <h3 class="font-headline font-bold text-lg text-on-surface mb-2">Sign In Required</h3>
+          <p class="text-on-surface-variant text-sm mb-6">You need to be signed in to submit a claim.</p>
           <a href="#" id="login-link" class="btn btn-primary">Sign In</a>
         </div>
       </div>
 
       <div id="form-container" class="hidden">
-        <div class="alert alert-info mb-6">
-          ℹ️ Provide as many identifying details as possible. The admin will review your claim and contact you.
+        <div class="alert alert-info mb-5">
+          <span class="material-symbols-outlined">info</span> Provide as many identifying details as possible. The admin will review your claim and contact you.
         </div>
+        <div id="success-box" class="alert alert-success hidden mb-4" role="alert"></div>
+        <div id="error-box"   class="alert alert-error   hidden mb-4" role="alert"></div>
 
-        <div id="success-box" class="alert alert-success hidden" role="alert"></div>
-        <div id="error-box"   class="alert alert-error   hidden" role="alert"></div>
+        <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant card-shadow overflow-hidden">
+          <!-- Item context card -->
+          <div class="bg-surface-container-low px-6 py-4 border-b border-outline-variant flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary" style="font-size:20px">inventory_2</span>
+            <div>
+              <div class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-0.5">Claiming item</div>
+              <div class="font-semibold text-on-surface text-sm" id="item-context-name">…</div>
+            </div>
+          </div>
 
-        <div class="card">
-          <div class="card-body">
-            <form id="claim-form">
-              <div class="form-group">
-                <label class="form-label" for="claimerName">Your Full Name <span class="req">*</span></label>
-                <input class="form-input" type="text" id="claimerName" name="claimerName" required
-                       placeholder="First and last name">
+          <div class="p-6">
+            <form id="claim-form" class="space-y-5">
+              <div>
+                <label class="block text-sm font-semibold text-on-surface mb-1.5" for="claimerName">Your Full Name <span class="text-error">*</span></label>
+                <input class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+                       type="text" id="claimerName" name="claimerName" required placeholder="First and last name">
               </div>
-
-              <div class="form-group">
-                <label class="form-label" for="claimerEmail">Your Email <span class="req">*</span></label>
-                <input class="form-input" type="email" id="claimerEmail" name="claimerEmail" required
-                       placeholder="you@school.edu">
+              <div>
+                <label class="block text-sm font-semibold text-on-surface mb-1.5" for="claimerEmail">Your Email <span class="text-error">*</span></label>
+                <input class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+                       type="email" id="claimerEmail" name="claimerEmail" required placeholder="you@school.edu">
               </div>
-
-              <div class="form-group">
-                <label class="form-label" for="claimerPhone">Phone Number <span style="color:#6b7280;font-weight:400">(optional)</span></label>
-                <input class="form-input" type="tel" id="claimerPhone" name="claimerPhone"
-                       placeholder="555-123-4567">
+              <div>
+                <label class="block text-sm font-semibold text-on-surface mb-1.5" for="claimerPhone">Phone Number <span class="text-on-surface-variant font-normal">(optional)</span></label>
+                <input class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+                       type="tel" id="claimerPhone" name="claimerPhone" placeholder="555-123-4567">
               </div>
-
-              <div class="form-group">
-                <label class="form-label" for="description">
-                  Proof of Ownership <span class="req">*</span>
-                </label>
-                <textarea class="form-textarea" id="description" name="description" rows="5" required minlength="20"
+              <div>
+                <label class="block text-sm font-semibold text-on-surface mb-1.5" for="description">Proof of Ownership <span class="text-error">*</span></label>
+                <textarea class="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all resize-y"
+                          id="description" name="description" rows="5" required minlength="20"
                           placeholder="Describe how you know this is yours — what's inside it, unique markings, purchase details, or anything only the owner would know…"></textarea>
-                <span class="form-hint">Be specific. This helps the admin verify your claim. Minimum 20 characters.</span>
+                <p class="text-xs text-on-surface-variant mt-1.5">Be specific. This helps the admin verify your claim. Minimum 20 characters.</p>
               </div>
-
-              <div class="flex gap-4 mt-6">
-                <button type="submit" id="submit-btn" class="btn btn-primary" style="flex:1">
+              <div class="flex gap-3 pt-2">
+                <button type="submit" id="submit-btn" class="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors" style="box-shadow:0 2px 0 #005236">
+                  <span class="material-symbols-outlined" style="font-size:18px">shield</span>
                   Submit Claim
                 </button>
-                <a href="#" id="cancel-link" class="btn btn-outline">Cancel</a>
+                <a href="#" id="cancel-link" class="flex items-center justify-center gap-2 border border-outline-variant text-on-surface px-6 py-3 rounded-xl font-semibold text-sm hover:bg-surface-container transition-colors">
+                  Cancel
+                </a>
               </div>
             </form>
           </div>
         </div>
       </div>
-
     </div>
   </main>
-
-  <footer class="footer">
-    <div class="container"><p>© 2026 School Lost &amp; Found System.</p></div>
-  </footer>
 
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
@@ -106,28 +163,24 @@
     const itemId   = params.get('id');
     const itemType = params.get('type') || 'found';
 
-    // Set up back links
-    const backUrl = itemType === 'found'
-      ? `/item.html?id=${itemId}`
-      : `/missing-item.html?id=${itemId}`;
+    const backUrl = itemType === 'found' ? `/item.html?id=${itemId}` : `/missing-item.html?id=${itemId}`;
     document.getElementById('back-link').href   = backUrl;
     document.getElementById('cancel-link').href = backUrl;
-    document.getElementById('login-link').href  =
-      `/login.html?redirect=/claim.html?id=${itemId}%26type=${itemType}`;
+    document.getElementById('login-link').href  = '/login.html?redirect=' +
+      encodeURIComponent(`/claim.html?id=${itemId || ''}&type=${itemType}`);
 
-    // Load item name for display
     async function loadItemName() {
       if (!itemId) return;
       try {
         const endpoint = itemType === 'found' ? `/items/${itemId}` : `/missing-items/${itemId}`;
         const item = await api.get(endpoint);
         document.getElementById('item-name-display').textContent = item.itemName;
-        document.title = `Claim "${item.itemName}" – School Lost & Found`;
+        document.getElementById('item-context-name').textContent = item.itemName;
+        document.title = `Claim "${item.itemName}" – Green Level Lost & Found`;
       } catch { /* ignore */ }
     }
     loadItemName();
 
-    // Auth guard
     document.addEventListener('userLoaded', function(e) {
       const user = e.detail;
       if (!user) {
@@ -157,7 +210,7 @@
           claimerPhone: document.getElementById('claimerPhone').value.trim(),
           description:  document.getElementById('description').value.trim()
         });
-        successBox.textContent = '✓ Claim submitted! The admin will review it and contact you soon.';
+        successBox.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Claim submitted. Check My Submissions for updates and progress.';
         successBox.classList.remove('hidden');
         document.getElementById('claim-form').style.display = 'none';
       } catch (err) {

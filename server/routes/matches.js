@@ -1,8 +1,8 @@
-// matches.js — AI-powered item matching endpoint
+// matches.js — item matching endpoint
 //
 // GET /api/matches/my-missing — returns potential found-item matches
 // for each of the current user's approved missing item reports.
-// No OpenAI calls happen here — matching uses cached AI profiles
+// Matching uses cached photo profiles
 // and keyword/category fallback scoring.
 
 const express = require('express');

@@ -1,10 +1,10 @@
 // matcher.js — Match computation between missing and found items
 //
-// Pure scoring logic — no AI API calls. Compares cached AI profiles
-// and/or falls back to synonym/name/keyword text matching.
+// Pure scoring logic. Compares cached photo profiles and/or falls back to
+// synonym/name/keyword text matching.
 //
 // Key design rule: category or location alone never produce a match.
-// At least one "strong signal" (object family, name overlap, AI data)
+// At least one "strong signal" (object family, name overlap, photo details)
 // is required. This prevents "AirPods" matching "MacBook charger" just
 // because both are Electronics.
 
@@ -101,7 +101,7 @@ function scoreMatch(missing, found) {
     reasons.push('Name overlap (' + nameOv + ' shared word' + (nameOv > 1 ? 's' : '') + ')');
   }
 
-  // ── AI profile comparison (when both items have cached profiles) ──
+  // ── Photo profile comparison (when both items have cached profiles) ──
   const mp = missing.aiProfile;
   const fp = found.aiProfile;
 
@@ -110,7 +110,7 @@ function scoreMatch(missing, found) {
     if (kwOv > 0) {
       score += kwOv * 8;
       if (kwOv >= 2) strongSignal = true;
-      reasons.push('AI keyword overlap (' + kwOv + ' shared)');
+      reasons.push('Detail keyword overlap (' + kwOv + ' shared)');
     }
 
     if (mp.color && fp.color && mp.color.toLowerCase() === fp.color.toLowerCase()) {
@@ -145,7 +145,7 @@ function scoreMatch(missing, found) {
       reasons.push('Feature overlap (' + featOv + ' shared)');
     }
   } else {
-    // No AI profiles — fallback: keyword overlap across name + description
+    // No photo profiles — fallback: keyword overlap across name + description
     const missingWords = mp
       ? (mp.keywords || [])
       : extractKeywords([missing.itemName, missing.description].join(' '));
