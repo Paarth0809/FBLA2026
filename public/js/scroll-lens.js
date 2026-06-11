@@ -92,6 +92,8 @@ function initScrollLens() {
   scene.add(glintLight);
 
   let model = null;
+  let glassMesh = null;
+  let glassProjectionPoints = [];
   let viewport = measureViewport();
   let rafId = 0;
   let scrollTrigger = null;
@@ -107,7 +109,6 @@ function initScrollLens() {
     '/models/magnifying-glass.glb',
     (gltf) => {
       model = gltf.scene;
-      let glassMesh = null;
 
       model.traverse((node) => {
         if (!node.isMesh) return;
@@ -131,6 +132,7 @@ function initScrollLens() {
       const anchor = anchorBounds.getCenter(new THREE.Vector3());
       model.position.sub(anchor);
       model.updateMatrixWorld(true);
+      glassProjectionPoints = glassMesh ? cacheProjectionPoints(glassMesh) : [];
 
       modelPivot.add(model);
       story.classList.add('scroll-lens-ready');
@@ -195,12 +197,13 @@ function initScrollLens() {
     }
 
     const state = computeLensState(progress.current);
-    updateOriginalTextMasks(state);
+    updateModel(state);
+    const optics = computeProjectedOptics(state);
+    updateOriginalTextMasks(state, optics);
     compositor.draw(viewport);
     compositeTexture.needsUpdate = true;
-    updateGlassUniforms(state);
-    updateModel(state);
-    updateDebugLayer(debugLayer, state);
+    updateGlassUniforms(state, optics);
+    updateDebugLayer(debugLayer, state, optics);
     renderer.render(scene, camera);
   }
 
@@ -253,6 +256,7 @@ function initScrollLens() {
       radius: size * 0.45,
       modelOpacity: frame.modelOpacity ?? 1,
       glassOpacity: frame.glassOpacity ?? 1,
+      maskScale: frame.maskScale ?? 0.92,
       magnification: frame.magnification ?? 1.22,
       distortion: frame.distortion ?? 1,
       angle: frame.angle ?? 0,
@@ -294,29 +298,39 @@ function initScrollLens() {
     };
   }
 
-  function updateGlassUniforms(state) {
+  function updateGlassUniforms(state, optics = fallbackProjectedOptics(state)) {
     const drawingBuffer = renderer.getDrawingBufferSize(new THREE.Vector2());
     const scaleX = drawingBuffer.x / viewport.width;
     const scaleY = drawingBuffer.y / viewport.height;
+    const scale = (scaleX + scaleY) * 0.5;
     const uniforms = glassMaterial.uniforms;
+    const axisX = new THREE.Vector2(optics.axisX.x, -optics.axisX.y).normalize();
+    const axisY = new THREE.Vector2(optics.axisY.x, -optics.axisY.y).normalize();
 
     uniforms.uResolution.value.set(drawingBuffer.x, drawingBuffer.y);
-    uniforms.uLensCenter.value.set(state.x * scaleX, drawingBuffer.y - state.y * scaleY);
-    uniforms.uLensRadius.value = state.radius * (scaleX + scaleY) * 0.5;
+    uniforms.uLensCenter.value.set(optics.centerX * scaleX, drawingBuffer.y - optics.centerY * scaleY);
+    uniforms.uLensAxisX.value.copy(axisX);
+    uniforms.uLensAxisY.value.copy(axisY);
+    uniforms.uLensRadius.value = Math.max(1, optics.radius * scale);
+    uniforms.uLensRadiusX.value = Math.max(1, optics.radiusX * scale);
+    uniforms.uLensRadiusY.value = Math.max(1, optics.radiusY * scale);
+    uniforms.uOpticalStrength.value = optics.opticalStrength;
     uniforms.uMagnification.value = state.magnification;
     uniforms.uDistortion.value = state.distortion;
     uniforms.uOpacity.value = state.glassOpacity * state.modelOpacity;
     uniforms.uTime.value = performance.now() / 1000;
   }
 
-  function updateOriginalTextMasks(state) {
-    const radius = state.modelOpacity > 0.04 ? state.radius : 0;
+  function updateOriginalTextMasks(state, optics = fallbackProjectedOptics(state)) {
+    const maskScale = Number.isFinite(state.maskScale) ? state.maskScale : 0.92;
+    const maskStrength = state.modelOpacity > 0.04 ? optics.maskStrength : 0;
+    const radius = maskStrength > 0.12 ? Math.max(0, optics.maskRadius * maskScale * maskStrength) : 0;
     originalLayers.forEach((layer) => {
       const rect = layer.getBoundingClientRect();
-      layer.style.setProperty('--lens-hole-x', `${state.x - rect.left}px`);
-      layer.style.setProperty('--lens-hole-y', `${state.y - rect.top}px`);
+      layer.style.setProperty('--lens-hole-x', `${optics.centerX - rect.left}px`);
+      layer.style.setProperty('--lens-hole-y', `${optics.centerY - rect.top}px`);
       layer.style.setProperty('--lens-hole-r', `${radius}px`);
-      layer.style.setProperty('--lens-hole-feather', `${Math.max(3, radius * 0.038)}px`);
+      layer.style.setProperty('--lens-hole-feather', `${radius > 0 ? Math.max(3, state.radius * 0.035 * maskStrength) : 0}px`);
     });
   }
 
@@ -348,11 +362,175 @@ function initScrollLens() {
     return layer;
   }
 
-  function updateDebugLayer(layer, state) {
+  function updateDebugLayer(layer, state, optics = fallbackProjectedOptics(state)) {
     if (!layer) return;
-    layer.style.width = `${state.radius * 2}px`;
-    layer.style.height = `${state.radius * 2}px`;
-    layer.style.transform = `translate3d(${state.x - state.radius}px, ${state.y - state.radius}px, 0)`;
+    layer.style.width = `${optics.radiusX * 2}px`;
+    layer.style.height = `${optics.radiusY * 2}px`;
+    layer.style.transform = `translate3d(${optics.centerX - optics.radiusX}px, ${optics.centerY - optics.radiusY}px, 0) rotate(${optics.angle}rad)`;
+    layer.title = `face ${optics.faceOnStrength.toFixed(2)} / optical ${optics.opticalStrength.toFixed(2)}`;
+  }
+
+  function cacheProjectionPoints(mesh) {
+    const geometry = mesh.geometry;
+    const position = geometry?.attributes?.position;
+    if (!position?.count) return [];
+
+    const points = [];
+    const stride = Math.max(1, Math.ceil(position.count / 560));
+    for (let index = 0; index < position.count; index += stride) {
+      points.push(new THREE.Vector3(
+        position.getX(index),
+        position.getY(index),
+        position.getZ(index)
+      ));
+    }
+
+    if (geometry.boundingBox == null) geometry.computeBoundingBox();
+    const box = geometry.boundingBox;
+    if (box) {
+      for (const x of [box.min.x, box.max.x]) {
+        for (const y of [box.min.y, box.max.y]) {
+          for (const z of [box.min.z, box.max.z]) {
+            points.push(new THREE.Vector3(x, y, z));
+          }
+        }
+      }
+    }
+
+    return points;
+  }
+
+  function computeProjectedOptics(state) {
+    const fallback = fallbackProjectedOptics(state);
+    if (!glassMesh || !glassProjectionPoints.length || !model) return fallback;
+
+    modelPivot.updateMatrixWorld(true);
+    glassMesh.updateWorldMatrix(true, false);
+
+    const projected = [];
+    const scratch = new THREE.Vector3();
+    let meanX = 0;
+    let meanY = 0;
+
+    glassProjectionPoints.forEach((point) => {
+      scratch.copy(point).applyMatrix4(glassMesh.matrixWorld).project(camera);
+      if (!Number.isFinite(scratch.x) || !Number.isFinite(scratch.y) || !Number.isFinite(scratch.z)) return;
+      const x = (scratch.x * 0.5 + 0.5) * viewport.width;
+      const y = (0.5 - scratch.y * 0.5) * viewport.height;
+      projected.push(x, y);
+      meanX += x;
+      meanY += y;
+    });
+
+    const count = projected.length / 2;
+    if (count < 8) return fallback;
+
+    meanX /= count;
+    meanY /= count;
+
+    let varianceX = 0;
+    let varianceY = 0;
+    let covariance = 0;
+    for (let index = 0; index < projected.length; index += 2) {
+      const dx = projected[index] - meanX;
+      const dy = projected[index + 1] - meanY;
+      varianceX += dx * dx;
+      varianceY += dy * dy;
+      covariance += dx * dy;
+    }
+
+    varianceX /= count;
+    varianceY /= count;
+    covariance /= count;
+
+    let angle = 0.5 * Math.atan2(2 * covariance, varianceX - varianceY);
+    const axisX = { x: Math.cos(angle), y: Math.sin(angle) };
+    const axisY = { x: -Math.sin(angle), y: Math.cos(angle) };
+    let radiusX = 0;
+    let radiusY = 0;
+
+    for (let index = 0; index < projected.length; index += 2) {
+      const dx = projected[index] - meanX;
+      const dy = projected[index + 1] - meanY;
+      radiusX = Math.max(radiusX, Math.abs(dx * axisX.x + dy * axisX.y));
+      radiusY = Math.max(radiusY, Math.abs(dx * axisY.x + dy * axisY.y));
+    }
+
+    radiusX = clamp(radiusX * 1.08, 4, Math.max(fallback.radius * 1.65, 16));
+    radiusY = clamp(radiusY * 1.08, 4, Math.max(fallback.radius * 1.65, 16));
+
+    if (radiusY > radiusX) {
+      const swapRadius = radiusX;
+      radiusX = radiusY;
+      radiusY = swapRadius;
+      const swapAxis = { ...axisX };
+      axisX.x = axisY.x;
+      axisX.y = axisY.y;
+      axisY.x = swapAxis.x;
+      axisY.y = swapAxis.y;
+    }
+    angle = Math.atan2(axisX.y, axisX.x);
+
+    const ratio = clamp(radiusY / Math.max(radiusX, 1));
+    const faceOnStrength = smoothstep(0.2, 0.58, ratio);
+    const overlapStrength = getOpticTextOverlapStrength(meanX, meanY, radiusX, radiusY, axisX, axisY, state.target);
+    const opticalStrength = clamp(state.modelOpacity * state.glassOpacity * faceOnStrength * overlapStrength);
+    const maskStrength = clamp(state.modelOpacity * faceOnStrength * overlapStrength);
+    const maskRadius = lerp(radiusY, Math.min(radiusX, fallback.radius), faceOnStrength);
+
+    return {
+      centerX: meanX,
+      centerY: meanY,
+      radius: Math.max(radiusX, radiusY),
+      radiusX,
+      radiusY,
+      maskRadius,
+      angle,
+      axisX,
+      axisY,
+      faceOnStrength,
+      overlapStrength,
+      opticalStrength,
+      maskStrength
+    };
+  }
+
+  function fallbackProjectedOptics(state) {
+    return {
+      centerX: state.x,
+      centerY: state.y,
+      radius: state.radius,
+      radiusX: state.radius,
+      radiusY: state.radius,
+      maskRadius: state.radius,
+      angle: 0,
+      axisX: { x: 1, y: 0 },
+      axisY: { x: 0, y: 1 },
+      faceOnStrength: 1,
+      overlapStrength: 1,
+      opticalStrength: state.modelOpacity * state.glassOpacity,
+      maskStrength: state.modelOpacity
+    };
+  }
+
+  function getOpticTextOverlapStrength(centerX, centerY, radiusX, radiusY, axisX, axisY, target) {
+    const rect = target ? getLayerContentRect(target, false) : null;
+    if (!rect) return 1;
+
+    const boundsWidth = Math.abs(axisX.x) * radiusX + Math.abs(axisY.x) * radiusY;
+    const boundsHeight = Math.abs(axisX.y) * radiusX + Math.abs(axisY.y) * radiusY;
+    const left = centerX - boundsWidth;
+    const right = centerX + boundsWidth;
+    const top = centerY - boundsHeight;
+    const bottom = centerY + boundsHeight;
+    const overlapWidth = Math.max(0, Math.min(right, rect.right) - Math.max(left, rect.left));
+    const overlapHeight = Math.max(0, Math.min(bottom, rect.bottom) - Math.max(top, rect.top));
+    const overlapArea = overlapWidth * overlapHeight;
+    if (overlapArea <= 0) return 0;
+
+    const opticArea = Math.max(1, (right - left) * (bottom - top));
+    const textArea = Math.max(1, rect.width * rect.height);
+    return smoothstep(0.012, 0.14, overlapArea / Math.min(opticArea, textArea));
   }
 
   window.addEventListener('scroll-story:progress', requestRender);
@@ -380,14 +558,14 @@ function getMotionFrames(compact) {
     { p: 0.135, target: 'intro', sweep: 0.52, yBias: 0.02, angle: 0.04, faceX: flat, modelOpacity: 1, glassOpacity: 1, magnification: 1.25 },
     { p: 0.205, target: 'intro', sweep: 1.02, yBias: 0.08, angle: 0.34, faceX: flat, modelOpacity: 1, glassOpacity: 0.94, magnification: 1.22 },
     { p: 0.25, target: 'catalog', sweep: -0.08, yBias: -0.04, angle: 3.35, faceX: flat + 0.58, faceY: -0.45, faceZ: 0.18, modelOpacity: 1, glassOpacity: 0.74, magnification: 1.12, distortion: 1.25 },
-    { p: 0.32, target: 'catalog', sweep: 0.18, yBias: compact ? 0.1 : 0.12, sizeBoost: 1.06, angle: 6.12, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.25 },
-    { p: 0.445, target: 'catalog', sweep: 0.82, yBias: compact ? 0.12 : 0.14, sizeBoost: 1.06, angle: 6.54, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.24 },
+    { p: 0.32, target: 'catalog', sweep: 0.18, yBias: compact ? 0.1 : 0.12, sizeBoost: 1.14, angle: 6.12, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.25 },
+    { p: 0.445, target: 'catalog', sweep: 0.82, yBias: compact ? 0.12 : 0.14, sizeBoost: 1.14, angle: 6.54, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.24 },
     { p: 0.515, target: 'verify', sweep: 1.06, yBias: 0.02, angle: 8.55, faceX: flat - 0.42, faceY: 0.48, faceZ: -0.22, modelOpacity: 1, glassOpacity: 0.78, magnification: 1.13, distortion: 1.22 },
     { p: 0.602, target: 'verify', sweep: 0.82, yBias: compact ? 0.1 : 0.08, sizeBoost: 1.06, angle: 9.48, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.25 },
     { p: 0.742, target: 'verify', sweep: 0.2, yBias: compact ? 0.12 : 0.1, sizeBoost: 1.06, angle: 9.02, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.24 },
     { p: 0.825, target: 'final', sweep: -0.1, yBias: 0, angle: 11.72, faceX: flat + 0.5, faceY: -0.42, faceZ: 0.24, modelOpacity: 1, glassOpacity: 0.76, magnification: 1.13, distortion: 1.28 },
-    { p: 0.902, target: 'final', sweep: 0.16, yBias: 0.1, angle: 12.52, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.26 },
-    { p: 0.992, target: 'final', sweep: 0.88, yBias: 0.12, angle: 13.02, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.22 }
+    { p: 0.902, target: 'final', sweep: 0.16, yBias: 0.1, sizeBoost: 1.16, angle: 12.52, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.26 },
+    { p: 0.992, target: 'final', sweep: 0.88, yBias: 0.12, sizeBoost: 1.16, angle: 13.02, faceX: flat, faceY: 0, faceZ: 0, modelOpacity: 1, glassOpacity: 1, magnification: 1.22 }
   ];
 }
 
@@ -400,6 +578,7 @@ function interpolateLensState(from, to, amount) {
     'radius',
     'modelOpacity',
     'glassOpacity',
+    'maskScale',
     'magnification',
     'distortion',
     'angle',
@@ -493,12 +672,15 @@ function drawTextElement(context, element, layerOpacity) {
 
   context.save();
   context.globalAlpha = layerOpacity * (Number.parseFloat(style.opacity || '1') || 1);
-  context.font = `${style.fontWeight || 600} ${style.fontSize} ${style.fontFamily}`;
+  context.font = `${style.fontStyle && style.fontStyle !== 'normal' ? `${style.fontStyle} ` : ''}${style.fontWeight || 600} ${style.fontSize} ${style.fontFamily}`;
   context.textBaseline = 'alphabetic';
   context.fillStyle = style.color || 'rgba(255,255,255,0.95)';
   context.shadowColor = tag === 'p' ? 'rgba(0,0,0,0.24)' : 'rgba(0,0,0,0.45)';
   context.shadowBlur = tag === 'p' ? 12 : 24;
   context.shadowOffsetY = tag === 'p' ? 3 : 6;
+  if ('letterSpacing' in context) {
+    context.letterSpacing = style.letterSpacing;
+  }
 
   if (isButton) {
     context.globalAlpha *= 0.92;
@@ -507,6 +689,17 @@ function drawTextElement(context, element, layerOpacity) {
     context.fill();
     context.shadowBlur = 0;
     context.fillStyle = element.classList.contains('primary') ? '#ffffff' : 'rgba(255,255,255,0.92)';
+  }
+
+  const renderedLines = isButton ? [] : getRenderedTextLines(element);
+  if (renderedLines.length) {
+    context.textAlign = 'left';
+    renderedLines.forEach((line) => {
+      const baseline = line.top + Math.min(line.height, lineHeight) / 2 + fontSize * 0.34;
+      context.fillText(line.text, line.left, baseline);
+    });
+    context.restore();
+    return;
   }
 
   const textAlign = style.textAlign === 'right' ? 'right' : style.textAlign === 'center' ? 'center' : 'left';
@@ -525,6 +718,82 @@ function drawTextElement(context, element, layerOpacity) {
   });
 
   context.restore();
+}
+
+function getRenderedTextLines(element) {
+  const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight) || 20;
+  const tolerance = Math.max(3, Math.min(18, lineHeight * 0.38));
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        return node.nodeValue && node.nodeValue.trim()
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    }
+  );
+  const range = document.createRange();
+  const lines = [];
+
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const value = node.nodeValue || '';
+    const matcher = /\S+\s*/g;
+    let match = matcher.exec(value);
+
+    while (match) {
+      const token = match[0];
+      const visibleText = token.replace(/\s+/g, ' ');
+      range.setStart(node, match.index);
+      range.setEnd(node, match.index + token.length);
+
+      const rect = Array.from(range.getClientRects())
+        .find((candidate) => candidate.width > 0 && candidate.height > 0);
+
+      if (rect && visibleText.trim()) {
+        addRenderedTokenLine(lines, visibleText, rect, tolerance);
+      }
+
+      match = matcher.exec(value);
+    }
+  }
+
+  range.detach?.();
+
+  return lines
+    .sort((a, b) => (a.top === b.top ? a.left - b.left : a.top - b.top))
+    .map((line) => ({
+      text: line.text.replace(/\s+/g, ' ').trim(),
+      left: line.left,
+      top: line.top,
+      height: line.bottom - line.top
+    }))
+    .filter((line) => line.text);
+}
+
+function addRenderedTokenLine(lines, text, rect, tolerance) {
+  const center = rect.top + rect.height / 2;
+  let line = lines.find((candidate) => Math.abs(candidate.center - center) <= tolerance);
+
+  if (!line) {
+    line = {
+      text: '',
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      center
+    };
+    lines.push(line);
+  }
+
+  line.text += text;
+  line.left = Math.min(line.left, rect.left);
+  line.top = Math.min(line.top, rect.top);
+  line.right = Math.max(line.right, rect.right);
+  line.bottom = Math.max(line.bottom, rect.bottom);
+  line.center = (line.top + line.bottom) / 2;
 }
 
 function wrapText(context, text, maxWidth) {
@@ -563,9 +832,14 @@ function createAppleGlassMaterial(sceneTexture) {
       uSceneTexture: { value: sceneTexture },
       uResolution: { value: new THREE.Vector2(1, 1) },
       uLensCenter: { value: new THREE.Vector2(0.5, 0.5) },
+      uLensAxisX: { value: new THREE.Vector2(1, 0) },
+      uLensAxisY: { value: new THREE.Vector2(0, 1) },
       uLensRadius: { value: 120 },
+      uLensRadiusX: { value: 120 },
+      uLensRadiusY: { value: 120 },
       uMagnification: { value: 1.24 },
       uDistortion: { value: 1 },
+      uOpticalStrength: { value: 1 },
       uOpacity: { value: 1 },
       uTime: { value: 0 }
     },
@@ -584,9 +858,14 @@ function createAppleGlassMaterial(sceneTexture) {
       uniform sampler2D uSceneTexture;
       uniform vec2 uResolution;
       uniform vec2 uLensCenter;
+      uniform vec2 uLensAxisX;
+      uniform vec2 uLensAxisY;
       uniform float uLensRadius;
+      uniform float uLensRadiusX;
+      uniform float uLensRadiusY;
       uniform float uMagnification;
       uniform float uDistortion;
+      uniform float uOpticalStrength;
       uniform float uOpacity;
       uniform float uTime;
 
@@ -601,24 +880,29 @@ function createAppleGlassMaterial(sceneTexture) {
 
       void main() {
         vec2 frag = gl_FragCoord.xy;
-        vec2 delta = (frag - uLensCenter) / max(uLensRadius, 1.0);
+        vec2 screenDelta = frag - uLensCenter;
+        vec2 delta = vec2(
+          dot(screenDelta, uLensAxisX) / max(uLensRadiusX, 1.0),
+          dot(screenDelta, uLensAxisY) / max(uLensRadiusY, 1.0)
+        );
         float radius = length(delta);
 
-        if (radius > 1.06) discard;
+        if (radius > 1.08) discard;
 
-        vec2 direction = radius > 0.0001 ? delta / radius : vec2(0.0);
+        float opticalStrength = clamp(uOpticalStrength, 0.0, 1.0);
+        vec2 direction = radius > 0.0001 ? normalize(uLensAxisX * delta.x + uLensAxisY * delta.y) : vec2(0.0);
         float centerWeight = 1.0 - smoothstep(0.12, 0.92, radius);
         float edgeWeight = smoothstep(0.58, 1.0, radius);
         float curvature = sqrt(max(0.0, 1.0 - radius * radius));
-        float opticalZoom = mix(1.0, uMagnification, centerWeight);
-        float bend = (1.0 - curvature) * 0.09 * uDistortion;
-        float ripple = sin((delta.x * 2.2 - delta.y * 1.7 + uTime * 0.22) * 3.14159265) * 0.0025 * edgeWeight;
+        float opticalZoom = mix(1.0, mix(1.0, uMagnification, centerWeight), opticalStrength);
+        float bend = (1.0 - curvature) * 0.09 * uDistortion * opticalStrength;
+        float ripple = sin((delta.x * 2.2 - delta.y * 1.7 + uTime * 0.22) * 3.14159265) * 0.0025 * edgeWeight * opticalStrength;
 
-        vec2 source = uLensCenter + delta * uLensRadius / opticalZoom;
+        vec2 source = uLensCenter + screenDelta / opticalZoom;
         source += direction * (bend + ripple) * uLensRadius;
 
         vec2 uv = screenToTexture(source);
-        vec2 chroma = direction * edgeWeight * 0.0028 * uDistortion;
+        vec2 chroma = direction * edgeWeight * 0.0028 * uDistortion * opticalStrength;
 
         vec3 color;
         color.r = texture2D(uSceneTexture, screenToTexture(source + chroma * uResolution)).r;
@@ -632,10 +916,10 @@ function createAppleGlassMaterial(sceneTexture) {
         vec3 sheen = vec3(0.72, 1.0, 0.88) * fresnel * 0.22 + vec3(1.0) * rim * 0.13;
 
         color = mix(color, color * tint, glassTint);
-        color = mix(color, color * 0.9, edgeWeight * 0.14);
+        color = mix(color, color * 0.9, edgeWeight * 0.14 * (0.45 + opticalStrength * 0.55));
         color += sheen;
 
-        float alpha = uOpacity * (0.62 + centerWeight * 0.1 + edgeWeight * 0.08 + rim * 0.1 + fresnel * 0.06);
+        float alpha = uOpacity * (0.58 + centerWeight * 0.08 * opticalStrength + edgeWeight * 0.08 + rim * 0.1 + fresnel * 0.06);
         gl_FragColor = vec4(color, clamp(alpha, 0.42, 0.92));
       }
     `,
@@ -693,6 +977,7 @@ function emptyLensState(width, height) {
     radius: 0,
     modelOpacity: 0,
     glassOpacity: 0,
+    maskScale: 0.92,
     magnification: 1,
     distortion: 0,
     angle: 0,

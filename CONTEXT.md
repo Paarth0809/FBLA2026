@@ -1,7 +1,66 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-11 ~12:15am EDT by Codex
+> Last updated: 2026-06-11 ~04:37AM EDT by Codex
+
+---
+
+## Latest Update — Pose-Aware Scroll Lens Polish
+
+Current goal completed: fixed the cinematic homepage magnifying-glass optical mismatch so the refraction and DOM text mask follow the projected GLB glass pose instead of staying as a fixed screen-space circle. The model motion, timing, sweep path, flips, rotations, and story choreography were intentionally left unchanged.
+
+Completed:
+- Updated `public/js/scroll-lens.js` only.
+- Kept a persistent reference to the GLB glass mesh and cached sampled glass vertices for projection.
+- After each existing `updateModel(state)` call, projected the actual glass mesh into screen space and derived center, major/minor axes, rotation, face-on strength, overlap strength, optical strength, and mask strength.
+- Changed the WebGL lens shader from circular math to projected ellipse-space math so refraction rotates and squashes with the visible glass.
+- Made refraction and DOM text hiding fade out when the glass turns edge-on or no longer meaningfully overlaps the active story copy.
+- Drove the original DOM text mask from the projected glass center and projected optical strength so no stale circular hole remains during side-profile turns.
+- Extended `?lensDebug=1` to show the projected ellipse and report `face` / `optical` strength in the debug title.
+
+Verification:
+- `node --check public/js/scroll-lens.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 84 / 84.
+- Confirmed the `getMotionFrames()` motion fields still match the pre-pass baseline.
+- Browser QA on `http://localhost:3000/?lensDebug=1` with installed Google Chrome confirmed:
+  - Catalog edge-on sample reaches `face 0.00 / optical 0.00` and no longer leaves a circular text cutout.
+  - Catalog scan keeps the projected debug ellipse attached to the visible glass.
+  - Final scan still magnifies/readably refracts text when the glass is face-on.
+  - Mobile 390px checks at progress `0.28`, `0.5`, and `0.9` had no horizontal overflow.
+  - Console only showed the existing Tailwind CDN warning and expected logged-out `/api/auth/me` 401.
+
+Known notes:
+- Debug screenshots were saved under `/tmp/` during QA and are not project artifacts.
+- The app is currently listening on port `3000` via an existing Node process.
+- The repo still has unrelated untracked files/directories: `.claude/`, `.planning/`, `.vscode/`, `home-bolder.png`, `motion-home.png`, and `motion-search.png`.
+
+---
+
+## Latest Update — Scroll Lens Text Fidelity Polish
+
+Current goal completed: fixed the cinematic homepage magnifying-glass lens so the WebGL texture follows the browser's real text wrapping instead of guessing heading/body line breaks. The existing scroll choreography, progress stops, sweep path, flips, and rotations were intentionally preserved.
+
+Completed:
+- Updated `public/js/scroll-lens.js` only.
+- Added rendered-line extraction with DOM `Range.getClientRects()` so headings and paragraph copy inside the lens match the actual DOM layout.
+- Kept the older canvas wrapping path as a fallback if rendered line extraction cannot produce lines.
+- Slightly increased lens coverage on the catalog scan frames (`sizeBoost: 1.14`) and final scan frames (`sizeBoost: 1.16`) without changing `p`, `sweep`, `angle`, `faceX`, `faceY`, or `faceZ`.
+- Inset the original DOM text mask to the glass interior (`maskScale: 0.92`) with a softer feather so edge fragments do not disappear under the metal rim.
+
+Verification:
+- `node --check public/js/scroll-lens.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 84 / 84.
+- Browser screenshot QA used installed Google Chrome against `http://localhost:3000/` at intro, catalog, and final scroll positions.
+- Console only showed the existing Tailwind CDN warning and the expected logged-out `/api/auth/me` 401.
+
+Known notes:
+- The app is currently listening on port `3000` via an existing Node process.
+- The repo still has unrelated untracked files/directories: `.claude/`, `.planning/`, `.vscode/`, `home-bolder.png`, `motion-home.png`, and `motion-search.png`.
+- Compact/tablet layout remains tighter because the story copy is intentionally bottom-positioned under the `max-width: 1024px` breakpoint; this pass did not alter motion or responsive story placement.
 
 ---
 
