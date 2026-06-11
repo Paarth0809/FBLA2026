@@ -2,7 +2,6 @@
 const fs   = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.resolve(__dirname, '../data-ui-test');
 const PID_FILE = path.resolve(__dirname, '.ui-server.pid');
 
 module.exports = async function globalTeardown() {
@@ -13,8 +12,5 @@ module.exports = async function globalTeardown() {
     fs.unlinkSync(PID_FILE);
   }
 
-  // Remove the isolated test data folder
-  if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true });
-
-  console.log('\n  🧹 UI test server stopped and data cleaned up.\n');
+  console.log('\n  🧹 UI test server stopped.\n');
 };

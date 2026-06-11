@@ -9,7 +9,8 @@
 
 const path = require('path');
 const fs = require('fs');
-const { readJSON, writeJSON } = require('./db');
+const { prisma } = require('./prisma');
+const { foundItemToApi, missingItemToApi, itemIncludes } = require('./modelMapper');
 
 let geminiModel = null;
 
@@ -67,13 +68,13 @@ Respond with ONLY the JSON object, no markdown, no explanation.`;
 function generateAndSave(itemId, itemType) {
   if (!isEnabled()) return;
 
-  const filename = itemType === 'found' ? 'items.json' : 'missing-items.json';
-
   // Run async without awaiting — caller returns immediately
   (async () => {
     try {
-      const items = readJSON(filename);
-      const item = items.find(i => i.id === itemId);
+      const record = itemType === 'found'
+        ? await prisma.foundItem.findUnique({ where: { id: itemId }, include: itemIncludes })
+        : await prisma.missingItem.findUnique({ where: { id: itemId }, include: itemIncludes });
+      const item = itemType === 'found' ? foundItemToApi(record) : missingItemToApi(record);
       if (!item || !item.photo) return;
       if (item.aiProfile) return; // already generated
 
@@ -81,13 +82,11 @@ function generateAndSave(itemId, itemType) {
       const profile = await generateProfile(item, photoPath);
       if (!profile) return;
 
-      // Re-read to avoid overwriting concurrent changes
-      const fresh = readJSON(filename);
-      const idx = fresh.findIndex(i => i.id === itemId);
-      if (idx === -1) return;
-
-      fresh[idx].aiProfile = profile;
-      writeJSON(filename, fresh);
+      if (itemType === 'found') {
+        await prisma.foundItem.update({ where: { id: itemId }, data: { aiProfile: profile } });
+      } else {
+        await prisma.missingItem.update({ where: { id: itemId }, data: { aiProfile: profile } });
+      }
       console.log(`[Matcher] Profile generated for ${itemType} item: ${item.itemName}`);
     } catch (err) {
       console.error(`[Matcher] Profile generation failed for ${itemType} ${itemId}:`, err.message);

@@ -2,8 +2,19 @@
 
 ## Fast Demo Setup
 
+One-time setup on the presentation laptop:
+
 ```bash
+brew services start postgresql@16
 npm install
+npm run db:check
+npm run db:prepare
+```
+
+Daily judge-room startup:
+
+```bash
+brew services start postgresql@16
 npm start
 ```
 
@@ -25,12 +36,15 @@ This project is prepared for slow or unavailable venue Wi-Fi:
 - Fonts and Material Symbols are local under `/vendor/`.
 - GSAP, Three.js, the magnifying-glass model, HDRI, school image, and 480 scroll
   frames are local.
-- The default data mode uses local JSON files, so PostgreSQL is not required for
-  the live judge demo.
+- PostgreSQL runs locally on the laptop. No cloud database or venue internet is
+  required after setup.
+- `data/*.json` can be re-imported with `npm run data:migrate-json` if demo data
+  needs to be restored.
 - Optional photo profiling is disabled by default. Matching still works locally
   through item names, categories, object families, keywords, and locations.
 
-If a laptop has no internet, run the app exactly the same way with `npm start`.
+If a laptop has no internet, start the local Postgres service and run the app
+exactly the same way with `npm start`.
 
 ## Suggested 7-Minute Walkthrough
 
@@ -56,7 +70,8 @@ If a laptop has no internet, run the app exactly the same way with `npm start`.
 | Responsive design | Shared CSS, local Tailwind, mobile layouts |
 | Source documentation | `docs/`, README, code comments |
 
-## Known Production-Lite Boundary
+## Database Notes For Judges
 
-The demo defaults to JSON persistence for portability. PostgreSQL + Prisma schema
-and migration support are included for a production-style deployment path.
+The live app is backed by local PostgreSQL through Prisma. Sessions are stored in
+Postgres when `SESSION_STORE=postgres`, route handlers use Prisma repositories,
+and the JSON files are retained only as an importable seed/backup source.

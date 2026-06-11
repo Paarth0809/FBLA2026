@@ -1,138 +1,147 @@
-// claims.js — Routes for ownership claims on found and missing items
-//
-// When a student thinks an item belongs to them, they submit a claim with a
-// description proving ownership. The admin reviews it and approves or rejects it.
-// If approved, both the claimer and the item submitter see each other's contact info.
-//
-// Authenticated routes (must be logged in):
-//   DELETE /api/claims/mine/resolved  — remove approved/rejected claims from history
-//   GET    /api/claims/mine           — claims submitted BY the current user
-//   GET    /api/claims/received       — claims made ON items submitted by the current user
-//   POST   /api/claims                — submit a new claim
+// claims.js — Routes for ownership claims on found and missing items.
 
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const { readJSON, writeJSON } = require('../lib/db');
+const { prisma } = require('../lib/prisma');
 const { requireAuth } = require('../middleware/auth');
+const { asyncHandler } = require('../lib/asyncHandler');
+const { claimToApi, foundItemToApi, missingItemToApi, itemIncludes, claimIncludes } = require('../lib/modelMapper');
 
 const router = express.Router();
 
-// DELETE /api/claims/mine/resolved — remove approved or rejected claims from the user's view.
-// This is defined first so "mine" is not confused for a claim ID in the POST route.
-router.delete('/mine/resolved', requireAuth, (req, res) => {
-  const resolved = ['approved', 'rejected'];
-  const all  = readJSON('claims.json');
-  // Filter out claims this user submitted that have already been decided
-  const kept = all.filter(c => !(c.submittedBy === req.session.userId && resolved.includes(c.status)));
-  writeJSON('claims.json', kept);
-  res.json({ removed: all.length - kept.length });
-});
+router.delete('/mine/resolved', requireAuth, asyncHandler(async (req, res) => {
+  const result = await prisma.claim.deleteMany({
+    where: {
+      submittedById: req.session.userId,
+      status: { in: ['APPROVED', 'REJECTED'] }
+    }
+  });
+  res.json({ removed: result.count });
+}));
 
-// GET /api/claims/mine — all claims submitted BY the current user (the claimer's view).
-// Each claim is enriched with the item's contactEmail so the claimer knows how to
-// reach the finder once their claim is approved by the admin.
-router.get('/mine', requireAuth, (req, res) => {
-  const items    = readJSON('items.json');
-  const missing  = readJSON('missing-items.json');
-  const allUsers = readJSON('users.json');
+router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
+  const records = await prisma.claim.findMany({
+    where: { submittedById: req.session.userId },
+    include: claimIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
 
-  const claims = readJSON('claims.json')
-    .filter(c => c.submittedBy === req.session.userId)
-    .map(c => {
-      // Only reveal contact info after admin approval to prevent email leaks
-      const source = c.itemType === 'found' ? items : missing;
-      const item   = source.find(i => i.id === c.itemId);
-      if (c.status === 'approved' && item) {
-        const finderUser = allUsers.find(u => u.id === item.submittedBy);
-        return {
-          ...c,
-          itemContactEmail:   item.contactEmail || null,
-          itemSubmitterEmail: finderUser ? finderUser.email : null
-        };
-      }
-      return { ...c, itemContactEmail: null, itemSubmitterEmail: null };
-    })
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  res.json(claims);
-});
-
-// GET /api/claims/received — all claims made ON items submitted by the current user (the finder's view).
-// Used on the My Submissions page to show the finder who is trying to claim their item.
-router.get('/received', requireAuth, (req, res) => {
-  const uid = req.session.userId;
-  const users = readJSON('users.json');
-
-  // Build sets of item IDs that belong to this user for quick lookup
-  const myFoundIds   = new Set(readJSON('items.json')         .filter(i => i.submittedBy === uid).map(i => i.id));
-  const myMissingIds = new Set(readJSON('missing-items.json') .filter(i => i.submittedBy === uid).map(i => i.id));
-
-  // Return all claims that reference one of this user's items.
-  // Enrich each claim with the claimer's actual account email (looked up by submittedBy),
-  // so the finder messages the correct inbox rather than the self-reported claimerEmail
-  // field, which may differ from their account email.
-  const claims = readJSON('claims.json')
-    .filter(c => myFoundIds.has(c.itemId) || myMissingIds.has(c.itemId))
-    .map(c => {
-      // Only reveal claimer's account email after admin approval to prevent email leaks
-      if (c.status === 'approved') {
-        const claimerUser = users.find(u => u.id === c.submittedBy);
-        return { ...c, claimerAccountEmail: claimerUser ? claimerUser.email : c.claimerEmail };
-      }
-      return { ...c, claimerAccountEmail: null };
-    })
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  res.json(claims);
-});
-
-// POST /api/claims — submit a new ownership claim on a found or missing item.
-// itemType must be either "found" or "missing" to indicate which collection to look in.
-router.post('/', requireAuth, (req, res) => {
-  try {
-    const { itemId, itemType, claimerName, claimerEmail, claimerPhone, description } = req.body;
-
-    // Validate required fields (phone is optional)
-    if (!itemId || !itemType || !claimerName || !claimerEmail || !description)
-      return res.status(400).json({ error: 'All required fields must be filled in.' });
-
-    // Look up the item name so the admin dashboard can display it without a second query
-    let itemName = '';
-    if (itemType === 'found') {
-      const item = readJSON('items.json').find(i => i.id === itemId);
-      if (!item) return res.status(404).json({ error: 'Item not found.' });
-      itemName = item.itemName;
-    } else if (itemType === 'missing') {
-      const item = readJSON('missing-items.json').find(i => i.id === itemId);
-      if (!item) return res.status(404).json({ error: 'Item not found.' });
-      itemName = item.itemName;
-    } else {
-      return res.status(400).json({ error: 'itemType must be "found" or "missing".' });
+  const claims = await Promise.all(records.map(async (record) => {
+    const claim = claimToApi(record);
+    if (claim.status !== 'approved') {
+      return { ...claim, itemContactEmail: null, itemSubmitterEmail: null };
     }
 
-    const claim = {
-      id:           uuidv4(),
-      itemId,
-      itemType,     // "found" or "missing" — tells us which JSON file to look in later
-      itemName,     // stored here for convenience so admin can read it without another lookup
-      claimerName:  claimerName.trim(),
-      claimerEmail: claimerEmail.trim(),
-      claimerPhone: (claimerPhone || '').trim(),  // optional field
-      description:  description.trim(),           // the claimer's proof of ownership
-      submittedBy:  req.session.userId,
-      status:       'pending',  // starts pending until an admin approves or rejects
-      createdAt:    new Date().toISOString()
+    if (claim.itemType === 'found') {
+      const item = await prisma.foundItem.findUnique({
+        where: { id: claim.itemId },
+        include: itemIncludes
+      });
+      return {
+        ...claim,
+        itemContactEmail: item?.contactEmailPrivate || null,
+        itemSubmitterEmail: item?.submittedBy?.email || null
+      };
+    }
+
+    const item = await prisma.missingItem.findUnique({
+      where: { id: claim.itemId },
+      include: itemIncludes
+    });
+    return {
+      ...claim,
+      itemContactEmail: item?.contactEmailPrivate || null,
+      itemSubmitterEmail: item?.submittedBy?.email || null
     };
+  }));
 
-    const claims = readJSON('claims.json');
-    claims.push(claim);
-    writeJSON('claims.json', claims);
+  res.json(claims);
+}));
 
-    res.json({ message: 'Claim submitted! The admin will be in touch soon.', claim });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+router.get('/received', requireAuth, asyncHandler(async (req, res) => {
+  const uid = req.session.userId;
+  const foundIds = (await prisma.foundItem.findMany({
+    where: { submittedById: uid },
+    select: { id: true }
+  })).map(item => item.id);
+  const missingIds = (await prisma.missingItem.findMany({
+    where: { submittedById: uid },
+    select: { id: true }
+  })).map(item => item.id);
+
+  const records = await prisma.claim.findMany({
+    where: {
+      OR: [
+        { itemType: 'FOUND', itemId: { in: foundIds } },
+        { itemType: 'MISSING', itemId: { in: missingIds } },
+        { ownerId: uid }
+      ]
+    },
+    include: claimIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const claims = records.map(record => {
+    const claim = claimToApi(record);
+    if (claim.status === 'approved') {
+      return { ...claim, claimerAccountEmail: record.submittedBy?.email || claim.claimerEmail };
+    }
+    return { ...claim, claimerAccountEmail: null };
+  });
+
+  res.json(claims);
+}));
+
+router.post('/', requireAuth, asyncHandler(async (req, res) => {
+  const { itemId, itemType, claimerName, claimerEmail, claimerPhone, description } = req.body;
+
+  if (!itemId || !itemType || !claimerName || !claimerEmail || !description)
+    return res.status(400).json({ error: 'All required fields must be filled in.' });
+
+  let item = null;
+  let normalizedType = null;
+  if (itemType === 'found') {
+    item = await prisma.foundItem.findUnique({ where: { id: itemId }, include: itemIncludes });
+    normalizedType = 'FOUND';
+  } else if (itemType === 'missing') {
+    item = await prisma.missingItem.findUnique({ where: { id: itemId }, include: itemIncludes });
+    normalizedType = 'MISSING';
+  } else {
+    return res.status(400).json({ error: 'itemType must be "found" or "missing".' });
   }
-});
+
+  if (!item) return res.status(404).json({ error: 'Item not found.' });
+
+  const record = await prisma.$transaction(async (tx) => {
+    const claim = await tx.claim.create({
+      data: {
+        itemId,
+        itemType: normalizedType,
+        itemName: item.itemName,
+        claimerName: claimerName.trim(),
+        claimerEmail: claimerEmail.trim(),
+        claimerPhone: (claimerPhone || '').trim() || null,
+        description: description.trim(),
+        submittedById: req.session.userId,
+        ownerId: item.submittedById,
+        status: 'PENDING'
+      },
+      include: claimIncludes
+    });
+
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'CLAIM_CREATED',
+        targetType: 'claim',
+        targetId: claim.id,
+        metadata: { itemId, itemType }
+      }
+    });
+
+    return claim;
+  });
+
+  res.json({ message: 'Claim submitted! The admin will be in touch soon.', claim: claimToApi(record) });
+}));
 
 module.exports = router;

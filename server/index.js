@@ -19,13 +19,6 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-// Seed the database with demo accounts and sample data on first run.
-// seed() checks if an admin user already exists before writing anything, so it's
-// safe to call every time the server starts.
-const seed = require('./lib/seed');
-console.log('\nChecking seed data...');
-seed();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -132,6 +125,11 @@ app.use('/api/admin',         require('./routes/admin'));        // admin-only a
 app.use('/api/messages',      require('./routes/messages'));     // in-app messaging between finders and claimers
 app.use('/api/matches',       require('./routes/matches'));      // potential item matches
 
+app.use('/api', (err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Server error.' });
+});
+
 // ── Frontend ───────────────────────────────────────────────────────────────────
 // Serve every file inside public/ (HTML, CSS, JS, images) as a static asset.
 // This means http://localhost:3000/search.html just works without any extra routing.
@@ -144,9 +142,20 @@ app.get('*', (req, res) => {
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\nGreen Level Lost & Found is running!`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`   Open: http://localhost:${PORT}`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+async function start() {
+  const seed = require('./lib/seed');
+  console.log('\nChecking seed data...');
+  await seed();
+
+  app.listen(PORT, () => {
+    console.log(`\nGreen Level Lost & Found is running!`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`   Open: http://localhost:${PORT}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });

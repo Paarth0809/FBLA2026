@@ -6,83 +6,153 @@
 const http    = require('http');
 const { exec } = require('child_process');
 const path    = require('path');
-const fs      = require('fs');
+const bcrypt  = require('bcryptjs');
+require('dotenv').config();
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
-// ── Isolated test data folder ─────────────────────────────────
+// ── Isolated test database ────────────────────────────────────
 const ROOT      = path.join(__dirname, '..');
-const TEST_DATA = path.join(ROOT, 'data-test');
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
+if (!TEST_DATABASE_URL) {
+  throw new Error('TEST_DATABASE_URL is required for npm test.');
+}
 
-function resetTestData() {
-  // Wipe and recreate so every run starts from a clean slate
-  if (fs.existsSync(TEST_DATA)) fs.rmSync(TEST_DATA, { recursive: true, force: true });
-  fs.mkdirSync(TEST_DATA, { recursive: true });
+const testPrisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: TEST_DATABASE_URL })
+});
 
-  // Pre-populate the items/missing-items/claims that the tests reference by
-  // hardcoded ID. The seed.js only creates user accounts now, so we write
-  // this test fixture data directly.
-  fs.writeFileSync(path.join(TEST_DATA, 'items.json'), JSON.stringify([
-    { id: 'item-001', itemName: 'Blue North Face Backpack', category: 'Bags & Backpacks',
-      description: 'Large blue backpack found near the library.', locationFound: 'Library Entrance',
-      dateFound: '2026-02-15', contactEmail: 'admin@school.edu', photo: null,
-      status: 'approved', submittedBy: 'admin-001', submitterName: 'Staff Member',
-      createdAt: '2026-02-15T10:30:00.000Z' },
-    { id: 'item-002', itemName: 'iPhone 14 (Space Gray)', category: 'Electronics',
-      description: 'Space gray iPhone 14 with clear case, found in cafeteria.', locationFound: 'Cafeteria',
-      dateFound: '2026-02-18', contactEmail: 'admin@school.edu', photo: null,
-      status: 'approved', submittedBy: 'admin-001', submitterName: 'Staff Member',
-      createdAt: '2026-02-18T12:15:00.000Z' },
-    { id: 'item-003', itemName: 'White Wireless Earbuds', category: 'Electronics',
-      description: 'White AirPods in charging case, found on gym bleachers.', locationFound: 'Gymnasium',
-      dateFound: '2026-02-20', contactEmail: 'admin@school.edu', photo: null,
-      status: 'approved', submittedBy: 'admin-001', submitterName: 'Coach Williams',
-      createdAt: '2026-02-20T14:00:00.000Z' },
-    { id: 'item-005', itemName: 'AP Calculus Textbook', category: 'Books & Supplies',
-      description: 'AP Calculus AB textbook, Larson 10th edition. Found in classroom 204.', locationFound: 'Room 204',
-      dateFound: '2026-02-28', contactEmail: 'admin@school.edu', photo: null,
-      status: 'approved', submittedBy: 'admin-001', submitterName: 'Mr. Johnson',
-      createdAt: '2026-02-28T15:30:00.000Z' },
-    { id: 'item-006', itemName: 'Black Compact Umbrella', category: 'Other',
-      description: 'Standard black folding umbrella found near the main entrance.', locationFound: 'Main Entrance',
-      dateFound: '2026-02-26', contactEmail: 'admin@school.edu', photo: null,
-      status: 'approved', submittedBy: 'admin-001', submitterName: 'Front Office',
-      createdAt: '2026-02-26T08:00:00.000Z' },
-    { id: 'item-007', itemName: 'Red Hydro Flask Water Bottle', category: 'Other',
-      description: 'Red 32oz Hydro Flask with stickers, found at the track.', locationFound: 'Track & Field',
-      dateFound: '2026-03-01', contactEmail: 'admin@school.edu', photo: null,
-      status: 'pending', submittedBy: 'user-001', submitterName: 'Alex Chen',
-      createdAt: '2026-03-01T16:00:00.000Z' }
-  ], null, 2));
+function runCommand(command, env = {}) {
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: ROOT, env: { ...process.env, ...env } }, (error, stdout, stderr) => {
+      if (error) {
+        error.message += `\n${stdout}\n${stderr}`;
+        reject(error);
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+}
 
-  fs.writeFileSync(path.join(TEST_DATA, 'missing-items.json'), JSON.stringify([
-    { id: 'missing-001', itemName: 'Blue Hydro Flask', category: 'Other',
-      description: 'Blue 24oz Hydro Flask with ocean sticker. Name on bottom.', lastSeenLocation: 'Cafeteria',
-      lastSeenDate: '2026-02-10', contactEmail: 'student@school.edu', photo: null,
-      status: 'approved', submittedBy: 'user-001', submitterName: 'Alex Chen',
-      createdAt: '2026-02-10T13:00:00.000Z' },
-    { id: 'missing-002', itemName: 'HP Laptop Charger', category: 'Electronics',
-      description: 'HP 45W charger with blue tape near connector, left in library.', lastSeenLocation: 'Library',
-      lastSeenDate: '2026-02-14', contactEmail: 'student@school.edu', photo: null,
-      status: 'approved', submittedBy: 'user-001', submitterName: 'Alex Chen',
-      createdAt: '2026-02-14T11:30:00.000Z' },
-    { id: 'missing-003', itemName: 'Gray Champion Hoodie', category: 'Clothing',
-      description: 'Gray Champion hoodie size L with ink stain near pocket.', lastSeenLocation: 'Girls Locker Room',
-      lastSeenDate: '2026-02-28', contactEmail: 'student@school.edu', photo: null,
-      status: 'pending', submittedBy: 'user-001', submitterName: 'Alex Chen',
-      createdAt: '2026-02-28T10:00:00.000Z' }
-  ], null, 2));
+function date(value) {
+  return new Date(value);
+}
 
-  fs.writeFileSync(path.join(TEST_DATA, 'claims.json'), JSON.stringify([], null, 2));
+async function resetTestDatabase() {
+  await runCommand('npx prisma migrate deploy', { DATABASE_URL: TEST_DATABASE_URL });
+
+  await testPrisma.message.deleteMany();
+  await testPrisma.claim.deleteMany();
+  await testPrisma.foundItem.deleteMany();
+  await testPrisma.missingItem.deleteMany();
+  await testPrisma.uploadedAsset.deleteMany();
+  await testPrisma.auditLog.deleteMany();
+  await testPrisma.user.deleteMany();
+
+  await testPrisma.user.createMany({
+    data: [
+      {
+        id: 'admin-001',
+        name: 'Administrator',
+        email: 'admin@school.edu',
+        passwordHash: bcrypt.hashSync('admin123', 10),
+        role: 'ADMIN',
+        createdAt: date('2026-02-01T00:00:00.000Z')
+      },
+      {
+        id: 'user-001',
+        name: 'Alex Chen',
+        email: 'student@school.edu',
+        passwordHash: bcrypt.hashSync('student123', 10),
+        role: 'USER',
+        createdAt: date('2026-02-01T00:00:00.000Z')
+      },
+      {
+        id: 'user-002',
+        name: 'Jordan Lee',
+        email: 'student2@school.edu',
+        passwordHash: bcrypt.hashSync('student123', 10),
+        role: 'USER',
+        createdAt: date('2026-02-01T00:00:00.000Z')
+      }
+    ]
+  });
+
+  await testPrisma.foundItem.createMany({
+    data: [
+      { id: 'item-001', itemName: 'Blue North Face Backpack', category: 'Bags & Backpacks',
+        description: 'Large blue backpack found near the library.', locationFound: 'Library Entrance',
+        dateFound: date('2026-02-15T00:00:00.000Z'), contactEmailPrivate: 'admin@school.edu',
+        status: 'APPROVED', submittedById: 'admin-001', submitterName: 'Staff Member',
+        createdAt: date('2026-02-15T10:30:00.000Z') },
+      { id: 'item-002', itemName: 'iPhone 14 (Space Gray)', category: 'Electronics',
+        description: 'Space gray iPhone 14 with clear case, found in cafeteria.', locationFound: 'Cafeteria',
+        dateFound: date('2026-02-18T00:00:00.000Z'), contactEmailPrivate: 'admin@school.edu',
+        status: 'APPROVED', submittedById: 'admin-001', submitterName: 'Staff Member',
+        createdAt: date('2026-02-18T12:15:00.000Z') },
+      { id: 'item-003', itemName: 'White Wireless Earbuds', category: 'Electronics',
+        description: 'White AirPods in charging case, found on gym bleachers.', locationFound: 'Gymnasium',
+        dateFound: date('2026-02-20T00:00:00.000Z'), contactEmailPrivate: 'admin@school.edu',
+        status: 'APPROVED', submittedById: 'admin-001', submitterName: 'Coach Williams',
+        createdAt: date('2026-02-20T14:00:00.000Z') },
+      { id: 'item-005', itemName: 'AP Calculus Textbook', category: 'Books & Supplies',
+        description: 'AP Calculus AB textbook, Larson 10th edition. Found in classroom 204.', locationFound: 'Room 204',
+        dateFound: date('2026-02-28T00:00:00.000Z'), contactEmailPrivate: 'admin@school.edu',
+        status: 'APPROVED', submittedById: 'admin-001', submitterName: 'Mr. Johnson',
+        createdAt: date('2026-02-28T15:30:00.000Z') },
+      { id: 'item-006', itemName: 'Black Compact Umbrella', category: 'Other',
+        description: 'Standard black folding umbrella found near the main entrance.', locationFound: 'Main Entrance',
+        dateFound: date('2026-02-26T00:00:00.000Z'), contactEmailPrivate: 'admin@school.edu',
+        status: 'APPROVED', submittedById: 'admin-001', submitterName: 'Front Office',
+        createdAt: date('2026-02-26T08:00:00.000Z') },
+      { id: 'item-007', itemName: 'Red Hydro Flask Water Bottle', category: 'Other',
+        description: 'Red 32oz Hydro Flask with stickers, found at the track.', locationFound: 'Track & Field',
+        dateFound: date('2026-03-01T00:00:00.000Z'), contactEmailPrivate: 'admin@school.edu',
+        status: 'PENDING', submittedById: 'user-001', submitterName: 'Alex Chen',
+        createdAt: date('2026-03-01T16:00:00.000Z') }
+    ]
+  });
+
+  await testPrisma.missingItem.createMany({
+    data: [
+      { id: 'missing-001', itemName: 'Blue Hydro Flask', category: 'Other',
+        description: 'Blue 24oz Hydro Flask with ocean sticker. Name on bottom.', lastSeenLocation: 'Cafeteria',
+        lastSeenDate: date('2026-02-10T00:00:00.000Z'), contactEmailPrivate: 'student@school.edu',
+        status: 'APPROVED', submittedById: 'user-001', submitterName: 'Alex Chen',
+        createdAt: date('2026-02-10T13:00:00.000Z') },
+      { id: 'missing-002', itemName: 'HP Laptop Charger', category: 'Electronics',
+        description: 'HP 45W charger with blue tape near connector, left in library.', lastSeenLocation: 'Library',
+        lastSeenDate: date('2026-02-14T00:00:00.000Z'), contactEmailPrivate: 'student@school.edu',
+        status: 'APPROVED', submittedById: 'user-001', submitterName: 'Alex Chen',
+        createdAt: date('2026-02-14T11:30:00.000Z') },
+      { id: 'missing-003', itemName: 'Gray Champion Hoodie', category: 'Clothing',
+        description: 'Gray Champion hoodie size L with ink stain near pocket.', lastSeenLocation: 'Girls Locker Room',
+        lastSeenDate: date('2026-02-28T00:00:00.000Z'), contactEmailPrivate: 'student@school.edu',
+        status: 'PENDING', submittedById: 'user-001', submitterName: 'Alex Chen',
+        createdAt: date('2026-02-28T10:00:00.000Z') }
+    ]
+  });
 }
 
 // ── Start the server ──────────────────────────────────────────
 let serverProcess;
 
 function startServer() {
-  resetTestData();
   return new Promise((resolve, reject) => {
     serverProcess = exec(
       'node server/index.js',
-      { cwd: ROOT, env: { ...process.env, PORT: '3001', DATA_DIR: TEST_DATA } }
+      {
+        cwd: ROOT,
+        env: {
+          ...process.env,
+          PORT: '3001',
+          NODE_ENV: 'test',
+          DATABASE_URL: TEST_DATABASE_URL,
+          SESSION_STORE: 'postgres',
+          SESSION_SECRET: 'test-session-secret-change-me'
+        }
+      }
     );
     serverProcess.stderr.on('data', d => { if (d.includes('Error')) console.error(d); });
     // Give the server 1.5 seconds to boot, then resolve
@@ -93,8 +163,6 @@ function startServer() {
 
 function stopServer() {
   if (serverProcess) serverProcess.kill();
-  // Clean up the temporary test data folder
-  if (fs.existsSync(TEST_DATA)) fs.rmSync(TEST_DATA, { recursive: true, force: true });
 }
 
 // ── HTTP helpers ──────────────────────────────────────────────
@@ -729,17 +797,17 @@ async function runTests() {
   });
 
   await test('GET /admin/items — revoked admin role in DB cannot use stale session', async () => {
-    const usersPath = path.join(TEST_DATA, 'users.json');
-    const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
-    const admin = users.find(u => u.email === 'admin@school.edu');
-    assert(admin, 'Expected seeded admin account');
-    admin.role = 'user';
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    await testPrisma.user.update({
+      where: { email: 'admin@school.edu' },
+      data: { role: 'USER' }
+    });
 
     const r = await req('GET', '/api/admin/items', null, adminCookie);
 
-    admin.role = 'admin';
-    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    await testPrisma.user.update({
+      where: { email: 'admin@school.edu' },
+      data: { role: 'ADMIN' }
+    });
     assert(r.status === 403, `Expected 403 after DB role downgrade, got ${r.status}`);
   });
 
@@ -966,11 +1034,13 @@ async function runTests() {
   runMatcherTests();
 
   console.log('\nStarting test server on port 3001…');
+  await resetTestDatabase();
   await startServer();
   try {
     await runTests();
   } finally {
     stopServer();
+    await testPrisma.$disconnect();
   }
   process.exit(results.failed > 0 ? 1 : 0);
 })();

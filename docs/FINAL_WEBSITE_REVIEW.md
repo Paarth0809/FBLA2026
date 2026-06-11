@@ -4,14 +4,20 @@ Last updated: June 11, 2026
 
 ## Verdict
 
-The project is in a strong judge-demo state. The core user flows are automated, public APIs no longer expose private contact fields, admin access is protected by a fresh role lookup, and the frontend no longer depends on CDN fonts, icons, or Tailwind during the presentation.
+The project is in a strong judge-demo state. The core user flows are automated,
+public APIs do not expose private contact fields, admin access is protected by a
+fresh database role lookup, and the frontend no longer depends on CDN fonts,
+icons, or Tailwind during the presentation.
 
-The cinematic homepage and 3D/WebGL work are a major presentation differentiator. The most important remaining architectural gap is that JSON files are still the live persistence layer by default. Prisma/Postgres schema and migration scripts now exist, but the routes have not yet been fully switched to Prisma repositories.
+The cinematic homepage and 3D/WebGL work are a major presentation
+differentiator. The live backend now uses local PostgreSQL through Prisma, with
+Postgres-backed sessions and JSON retained only as a migration/backup source.
 
 ## Must Fix Before Judges
 
 1. Run a full manual offline demo the morning of the event.
-   - Start the app locally before entering the room.
+   - Start PostgreSQL locally before entering the room.
+   - Run `npm run db:check` and `npm start`.
    - Open every important page once while online or on local network so browser cache is warm.
    - Keep `http://localhost:3000` open and ready.
 
@@ -19,13 +25,12 @@ The cinematic homepage and 3D/WebGL work are a major presentation differentiator
    - The server warns in dev if the fallback is being used.
    - For the actual demo laptop, set a real secret even if this is local-only.
 
-3. Keep the JSON data backup clean.
-   - Copy the known-good `data/` folder before presenting.
-   - If demo data gets messy, restore the backup and restart the server.
+3. Keep the Postgres data restore path ready.
+   - Keep the known-good `data/` folder as a backup import source.
+   - If demo data gets messy, run `npm run db:reset:local`.
 
-4. Decide how to explain the database layer.
-   - Current honest wording: “The app currently runs from local JSON for a reliable offline demo, and includes a Prisma/Postgres production-lite schema plus migration path.”
-   - Do not claim every live route is already Prisma-backed until that refactor is actually completed.
+4. Explain the database layer confidently.
+   - Honest wording: “The app runs locally on PostgreSQL through Prisma, so it is database-backed without depending on venue Wi-Fi.”
 
 5. Keep optional Prisma audit context ready.
    - `npm audit --omit=dev --omit=optional` is clean.
@@ -33,28 +38,23 @@ The cinematic homepage and 3D/WebGL work are a major presentation differentiator
 
 ## Nice-To-Have Polish
 
-1. Finish the Prisma repository swap.
-   - Add repository modules for users, found items, missing items, claims, messages, uploads, and audit logs.
-   - Use Prisma transactions for claim approval, account deletion, item deletion, and upload-linked submissions.
-   - Keep the current routes and page URLs stable.
-
-2. Add token-based CSRF.
+1. Add token-based CSRF.
    - The current origin check blocks cross-site browser mutations in the normal demo path.
    - A synchronized CSRF token would be a stronger production story.
 
-3. Add Zod schemas to every mutating route.
+2. Add Zod schemas to every mutating route.
    - Existing validation covers required fields and common bad values.
    - Zod would make the validation model easier to explain and maintain.
 
-4. Add a formal service-worker/offline shell.
+3. Add a formal service-worker/offline shell.
    - Current offline readiness comes from vendored assets and local server execution.
    - A service worker would make refreshes more resilient after first load, but is not required for the local demo.
 
-5. Add axe checks to the Playwright suite.
+4. Add axe checks to the Playwright suite.
    - Accessibility docs and visible focus states are present.
    - Automated axe assertions would strengthen the rubric evidence.
 
-6. Expand Playwright coverage.
+5. Expand Playwright coverage.
    - Current UI suite covers the main lifecycle: missing report, admin approval, found report, claim, and close-loop approval.
    - Additional coverage should include messages, Matches tab claim links, account deletion, mobile nav, and admin message viewer.
 
@@ -127,7 +127,8 @@ The cinematic homepage and 3D/WebGL work are a major presentation differentiator
 - Messages can be sent to missing-item owners without revealing the owner email in the public item response.
 
 Remaining risk:
-- Messages are still persisted by email strings internally. Production-grade architecture should migrate these relationships to user IDs in Prisma.
+- CSRF is still origin-check based rather than token based.
+- Validation is route-level rather than consistently schema based.
 
 ## Offline / Slow Wi-Fi Readiness
 
@@ -137,11 +138,13 @@ Remaining risk:
 - Three.js, GSAP, the GLB, HDRI, and scroll frames are local assets.
 - Public app files do not require Google/CDN resources at runtime.
 - The app is best presented as a local server demo, not a remote hosted demo dependent on venue Wi-Fi.
+- PostgreSQL is local too; no cloud database is required.
 
 Presentation backup plan:
 - Start the server before judging.
+- Start the local PostgreSQL service before judging.
 - Use `localhost:3000`.
-- Keep a backup copy of `data/`.
+- Keep `npm run db:reset:local` ready if you need to restore seed data.
 - If the network is unavailable, do not use Gemini/profile generation; the app still submits items and runs the matcher from form data.
 
 ## Verification Evidence
@@ -153,7 +156,8 @@ Presentation backup plan:
 - `node --check public/js/scroll-lens.js`: passed.
 - `node --check public/js/scroll-story.js`: passed.
 - `git diff --check`: passed.
-- `DATABASE_URL=postgresql://user:pass@localhost:5432/fbla npm run prisma:validate`: passed.
+- `npm run db:check`: verifies local dev/test Postgres connections.
+- `npm run prisma:validate`: passed.
 - `npm audit --omit=dev --omit=optional`: 0 vulnerabilities.
 
 ## Presentation Talking Points
@@ -163,4 +167,4 @@ Presentation backup plan:
 - “Admins review found and missing reports before they become public.”
 - “Claims close the loop by marking a found item as claimed after approval.”
 - “The cinematic homepage is not just a video: it is scroll-linked canvas plus a live WebGL magnifying lens.”
-- “The production-lite database path is documented with Prisma schema and migration tooling, while the demo mode remains fully local and reliable.”
+- “The live app is backed by local PostgreSQL through Prisma, so it has a real relational database without needing venue Wi-Fi.”

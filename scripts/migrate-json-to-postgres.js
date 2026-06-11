@@ -36,6 +36,11 @@ function assetIdFor(storedName) {
   return crypto.createHash('sha256').update(storedName).digest('hex').slice(0, 32);
 }
 
+function fileSha256(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is required to migrate JSON data into PostgreSQL.');
@@ -83,13 +88,15 @@ async function main() {
       const storedName = item.photo;
       const filePath = path.join(ROOT, 'uploads', storedName);
       const stat = fs.existsSync(filePath) ? fs.statSync(filePath) : null;
+      const hash = fileSha256(filePath);
       const ownerId = users.some(user => user.id === item.submittedBy) ? item.submittedBy : users[0]?.id;
       if (!ownerId) continue;
       await client.query(
         `INSERT INTO "UploadedAsset" ("id", "ownerId", "originalName", "storedName", "mimeType", "sizeBytes", "sha256", "purpose", "createdAt")
-         VALUES ($1, $2, $3, $4, $5, $6, NULL, $7::"AssetPurpose", $8)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::"AssetPurpose", $9)
          ON CONFLICT ("storedName") DO UPDATE SET
            "ownerId" = EXCLUDED."ownerId",
+           "sha256" = EXCLUDED."sha256",
            "purpose" = EXCLUDED."purpose"`,
         [
           assetIdFor(storedName),
@@ -98,6 +105,7 @@ async function main() {
           storedName,
           storedName.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
           stat ? stat.size : 0,
+          hash,
           purpose,
           parseDate(item.createdAt) || new Date()
         ]
@@ -216,14 +224,23 @@ async function main() {
       const sender = userByEmail.get(String(message.senderEmail).toLowerCase());
       const receiver = userByEmail.get(String(message.receiverEmail).toLowerCase());
       if (!sender || !receiver) continue;
+      const itemType = foundById.has(message.itemId) ? 'FOUND' : missingById.has(message.itemId) ? 'MISSING' : null;
       await client.query(
         `INSERT INTO "Message"
           ("id", "itemId", "itemType", "itemName", "content", "replyToId", "createdAt", "senderId", "receiverId")
-         VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT ("id") DO NOTHING`,
+         VALUES ($1, $2, $3::"ItemType", $4, $5, $6, $7, $8, $9)
+         ON CONFLICT ("id") DO UPDATE SET
+           "itemId" = EXCLUDED."itemId",
+           "itemType" = EXCLUDED."itemType",
+           "itemName" = EXCLUDED."itemName",
+           "content" = EXCLUDED."content",
+           "replyToId" = EXCLUDED."replyToId",
+           "senderId" = EXCLUDED."senderId",
+           "receiverId" = EXCLUDED."receiverId"`,
         [
           message.id,
           message.itemId,
+          itemType,
           message.itemName || 'Unknown item',
           message.content || '',
           message.replyToId || null,

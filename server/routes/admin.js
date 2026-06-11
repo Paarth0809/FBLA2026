@@ -1,221 +1,298 @@
-// admin.js — Admin-only management routes
-//
-// Every route in this file is protected by requireAdmin middleware, which is
-// applied once at the top with router.use(). Any non-admin request is rejected
-// with a 403 before it reaches any individual route handler.
-//
-// Admins can:
-//   - View all found items, missing items, and claims (including pending ones)
-//   - Approve or reject any submission
-//   - Delete any submission permanently
-//   - Mark found items as claimed and approve claims (which auto-updates the item status)
+// admin.js — Admin-only management routes.
 
 const express = require('express');
-const { readJSON, writeJSON } = require('../lib/db');
+const { prisma } = require('../lib/prisma');
 const { requireAdmin } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
+const { asyncHandler } = require('../lib/asyncHandler');
+const {
+  foundItemToApi,
+  missingItemToApi,
+  claimToApi,
+  messageToApi,
+  itemIncludes,
+  claimIncludes,
+  messageIncludes
+} = require('../lib/modelMapper');
 
 const router = express.Router();
 
-// Apply the admin check to every route in this file — no individual route
-// needs to repeat it. Any logged-in non-admin gets a 403 Forbidden.
 router.use(requireAdmin);
 
-// ════════════════════════════════════════════════════════════════════
-//  FOUND ITEMS
-// ════════════════════════════════════════════════════════════════════
+router.get('/items', asyncHandler(async (req, res) => {
+  const records = await prisma.foundItem.findMany({
+    include: itemIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(records.map(foundItemToApi));
+}));
 
-// GET /api/admin/items — return ALL found items (all statuses), newest first
-router.get('/items', (req, res) => {
-  const items = readJSON('items.json');
-  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(items);
-});
+router.put('/items/:id/approve', asyncHandler(async (req, res) => {
+  const record = await prisma.$transaction(async (tx) => {
+    const item = await tx.foundItem.update({
+      where: { id: req.params.id },
+      data: { status: 'APPROVED' },
+      include: itemIncludes
+    }).catch(() => null);
+    if (!item) return null;
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'FOUND_ITEM_APPROVED',
+        targetType: 'found_item',
+        targetId: item.id
+      }
+    });
+    return item;
+  });
+  if (!record) return res.status(404).json({ error: 'Item not found.' });
 
-// PUT /api/admin/items/:id/approve — publish a found item to the public board
-router.put('/items/:id/approve', (req, res) => {
-  const items = readJSON('items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items[i].status = 'approved';
-  writeJSON('items.json', items);
+  const item = foundItemToApi(record);
+  if (item.photo && !item.aiProfile) generateAndSave(item.id, 'found');
+  res.json(item);
+}));
 
-  // Generate a photo profile on approve if item has a photo and no profile yet
-  if (items[i].photo && !items[i].aiProfile) generateAndSave(items[i].id, 'found');
+router.put('/items/:id/reject', asyncHandler(async (req, res) => {
+  const record = await prisma.$transaction(async (tx) => {
+    const item = await tx.foundItem.update({
+      where: { id: req.params.id },
+      data: { status: 'REJECTED' },
+      include: itemIncludes
+    }).catch(() => null);
+    if (!item) return null;
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'FOUND_ITEM_REJECTED',
+        targetType: 'found_item',
+        targetId: item.id
+      }
+    });
+    return item;
+  });
+  if (!record) return res.status(404).json({ error: 'Item not found.' });
+  res.json(foundItemToApi(record));
+}));
 
-  res.json(items[i]);
-});
+router.put('/items/:id/mark-claimed', asyncHandler(async (req, res) => {
+  const record = await prisma.$transaction(async (tx) => {
+    const item = await tx.foundItem.update({
+      where: { id: req.params.id },
+      data: { status: 'CLAIMED' },
+      include: itemIncludes
+    }).catch(() => null);
+    if (!item) return null;
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'FOUND_ITEM_MARKED_CLAIMED',
+        targetType: 'found_item',
+        targetId: item.id
+      }
+    });
+    return item;
+  });
+  if (!record) return res.status(404).json({ error: 'Item not found.' });
+  res.json(foundItemToApi(record));
+}));
 
-// PUT /api/admin/items/:id/reject — reject a found item submission
-router.put('/items/:id/reject', (req, res) => {
-  const items = readJSON('items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items[i].status = 'rejected';
-  writeJSON('items.json', items);
-  res.json(items[i]);
-});
+router.delete('/items/:id', asyncHandler(async (req, res) => {
+  const existing = await prisma.foundItem.findUnique({ where: { id: req.params.id } });
+  if (!existing) return res.status(404).json({ error: 'Item not found.' });
 
-// PUT /api/admin/items/:id/mark-claimed — manually mark a found item as claimed
-// (used when the admin handles a pickup directly without an online claim)
-router.put('/items/:id/mark-claimed', (req, res) => {
-  const items = readJSON('items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items[i].status = 'claimed';
-  writeJSON('items.json', items);
-  res.json(items[i]);
-});
+  await prisma.$transaction(async (tx) => {
+    await tx.claim.deleteMany({ where: { itemType: 'FOUND', itemId: req.params.id } });
+    await tx.foundItem.delete({ where: { id: req.params.id } });
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'FOUND_ITEM_DELETED',
+        targetType: 'found_item',
+        targetId: req.params.id
+      }
+    });
+  });
 
-// DELETE /api/admin/items/:id — permanently remove a found item record
-router.delete('/items/:id', (req, res) => {
-  const items = readJSON('items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items.splice(i, 1);  // remove the item from the array in place
-  writeJSON('items.json', items);
   res.json({ message: 'Deleted.' });
-});
+}));
 
-// ════════════════════════════════════════════════════════════════════
-//  MISSING ITEMS
-// ════════════════════════════════════════════════════════════════════
+router.get('/missing-items', asyncHandler(async (req, res) => {
+  const records = await prisma.missingItem.findMany({
+    include: itemIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(records.map(missingItemToApi));
+}));
 
-// GET /api/admin/missing-items — return ALL missing item reports
-router.get('/missing-items', (req, res) => {
-  const items = readJSON('missing-items.json');
-  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(items);
-});
+router.put('/missing-items/:id/approve', asyncHandler(async (req, res) => {
+  const record = await prisma.$transaction(async (tx) => {
+    const item = await tx.missingItem.update({
+      where: { id: req.params.id },
+      data: { status: 'APPROVED' },
+      include: itemIncludes
+    }).catch(() => null);
+    if (!item) return null;
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'MISSING_ITEM_APPROVED',
+        targetType: 'missing_item',
+        targetId: item.id
+      }
+    });
+    return item;
+  });
+  if (!record) return res.status(404).json({ error: 'Item not found.' });
 
-// PUT /api/admin/missing-items/:id/approve — publish a missing item report
-router.put('/missing-items/:id/approve', (req, res) => {
-  const items = readJSON('missing-items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items[i].status = 'approved';
-  writeJSON('missing-items.json', items);
+  const item = missingItemToApi(record);
+  if (item.photo && !item.aiProfile) generateAndSave(item.id, 'missing');
+  res.json(item);
+}));
 
-  // Generate a photo profile on approve if item has a photo and no profile yet
-  if (items[i].photo && !items[i].aiProfile) generateAndSave(items[i].id, 'missing');
+router.put('/missing-items/:id/reject', asyncHandler(async (req, res) => {
+  const record = await prisma.$transaction(async (tx) => {
+    const item = await tx.missingItem.update({
+      where: { id: req.params.id },
+      data: { status: 'REJECTED' },
+      include: itemIncludes
+    }).catch(() => null);
+    if (!item) return null;
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'MISSING_ITEM_REJECTED',
+        targetType: 'missing_item',
+        targetId: item.id
+      }
+    });
+    return item;
+  });
+  if (!record) return res.status(404).json({ error: 'Item not found.' });
+  res.json(missingItemToApi(record));
+}));
 
-  res.json(items[i]);
-});
+router.delete('/missing-items/:id', asyncHandler(async (req, res) => {
+  const existing = await prisma.missingItem.findUnique({ where: { id: req.params.id } });
+  if (!existing) return res.status(404).json({ error: 'Item not found.' });
 
-// PUT /api/admin/missing-items/:id/reject — reject a missing item report
-router.put('/missing-items/:id/reject', (req, res) => {
-  const items = readJSON('missing-items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items[i].status = 'rejected';
-  writeJSON('missing-items.json', items);
-  res.json(items[i]);
-});
+  await prisma.$transaction(async (tx) => {
+    await tx.claim.deleteMany({ where: { itemType: 'MISSING', itemId: req.params.id } });
+    await tx.missingItem.delete({ where: { id: req.params.id } });
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'MISSING_ITEM_DELETED',
+        targetType: 'missing_item',
+        targetId: req.params.id
+      }
+    });
+  });
 
-// DELETE /api/admin/missing-items/:id — permanently remove a missing item report
-router.delete('/missing-items/:id', (req, res) => {
-  const items = readJSON('missing-items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
-  items.splice(i, 1);
-  writeJSON('missing-items.json', items);
   res.json({ message: 'Deleted.' });
-});
+}));
 
-// ════════════════════════════════════════════════════════════════════
-//  CLAIMS
-// ════════════════════════════════════════════════════════════════════
+router.get('/claims', asyncHandler(async (req, res) => {
+  const records = await prisma.claim.findMany({
+    include: claimIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(records.map(claimToApi));
+}));
 
-// GET /api/admin/claims — return all claims submitted by any user
-router.get('/claims', (req, res) => {
-  const claims = readJSON('claims.json');
-  claims.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(claims);
-});
+router.put('/claims/:id/approve', asyncHandler(async (req, res) => {
+  const result = await prisma.$transaction(async (tx) => {
+    const claim = await tx.claim.findUnique({ where: { id: req.params.id } });
+    if (!claim) return { kind: 'missing' };
 
-// PUT /api/admin/claims/:id/approve — approve a claim and cascade the status to the item.
-// When a claim is approved, the associated item is automatically updated:
-//   - A found item becomes "claimed" (taken off the board)
-//   - A missing item becomes "found" (also removed from the active board)
-// This keeps the two data sources in sync without requiring a second API call.
-router.put('/claims/:id/approve', (req, res) => {
-  const claims = readJSON('claims.json');
-  const i = claims.findIndex(c => c.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Claim not found.' });
+    if (claim.itemType === 'FOUND') {
+      const item = await tx.foundItem.findUnique({ where: { id: claim.itemId } });
+      if (!item) return { kind: 'orphan' };
+      await tx.foundItem.update({ where: { id: claim.itemId }, data: { status: 'CLAIMED' } });
+    } else if (claim.itemType === 'MISSING') {
+      const item = await tx.missingItem.findUnique({ where: { id: claim.itemId } });
+      if (!item) return { kind: 'orphan' };
+      await tx.missingItem.update({ where: { id: claim.itemId }, data: { status: 'FOUND' } });
+    } else {
+      return { kind: 'invalid' };
+    }
 
-  const claim = claims[i];
-  let targetCollection = null;
-  let targetFilename = '';
-  let targetIndex = -1;
-  let targetStatus = '';
+    const updated = await tx.claim.update({
+      where: { id: req.params.id },
+      data: { status: 'APPROVED' },
+      include: claimIncludes
+    });
 
-  if (claim.itemType === 'found') {
-    targetCollection = readJSON('items.json');
-    targetFilename = 'items.json';
-    targetIndex = targetCollection.findIndex(x => x.id === claim.itemId);
-    targetStatus = 'claimed';
-  } else if (claim.itemType === 'missing') {
-    targetCollection = readJSON('missing-items.json');
-    targetFilename = 'missing-items.json';
-    targetIndex = targetCollection.findIndex(x => x.id === claim.itemId);
-    targetStatus = 'found';
-  } else {
-    return res.status(400).json({ error: 'Claim has an invalid item type.' });
-  }
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'CLAIM_APPROVED',
+        targetType: 'claim',
+        targetId: updated.id,
+        metadata: { itemId: updated.itemId, itemType: updated.itemType }
+      }
+    });
 
-  if (targetIndex === -1) {
-    return res.status(409).json({ error: 'Cannot approve claim because the related item no longer exists.' });
-  }
+    return { kind: 'ok', claim: updated };
+  });
 
-  claims[i].status = 'approved';
-  targetCollection[targetIndex].status = targetStatus;
+  if (result.kind === 'missing') return res.status(404).json({ error: 'Claim not found.' });
+  if (result.kind === 'orphan') return res.status(409).json({ error: 'Cannot approve claim because the related item no longer exists.' });
+  if (result.kind === 'invalid') return res.status(400).json({ error: 'Claim has an invalid item type.' });
+  res.json(claimToApi(result.claim));
+}));
 
-  // Write the item first, then the claim. Each file write is atomic; the
-  // Postgres lane uses real transactions for the same transition.
-  writeJSON(targetFilename, targetCollection);
-  writeJSON('claims.json', claims);
+router.put('/claims/:id/reject', asyncHandler(async (req, res) => {
+  const record = await prisma.$transaction(async (tx) => {
+    const claim = await tx.claim.update({
+      where: { id: req.params.id },
+      data: { status: 'REJECTED' },
+      include: claimIncludes
+    }).catch(() => null);
+    if (!claim) return null;
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'CLAIM_REJECTED',
+        targetType: 'claim',
+        targetId: claim.id
+      }
+    });
+    return claim;
+  });
+  if (!record) return res.status(404).json({ error: 'Claim not found.' });
+  res.json(claimToApi(record));
+}));
 
-  res.json(claims[i]);
-});
+router.delete('/claims/:id', asyncHandler(async (req, res) => {
+  const existing = await prisma.claim.findUnique({ where: { id: req.params.id } });
+  if (!existing) return res.status(404).json({ error: 'Claim not found.' });
 
-// PUT /api/admin/claims/:id/reject — reject a claim (item stays on the board)
-router.put('/claims/:id/reject', (req, res) => {
-  const claims = readJSON('claims.json');
-  const i = claims.findIndex(c => c.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Claim not found.' });
-  claims[i].status = 'rejected';
-  writeJSON('claims.json', claims);
-  res.json(claims[i]);
-});
+  await prisma.$transaction(async (tx) => {
+    await tx.claim.delete({ where: { id: req.params.id } });
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'CLAIM_DELETED',
+        targetType: 'claim',
+        targetId: req.params.id
+      }
+    });
+  });
 
-// DELETE /api/admin/claims/:id — permanently remove a claim record
-router.delete('/claims/:id', (req, res) => {
-  const claims = readJSON('claims.json');
-  const i = claims.findIndex(c => c.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Claim not found.' });
-  claims.splice(i, 1);
-  writeJSON('claims.json', claims);
   res.json({ message: 'Deleted.' });
-});
+}));
 
-// ════════════════════════════════════════════════════════════════════
-//  MESSAGES — read-only oversight
-// ════════════════════════════════════════════════════════════════════
-
-// GET /api/admin/messages?itemId=xxx
-// Returns all messages related to a specific item, sorted oldest-first so
-// admins can read the conversation as a chronological thread.
-// itemId is required — omitting it returns a 400 rather than dumping every message.
-router.get('/messages', (req, res) => {
+router.get('/messages', asyncHandler(async (req, res) => {
   const { itemId } = req.query;
   if (!itemId || typeof itemId !== 'string' || !itemId.trim()) {
     return res.status(400).json({ error: 'itemId query parameter is required.' });
   }
-  const messages = readJSON('messages.json');
-  const thread = messages
-    .filter(m => m.itemId === itemId.trim())
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); // oldest first
-  res.json(thread);
-});
+  const records = await prisma.message.findMany({
+    where: { itemId: itemId.trim() },
+    include: messageIncludes,
+    orderBy: { createdAt: 'asc' }
+  });
+  res.json(records.map(messageToApi));
+}));
 
 module.exports = router;

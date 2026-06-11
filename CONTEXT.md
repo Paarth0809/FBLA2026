@@ -1,7 +1,48 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-11 ~05:58AM EDT by Codex
+> Last updated: 2026-06-11 by Codex
+
+---
+
+## Latest Update — Local PostgreSQL + Prisma Runtime Migration
+
+Current goal: switch the live app to local PostgreSQL + Prisma persistence so the
+judge demo is database-backed and still works without Wi-Fi when the local DB
+service is running.
+
+Completed:
+- Installed and started Homebrew `postgresql@16` locally.
+- Created local development/test databases (`fbla2026_dev`, `fbla2026_test`) and
+  a local app role configured through untracked `.env`.
+- Switched Prisma to the standard `@prisma/client` generator and created the
+  initial migration under `prisma/migrations/`.
+- Added `server/lib/prisma.js`, `server/lib/modelMapper.js`, and
+  `server/lib/asyncHandler.js`.
+- Replaced live JSON route persistence with Prisma-backed users, found items,
+  missing items, claims, messages, uploads, audit logs, matches, auth, admin,
+  and optional photo-profile updates.
+- Moved messaging internals to sender/receiver user IDs while preserving the
+  existing frontend response shape.
+- Preserved public API privacy filtering and existing route/page names.
+- Kept uploads on disk, with metadata stored in `UploadedAsset`.
+- Kept JSON only as a migration/backup source through
+  `scripts/migrate-json-to-postgres.js`.
+- Added `npm run db:check`, `npm run db:prepare`, and `npm run db:reset:local`.
+- Updated `.env.example`, `README.md`, `docs/JUDGE_README.md`,
+  `docs/ARCHITECTURE.md`, and `docs/FINAL_WEBSITE_REVIEW.md` to describe the
+  Postgres-only runtime and local no-Wi-Fi demo path.
+
+Verification so far:
+- `npm test` passed 93 / 93 on the Postgres test database.
+- `npm run data:migrate-json` migrated existing JSON demo data into Postgres.
+- Syntax checks over server/test scripts passed.
+
+Remaining before final handoff:
+- Run `npm run test:ui`.
+- Run the final static checks and `git diff --check`.
+- Restart the local app server if needed so port `3000` uses the newest
+  Postgres-backed code.
 
 ---
 
@@ -15,7 +56,8 @@ Completed:
 - Hardened auth middleware so admin access reloads the user role from persisted data instead of trusting stale session state.
 - Regenerated sessions on login/signup, moved the session secret to `SESSION_SECRET`, and added production cookie defaults.
 - Added browser-origin checks for mutating requests, Helmet headers, API-only rate limiting, and controlled image upload serving.
-- Made JSON persistence safer by throwing on malformed JSON and writing via temp-file rename.
+- Historical note: an earlier pass hardened JSON persistence before the live
+  runtime was moved to Prisma/Postgres.
 - Added secure missing-item owner messaging that does not require exposing the owner email to the browser.
 - Added tests covering public privacy leaks, stale admin session downgrade, secure missing-owner messaging, and existing lifecycle flows.
 - Added Prisma/Postgres production-lite schema, Prisma config, and JSON-to-Postgres migration script while preserving existing route names for the current demo.
@@ -50,7 +92,8 @@ Verification:
 - App-facing offline scan found no CDN/font/script URLs in `public/*.html`, `public/css/style.css`, `public/js/*.js`, or server scripts. Only localhost docs/comments were matched.
 
 Known risks / remaining work:
-- The app still runs on JSON persistence by default. Prisma/Postgres schema and migration scripts are present, but route code has not been fully switched to Prisma-backed repositories yet.
+- Superseded by the latest update above: live routes now use Prisma/Postgres;
+  JSON is retained only as a migration/backup source.
 - CSRF hardening is currently an origin check, not token-based CSRF middleware.
 - Validation is improved through existing route checks, but broad Zod schemas are not yet wired through every route.
 - Production audit is clean when optional dependencies are omitted; default npm audit still flags Prisma's optional CLI dependency.
@@ -276,7 +319,7 @@ School Lost & Found web app — FBLA 2026 competition project.
 
 ```
 server/index.js              — Express entry point, mounts all routes
-server/lib/db.js             — readJSON / writeJSON helpers
+server/lib/prisma.js         — live Prisma/Postgres client
 server/lib/seed.js           — creates demo data on first run
 server/lib/aiProfile.js      — Gemini 2.5 Flash vision profile generator (fire-and-forget)
 server/lib/matcher.js        — pure match scoring (object families, AI profiles, keywords)
@@ -574,7 +617,8 @@ These are the classes used in JS-generated HTML. Do not remove or rename them.
 
 ## Known Constraints
 
-- NO databases — JSON files only
+- Local PostgreSQL is now the live database; older notes saying JSON-only are
+  stale historical context.
 - NO frontend frameworks (React, Vue) — vanilla JS only
 - NO build tools (Vite, webpack) — no compilation step
 - Keep code explanation-friendly for FBLA judges

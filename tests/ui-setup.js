@@ -1,12 +1,16 @@
 // ui-setup.js — starts a clean test server before the UI test suite runs
-const { spawn } = require('child_process');
+const { exec, spawn } = require('child_process');
 const http  = require('http');
 const fs    = require('fs');
 const path  = require('path');
+require('dotenv').config();
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
 const PORT     = 3002;
-const DATA_DIR = path.resolve(__dirname, '../data-ui-test');
 const PID_FILE = path.resolve(__dirname, '.ui-server.pid');
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
+if (!TEST_DATABASE_URL) throw new Error('TEST_DATABASE_URL is required for UI tests.');
 
 // Poll until the server responds on the given port
 function waitForServer(port, attempts = 30) {
@@ -23,15 +27,50 @@ function waitForServer(port, attempts = 30) {
   });
 }
 
-module.exports = async function globalSetup() {
-  // Wipe and recreate the isolated test data folder
-  if (fs.existsSync(DATA_DIR)) fs.rmSync(DATA_DIR, { recursive: true });
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+function runCommand(command, env = {}) {
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: path.resolve(__dirname, '..'), env: { ...process.env, ...env } }, (error, stdout, stderr) => {
+      if (error) {
+        error.message += `\n${stdout}\n${stderr}`;
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
 
-  // Start the server on port 3002 pointed at the isolated data folder
+async function resetDatabase() {
+  await runCommand('npx prisma migrate deploy', { DATABASE_URL: TEST_DATABASE_URL });
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: TEST_DATABASE_URL })
+  });
+  try {
+    await prisma.message.deleteMany();
+    await prisma.claim.deleteMany();
+    await prisma.foundItem.deleteMany();
+    await prisma.missingItem.deleteMany();
+    await prisma.uploadedAsset.deleteMany();
+    await prisma.auditLog.deleteMany();
+    await prisma.user.deleteMany();
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+module.exports = async function globalSetup() {
+  await resetDatabase();
+
   const server = spawn('node', ['server/index.js'], {
     cwd: path.resolve(__dirname, '..'),
-    env: { ...process.env, PORT: String(PORT), DATA_DIR },
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      NODE_ENV: 'test',
+      DATABASE_URL: TEST_DATABASE_URL,
+      SESSION_STORE: 'postgres',
+      SESSION_SECRET: 'test-session-secret-change-me'
+    },
     stdio: 'pipe',
   });
 

@@ -7,27 +7,26 @@ flowchart LR
   Browser["Static HTML/CSS/JS Browser App"] --> API["Express API"]
   API --> Auth["Session Auth + Role Middleware"]
   API --> Uploads["Controlled Upload Route"]
-  API --> JSON["Offline JSON Data Store"]
-  API -. migration .-> Prisma["Prisma Schema"]
-  Prisma --> Postgres["PostgreSQL Production-Lite DB"]
+  API --> Prisma["Prisma Data Layer"]
+  Prisma --> Postgres["Local PostgreSQL DB"]
+  JSON["Legacy JSON Seed Files"] -. import .-> Prisma
 ```
 
 ## Runtime Modes
 
-Default judging mode:
+Local judging mode:
 
-- `server/lib/db.js` reads/writes JSON files in `data/`.
-- No database server is required.
-- Static assets are local so the app works without Wi-Fi.
+- PostgreSQL runs locally through Homebrew.
+- Prisma is the live data layer for users, found items, missing items, claims,
+  messages, uploaded assets, audit logs, and sessions.
+- Static assets are local, so the app works without Wi-Fi once the local
+  database service and Node server are running.
 
-Production-lite mode:
+Migration/backup mode:
 
-- `prisma/schema.prisma` defines users, found items, missing items, claims,
-  messages, uploaded assets, and audit logs.
 - `scripts/migrate-json-to-postgres.js` migrates JSON demo data into Postgres
-  while preserving IDs and relationships.
-- `SESSION_STORE=postgres` can move sessions to Postgres when `DATABASE_URL` is
-  available.
+  while preserving UUIDs, statuses, photos, claims, messages, and relationships.
+- `data/*.json` is not used by live routes; it exists as a seed/restore source.
 
 ## Data Model
 
@@ -59,11 +58,14 @@ erDiagram
 - Passwords are hashed with bcrypt.
 - Login and signup regenerate sessions to reduce fixation risk.
 - Admin middleware reloads the user from storage on every protected request.
+- Sessions are stored in PostgreSQL when `SESSION_STORE=postgres`.
 - Public item DTOs remove contact emails, submitter IDs, and private photo
   profile data.
 - Mutating browser requests are checked against the request `Origin`.
 - Upload serving is restricted to UUID-style image filenames.
 - Helmet security headers and rate limiting are enabled.
+- Messages are stored by sender and receiver user IDs rather than raw email-only
+  relationships.
 
 ## Status Transitions
 
@@ -76,4 +78,5 @@ erDiagram
 
 The homepage scroll story, GLB lens, generated Tailwind CSS, fonts, icons, GSAP,
 Three.js, and environment texture are all served from `public/`. The presentation
-does not depend on CDN availability.
+does not depend on CDN availability. The only local service dependency is
+PostgreSQL, which runs on the presentation laptop.

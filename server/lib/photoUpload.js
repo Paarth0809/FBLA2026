@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const multer = require('multer');
 const convertHeic = require('heic-convert');
 const { v4: uuidv4 } = require('uuid');
@@ -62,4 +63,25 @@ async function normalizeUploadedPhoto(file) {
   }
 }
 
-module.exports = { upload, normalizeUploadedPhoto, isHeicFile };
+async function uploadedAssetData(file, ownerId, purpose) {
+  if (!file) return null;
+  let sha256 = null;
+  try {
+    const buffer = await fs.promises.readFile(file.path);
+    sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+  } catch {
+    sha256 = null;
+  }
+
+  return {
+    ownerId,
+    originalName: file.originalname || file.filename,
+    storedName: file.filename,
+    mimeType: file.mimetype || 'application/octet-stream',
+    sizeBytes: Number(file.size) || 0,
+    sha256,
+    purpose
+  };
+}
+
+module.exports = { upload, normalizeUploadedPhoto, isHeicFile, uploadedAssetData };

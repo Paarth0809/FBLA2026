@@ -1,26 +1,31 @@
 // matches.js — item matching endpoint
-//
-// GET /api/matches/my-missing — returns potential found-item matches
-// for each of the current user's approved missing item reports.
-// Matching uses cached photo profiles
-// and keyword/category fallback scoring.
 
 const express = require('express');
-const { readJSON } = require('../lib/db');
+const { prisma } = require('../lib/prisma');
 const { requireAuth } = require('../middleware/auth');
 const { findMatchesForMissingItems } = require('../lib/matcher');
+const { asyncHandler } = require('../lib/asyncHandler');
+const { foundItemToApi, missingItemToApi, itemIncludes } = require('../lib/modelMapper');
 
 const router = express.Router();
 
-router.get('/my-missing', requireAuth, (req, res) => {
-  const myMissing = readJSON('missing-items.json')
-    .filter(i => i.submittedBy === req.session.userId && i.status === 'approved');
+router.get('/my-missing', requireAuth, asyncHandler(async (req, res) => {
+  const myMissingRecords = await prisma.missingItem.findMany({
+    where: { submittedById: req.session.userId, status: 'APPROVED' },
+    include: itemIncludes
+  });
 
-  const approvedFound = readJSON('items.json')
-    .filter(i => i.status === 'approved');
+  const approvedFoundRecords = await prisma.foundItem.findMany({
+    where: { status: 'APPROVED' },
+    include: itemIncludes
+  });
 
-  const matches = findMatchesForMissingItems(myMissing, approvedFound);
+  const matches = findMatchesForMissingItems(
+    myMissingRecords.map(missingItemToApi),
+    approvedFoundRecords.map(foundItemToApi)
+  );
+
   res.json({ matches });
-});
+}));
 
 module.exports = router;

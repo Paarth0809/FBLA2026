@@ -16,7 +16,12 @@ or judging walkthrough.
 ## Quick Start
 
 ```bash
+cp .env.example .env
+# edit .env with the local fbla_app password and a strong SESSION_SECRET
+brew services start postgresql@16
 npm install
+npm run db:check
+npm run db:prepare
 npm start
 ```
 
@@ -32,14 +37,14 @@ Demo accounts are created automatically on first run:
 
 ## Offline Demo Notes
 
-- The app runs from local JSON data by default, so no database server is required
-  during judging.
+- The live app uses local PostgreSQL through Prisma. It does not need internet,
+  but the local database service must be running before `npm start`.
 - Fonts, icons, Tailwind utilities, GSAP, Three.js, the GLB model, HDRI, and the
   480 scroll frames are vendored locally.
 - Optional photo profiling for richer matching is disabled by default and the
   matcher falls back to local keyword/category logic.
-- PostgreSQL + Prisma is included as the production-lite data path for migration
-  and deployment, but the local demo remains self-contained.
+- `data/*.json` remains only as a migration/backup source for
+  `npm run data:migrate-json`.
 
 ## Core Features
 
@@ -54,22 +59,27 @@ Demo accounts are created automatically on first run:
 - Stale-session admin protection: admin status is reloaded from storage
 - Local tests covering auth, privacy, routes, messaging, and admin actions
 
-## Production-Lite Database Lane
+## Local PostgreSQL Setup
 
-The default judging path uses local JSON files for zero-setup reliability. The
-repository also includes a Prisma schema for PostgreSQL and a JSON migration
-script.
+The app is Postgres-only at runtime. The normal judge-day flow is local and works
+with slow or unavailable Wi-Fi because PostgreSQL, Node, and every browser asset
+run on the laptop.
 
 ```bash
 cp .env.example .env
+brew services start postgresql@16
+createuser fbla_app --pwprompt
+createdb fbla2026_dev -O fbla_app
+createdb fbla2026_test -O fbla_app
 npm run prisma:validate
 npm run prisma:generate
-npm run prisma:migrate
+npm run prisma:deploy
 npm run data:migrate-json
 ```
 
-Set `DATABASE_URL` in `.env` before running migrations. Set
-`SESSION_STORE=postgres` only when a Postgres database is running.
+Set `DATABASE_URL`, `TEST_DATABASE_URL`, `SESSION_STORE=postgres`, and a strong
+`SESSION_SECRET` in `.env`. If the database already exists, `npm run db:prepare`
+is the short command for validate/generate/migrate/import.
 
 ## Useful Commands
 
@@ -77,6 +87,8 @@ Set `DATABASE_URL` in `.env` before running migrations. Set
 npm run build:css          # rebuild local Tailwind CSS
 npm test                   # API/unit test suite
 npm run test:ui            # Playwright UI tests, when configured
+npm run db:check           # verify DATABASE_URL and TEST_DATABASE_URL connect
+npm run db:prepare         # validate, generate, migrate, import JSON seed data
 npm run prisma:validate    # validate database schema
 ```
 
@@ -90,6 +102,7 @@ npm run prisma:validate    # validate database schema
 
 ## Technology
 
-Node.js, Express, plain HTML/CSS/JavaScript, Tailwind generated locally, GSAP,
-Three.js, Prisma/PostgreSQL migration support, bcrypt password hashing, session
-cookies, Multer uploads, HEIC conversion, and Playwright-compatible tests.
+Node.js, Express, PostgreSQL, Prisma, plain HTML/CSS/JavaScript, Tailwind
+generated locally, GSAP, Three.js, bcrypt password hashing, Postgres-backed
+session cookies, Multer uploads, HEIC conversion, and Playwright-compatible
+tests.

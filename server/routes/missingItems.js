@@ -1,94 +1,111 @@
 // missingItems.js — Routes for missing item reports
-//
-// Public routes (no login needed):
-//   GET  /api/missing-items        — search approved missing item reports
-//   GET  /api/missing-items/:id    — view a single missing item report
-//
-// Authenticated routes (must be logged in):
-//   GET    /api/missing-items/mine              — reports submitted by the current user
-//   DELETE /api/missing-items/mine/resolved     — clear found/rejected items from history
-//   PUT    /api/missing-items/:id/mark-found    — owner marks their own report as resolved
-//   POST   /api/missing-items                   — submit a new missing item report
 
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
-const { readJSON, writeJSON } = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { prisma } = require('../lib/prisma');
+const { requireAuth, getSessionUser } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
-const { upload, normalizeUploadedPhoto } = require('../lib/photoUpload');
-const { getSessionUser } = require('../middleware/auth');
+const { upload, normalizeUploadedPhoto, uploadedAssetData } = require('../lib/photoUpload');
 const { publicMissingItem } = require('../lib/dto');
+const { asyncHandler } = require('../lib/asyncHandler');
+const { missingItemToApi, itemIncludes, parseDateOnly } = require('../lib/modelMapper');
 
 const router = express.Router();
 
-// GET /api/missing-items — list approved missing item reports.
-// Supports ?keyword= and ?category= filters just like the found items endpoint.
-router.get('/', (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const { keyword, category } = req.query;
-  const currentUser = getSessionUser(req);
-  let items = readJSON('missing-items.json').filter(i => i.status === 'approved');
+  const currentUser = await getSessionUser(req);
+  const where = { status: 'APPROVED' };
 
-  if (keyword) {
-    const kw = keyword.toLowerCase();
-    items = items.filter(i =>
-      i.itemName.toLowerCase().includes(kw) ||
-      i.description.toLowerCase().includes(kw) ||
-      i.lastSeenLocation.toLowerCase().includes(kw)
-    );
+  if (category && category !== 'All Categories') {
+    where.category = String(category);
   }
 
-  if (category && category !== 'All Categories')
-    items = items.filter(i => i.category === category);
+  if (keyword) {
+    const kw = String(keyword);
+    where.OR = [
+      { itemName: { contains: kw, mode: 'insensitive' } },
+      { description: { contains: kw, mode: 'insensitive' } },
+      { lastSeenLocation: { contains: kw, mode: 'insensitive' } }
+    ];
+  }
 
-  items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(items.map(item => publicMissingItem(item, currentUser)));
-});
+  const records = await prisma.missingItem.findMany({
+    where,
+    include: itemIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
 
-// DELETE /api/missing-items/mine/resolved — remove found/rejected reports from the user's history.
-// "found" means the owner marked it as found; "rejected" means the admin rejected it.
-// Named routes like this MUST be defined before /:id to avoid Express treating
-// the word "mine" as an ID parameter.
-router.delete('/mine/resolved', requireAuth, (req, res) => {
-  const resolved = ['found', 'rejected'];
-  const all  = readJSON('missing-items.json');
-  const kept = all.filter(i => !(i.submittedBy === req.session.userId && resolved.includes(i.status)));
-  writeJSON('missing-items.json', kept);
-  res.json({ removed: all.length - kept.length });
-});
+  res.json(records.map(missingItemToApi).map(item => publicMissingItem(item, currentUser)));
+}));
 
-// GET /api/missing-items/mine — all missing item reports submitted by the current user.
-router.get('/mine', requireAuth, (req, res) => {
-  const items = readJSON('missing-items.json')
-    .filter(i => i.submittedBy === req.session.userId)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(items);
-});
+router.delete('/mine/resolved', requireAuth, asyncHandler(async (req, res) => {
+  const resolved = ['FOUND', 'REJECTED'];
+  const items = await prisma.missingItem.findMany({
+    where: { submittedById: req.session.userId, status: { in: resolved } },
+    select: { id: true }
+  });
+  const ids = items.map(item => item.id);
 
-// PUT /api/missing-items/:id/mark-found — the original reporter marks their item as found.
-// Only the person who submitted the report can do this — not even the admin.
-// This also must be defined before /:id so "mark-found" isn't matched as an ID.
-router.put('/:id/mark-found', requireAuth, (req, res) => {
-  const items = readJSON('missing-items.json');
-  const i = items.findIndex(x => x.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Item not found.' });
+  const result = await prisma.$transaction(async (tx) => {
+    if (ids.length) {
+      await tx.claim.deleteMany({ where: { itemType: 'MISSING', itemId: { in: ids } } });
+    }
+    return tx.missingItem.deleteMany({
+      where: { submittedById: req.session.userId, status: { in: resolved } }
+    });
+  });
 
-  // Owner-only check: return 403 Forbidden if someone else tries to update it
-  if (items[i].submittedBy !== req.session.userId)
-    return res.status(403).json({ error: 'You can only update your own reports.' });
+  res.json({ removed: result.count });
+}));
 
-  items[i].status = 'found';
-  writeJSON('missing-items.json', items);
-  res.json(items[i]);
-});
+router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
+  const records = await prisma.missingItem.findMany({
+    where: { submittedById: req.session.userId },
+    include: itemIncludes,
+    orderBy: { createdAt: 'desc' }
+  });
+  res.json(records.map(missingItemToApi));
+}));
 
-// GET /api/missing-items/:id — return a single missing item report.
-// Pending and rejected items are only visible to the submitter or an admin.
-router.get('/:id', (req, res) => {
-  const currentUser = getSessionUser(req);
-  const item = readJSON('missing-items.json').find(i => i.id === req.params.id);
+router.put('/:id/mark-found', requireAuth, asyncHandler(async (req, res) => {
+  const item = await prisma.missingItem.findUnique({
+    where: { id: req.params.id },
+    include: itemIncludes
+  });
   if (!item) return res.status(404).json({ error: 'Item not found.' });
 
-  // "approved" and "found" items are public
+  if (item.submittedById !== req.session.userId)
+    return res.status(403).json({ error: 'You can only update your own reports.' });
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const record = await tx.missingItem.update({
+      where: { id: req.params.id },
+      data: { status: 'FOUND' },
+      include: itemIncludes
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'MISSING_ITEM_MARKED_FOUND',
+        targetType: 'missing_item',
+        targetId: req.params.id
+      }
+    });
+    return record;
+  });
+
+  res.json(missingItemToApi(updated));
+}));
+
+router.get('/:id', asyncHandler(async (req, res) => {
+  const currentUser = await getSessionUser(req);
+  const record = await prisma.missingItem.findUnique({
+    where: { id: req.params.id },
+    include: itemIncludes
+  });
+  if (!record) return res.status(404).json({ error: 'Item not found.' });
+
+  const item = missingItemToApi(record);
   if (item.status !== 'approved' && item.status !== 'found') {
     if (!req.session.userId) return res.status(404).json({ error: 'Item not found.' });
     if (currentUser?.role !== 'admin' && item.submittedBy !== req.session.userId)
@@ -98,51 +115,69 @@ router.get('/:id', (req, res) => {
   const isAdmin = currentUser?.role === 'admin';
   const isOwner = currentUser && item.submittedBy === currentUser.id;
   res.json(isAdmin || isOwner ? item : publicMissingItem(item, currentUser));
-});
+}));
 
-// POST /api/missing-items — submit a new missing item report.
-router.post('/', requireAuth, upload.single('photo'), async (req, res) => {
-  try {
-    await normalizeUploadedPhoto(req.file);
-    const { itemName, category, description, lastSeenLocation, lastSeenDate, contactEmail } = req.body;
+router.post('/', requireAuth, upload.single('photo'), asyncHandler(async (req, res) => {
+  await normalizeUploadedPhoto(req.file);
+  const { itemName, category, description, lastSeenLocation, lastSeenDate, contactEmail } = req.body;
 
-    if (!itemName || !category || !description || !lastSeenLocation || !lastSeenDate || !contactEmail)
-      return res.status(400).json({ error: 'All fields are required.' });
+  if (!itemName || !category || !description || !lastSeenLocation || !lastSeenDate || !contactEmail)
+    return res.status(400).json({ error: 'All fields are required.' });
 
-    const user = readJSON('users.json').find(u => u.id === req.session.userId);
+  const user = req.user || await getSessionUser(req);
+  const assetData = await uploadedAssetData(req.file, req.session.userId, 'MISSING_ITEM_PHOTO');
 
-    const item = {
-      id:               uuidv4(),
-      itemName:         itemName.trim(),
-      category,
-      description:      description.trim(),
-      lastSeenLocation: lastSeenLocation.trim(),
-      lastSeenDate,
-      contactEmail:     contactEmail.trim(),
-      photo:            req.file ? req.file.filename : null,
-      status:           'pending',   // starts hidden from the public until admin approves
-      submittedBy:      req.session.userId,
-      submitterName:    user ? user.name : 'Unknown',
-      createdAt:        new Date().toISOString()
-    };
+  const record = await prisma.$transaction(async (tx) => {
+    let asset = null;
+    if (assetData) {
+      asset = await tx.uploadedAsset.create({ data: assetData });
+    }
 
-    const items = readJSON('missing-items.json');
-    items.push(item);
-    writeJSON('missing-items.json', items);
+    const item = await tx.missingItem.create({
+      data: {
+        itemName: itemName.trim(),
+        category,
+        description: description.trim(),
+        lastSeenLocation: lastSeenLocation.trim(),
+        lastSeenDate: parseDateOnly(lastSeenDate),
+        contactEmailPrivate: contactEmail.trim(),
+        status: 'PENDING',
+        submitterName: user ? user.name : 'Unknown',
+        submittedById: req.session.userId,
+        photoAssetId: asset ? asset.id : null
+      },
+      include: itemIncludes
+    });
 
-    // Fire-and-forget: generate a photo profile when matching is enabled
-    if (item.photo) generateAndSave(item.id, 'missing');
+    await tx.auditLog.create({
+      data: {
+        actorId: req.session.userId,
+        action: 'MISSING_ITEM_CREATED',
+        targetType: 'missing_item',
+        targetId: item.id
+      }
+    });
 
-    res.json({ message: 'Missing item reported! An administrator will review it shortly.', item });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message || 'Server error.' });
-  }
-});
+    return item;
+  });
 
-// Catch Multer errors and return JSON instead of HTML
+  const item = missingItemToApi(record);
+  if (item.photo) generateAndSave(item.id, 'missing');
+
+  res.json({
+    message: 'Missing item reported! An administrator will review it shortly. Check My Submissions for updates and progress.',
+    item
+  });
+}));
+
 router.use((err, req, res, next) => {
-  res.status(400).json({ error: err.message || 'File upload error.' });
+  const message = err.message || 'File upload error.';
+  const uploadError =
+    err.name === 'MulterError' ||
+    /only image files are allowed|file too large|heic conversion failed|unsupported image/i.test(message);
+
+  if (!uploadError) return next(err);
+  res.status(400).json({ error: message });
 });
 
 module.exports = router;

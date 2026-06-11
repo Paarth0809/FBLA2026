@@ -54,11 +54,20 @@ async function signUp(page, { name, email, password }) {
 }
 
 async function logIn(page, { email, password }) {
+  await page.goto('/');
+  await page.evaluate(async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+  });
   await page.goto('/login.html');
   await page.fill('#email', email);
   await page.fill('#password', password);
   await page.click('#submit-btn');
   await page.waitForLoadState('networkidle');
+  await expect.poll(async () => page.evaluate(async () => {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!res.ok) return null;
+    return (await res.json()).email;
+  })).toBe(email);
 }
 
 // Runs a fetch() inside the browser (inherits the session cookie)

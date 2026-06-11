@@ -11,6 +11,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
+    "db:check": "node scripts/verify-local-postgres.js",
+    "db:prepare": "npm run prisma:validate && npm run prisma:generate && npm run prisma:deploy && npm run data:migrate-json",
+    "db:reset:local": "prisma migrate reset --force && npm run data:migrate-json",
     "data:migrate-json": "node scripts/migrate-json-to-postgres.js",
     "test": "node tests/run.js",
     "test:ui": "npx playwright test"
