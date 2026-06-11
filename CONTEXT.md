@@ -1,7 +1,72 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-11 ~04:37AM EDT by Codex
+> Last updated: 2026-06-11 ~05:58AM EDT by Codex
+
+---
+
+## Latest Update — Scroll Lens Artifact Polish
+
+Current goal completed: polished the cinematic homepage magnifying-glass optical rendering without changing the model choreography. The final “Reunited with what matters.” swipe no longer drops text magnification mid-pass, and the catalog/verification text zoom now uses steadier sampling so letters do not visibly swim.
+
+Completed:
+- Updated `public/js/scroll-lens.js` only.
+- Kept `getMotionFrames()`, ScrollTrigger timing, scroll milestones, lens path, sweep values, rotations, flips, scale, and intro behavior unchanged.
+- Moved the final text optical gate from the early `0.92–0.945` exit window to the later exit-only `0.975–0.992` window.
+- Kept DOM text masking and `uTextStrength` tied to the same final gate so the final reveal stays magnified/readable, then text magnification fades only at the end.
+- Split shader sampling behavior:
+  - Background texture keeps the existing glass bend, chromatic edge, tint, and subtle ripple.
+  - Text texture now uses stable magnification with no time-based ripple and lighter edge bend/chromatic offset.
+- Stabilized projected lens optics by replacing max-vertex projected radii with percentile-based radii and lightweight smoothing for optical radius/axis/mask values only.
+- Extended `?lensDebug=1` titles with `textGate`, `textStrength`, `maskRadius`, and projected radius values.
+
+Verification:
+- `node --check public/js/scroll-lens.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 84 / 84.
+- Motion preservation diff confirmed no edits to `getMotionFrames()` values or ScrollTrigger timing; the only `angle` diff is projected ellipse rendering, not model choreography.
+- Browser QA on `http://localhost:3000/?lensDebug=1` confirmed:
+  - Catalog and verification scans hold `text 1.00 / gate 1.00` with stable projected radii.
+  - Final swipe keeps `text 1.00 / gate 1.00` through progress `0.965`, preventing the previous dark/dropout moment.
+  - Final exit fades text strength only at progress `0.982–0.992`, while physical glass/background optics remain active.
+  - Mobile 390px has no horizontal overflow at catalog, verify, final reveal, and final exit checkpoints.
+- Diagnostic screenshots were saved in `/tmp/lens-artifact-polish-*.png`; they are not project artifacts.
+
+Known notes:
+- The app is currently listening on port `3000` via an existing Node process.
+- The repo still has unrelated untracked files/directories: `.claude/`, `.planning/`, `.vscode/`, `home-bolder.png`, `motion-home.png`, and `motion-search.png`.
+- This fix is not committed yet.
+
+---
+
+## Latest Update — Final Lens Split-Texture Exit Fix
+
+Current goal completed: replaced the final scrollytelling exit gate with a split-texture lens compositor so the magnifying glass keeps its physical/background glass effect while text magnification and DOM masking fade away during the final exit. The GLB model motion and all `getMotionFrames()` choreography remain unchanged.
+
+Completed:
+- Updated `public/js/scroll-lens.js` only.
+- Split the story compositor into a background texture and text-only texture.
+- The glass shader now always refracts/tints the background texture, but blends magnified text from the text texture only while `uTextStrength` is active.
+- Added `state.scrollProgress` as optical context after `computeLensState()`; this does not affect movement.
+- Added a final-only `getTextOpticalGate()` that keeps final text magnification during the centered reveal, then fades text sampling and DOM text masking out over scroll progress `0.92` to `0.945`.
+- Squared the final text gate so the text texture disappears before the DOM mask is gone, preventing the weak-zoom/double-text window during the upward/right exit.
+- The glass model still renders and moves as before, but once the final exit begins, the headline/body/buttons are no longer punched out or dragged as a separate magnified text layer.
+
+Verification:
+- `node --check public/js/scroll-lens.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 84 / 84.
+- Browser QA on `http://localhost:3000/?lensDebug=1` confirmed:
+  - Final reveal around progress `0.902` still has active lens optics.
+  - Final exit keeps physical glass/background optics active while text strength and mask radius drop to zero.
+  - Final exit around progress `0.965` has `maskRadius: 0px` and no magnified text texture.
+  - Console only showed the existing Tailwind CDN warning and expected logged-out `/api/auth/me` 401.
+
+Known notes:
+- Debug screenshots were saved under `/tmp/` during QA and are not project artifacts.
+- This fix is not committed yet.
 
 ---
 

@@ -57,15 +57,10 @@ function initScrollLens() {
   scene.add(modelPivot);
 
   const compositor = createStoryCompositor(storyCanvas, originalLayers);
-  const compositeTexture = new THREE.CanvasTexture(compositor.canvas);
-  compositeTexture.name = 'ScrollStoryComposite';
-  compositeTexture.colorSpace = THREE.SRGBColorSpace;
-  compositeTexture.minFilter = THREE.LinearFilter;
-  compositeTexture.magFilter = THREE.LinearFilter;
-  compositeTexture.generateMipmaps = false;
-  compositeTexture.flipY = false;
+  const backgroundTexture = createCanvasTexture(compositor.backgroundCanvas, 'ScrollStoryBackground');
+  const textTexture = createCanvasTexture(compositor.textCanvas, 'ScrollStoryText');
 
-  const glassMaterial = createAppleGlassMaterial(compositeTexture);
+  const glassMaterial = createAppleGlassMaterial(backgroundTexture, textTexture);
   const debugLayer = debugMode ? createDebugLayer(sticky) : null;
 
   scene.environmentRotation.set(0, 1.15, 0);
@@ -97,6 +92,8 @@ function initScrollLens() {
   let viewport = measureViewport();
   let rafId = 0;
   let scrollTrigger = null;
+  let smoothedOptics = null;
+  let smoothedOpticsTarget = null;
   const progress = { current: currentProgress(), target: currentProgress() };
   const smoothToProgress = gsap.quickTo(progress, 'current', {
     duration: 0.18,
@@ -197,11 +194,13 @@ function initScrollLens() {
     }
 
     const state = computeLensState(progress.current);
+    state.scrollProgress = progress.current;
     updateModel(state);
-    const optics = computeProjectedOptics(state);
+    const optics = smoothProjectedOptics(computeProjectedOptics(state), state);
     updateOriginalTextMasks(state, optics);
     compositor.draw(viewport);
-    compositeTexture.needsUpdate = true;
+    backgroundTexture.needsUpdate = true;
+    textTexture.needsUpdate = true;
     updateGlassUniforms(state, optics);
     updateDebugLayer(debugLayer, state, optics);
     renderer.render(scene, camera);
@@ -315,6 +314,7 @@ function initScrollLens() {
     uniforms.uLensRadiusX.value = Math.max(1, optics.radiusX * scale);
     uniforms.uLensRadiusY.value = Math.max(1, optics.radiusY * scale);
     uniforms.uOpticalStrength.value = optics.opticalStrength;
+    uniforms.uTextStrength.value = optics.textStrength;
     uniforms.uMagnification.value = state.magnification;
     uniforms.uDistortion.value = state.distortion;
     uniforms.uOpacity.value = state.glassOpacity * state.modelOpacity;
@@ -367,7 +367,15 @@ function initScrollLens() {
     layer.style.width = `${optics.radiusX * 2}px`;
     layer.style.height = `${optics.radiusY * 2}px`;
     layer.style.transform = `translate3d(${optics.centerX - optics.radiusX}px, ${optics.centerY - optics.radiusY}px, 0) rotate(${optics.angle}rad)`;
-    layer.title = `face ${optics.faceOnStrength.toFixed(2)} / optical ${optics.opticalStrength.toFixed(2)}`;
+    layer.title = [
+      `face ${optics.faceOnStrength.toFixed(2)}`,
+      `optical ${optics.opticalStrength.toFixed(2)}`,
+      `text ${optics.textStrength.toFixed(2)}`,
+      `gate ${optics.textOpticalGate.toFixed(2)}`,
+      `mask ${optics.maskRadius.toFixed(1)}`,
+      `rx ${optics.radiusX.toFixed(1)}`,
+      `ry ${optics.radiusY.toFixed(1)}`
+    ].join(' / ');
   }
 
   function cacheProjectionPoints(mesh) {
@@ -446,18 +454,18 @@ function initScrollLens() {
     let angle = 0.5 * Math.atan2(2 * covariance, varianceX - varianceY);
     const axisX = { x: Math.cos(angle), y: Math.sin(angle) };
     const axisY = { x: -Math.sin(angle), y: Math.cos(angle) };
-    let radiusX = 0;
-    let radiusY = 0;
+    const projectedX = [];
+    const projectedY = [];
 
     for (let index = 0; index < projected.length; index += 2) {
       const dx = projected[index] - meanX;
       const dy = projected[index + 1] - meanY;
-      radiusX = Math.max(radiusX, Math.abs(dx * axisX.x + dy * axisX.y));
-      radiusY = Math.max(radiusY, Math.abs(dx * axisY.x + dy * axisY.y));
+      projectedX.push(Math.abs(dx * axisX.x + dy * axisX.y));
+      projectedY.push(Math.abs(dx * axisY.x + dy * axisY.y));
     }
 
-    radiusX = clamp(radiusX * 1.08, 4, Math.max(fallback.radius * 1.65, 16));
-    radiusY = clamp(radiusY * 1.08, 4, Math.max(fallback.radius * 1.65, 16));
+    let radiusX = clamp(percentileRadius(projectedX, 0.965) * 1.16, 4, Math.max(fallback.radius * 1.65, 16));
+    let radiusY = clamp(percentileRadius(projectedY, 0.965) * 1.16, 4, Math.max(fallback.radius * 1.65, 16));
 
     if (radiusY > radiusX) {
       const swapRadius = radiusX;
@@ -474,8 +482,10 @@ function initScrollLens() {
     const ratio = clamp(radiusY / Math.max(radiusX, 1));
     const faceOnStrength = smoothstep(0.2, 0.58, ratio);
     const overlapStrength = getOpticTextOverlapStrength(meanX, meanY, radiusX, radiusY, axisX, axisY, state.target);
-    const opticalStrength = clamp(state.modelOpacity * state.glassOpacity * faceOnStrength * overlapStrength);
-    const maskStrength = clamp(state.modelOpacity * faceOnStrength * overlapStrength);
+    const textOpticalGate = getTextOpticalGate(state);
+    const opticalStrength = clamp(state.modelOpacity * state.glassOpacity * faceOnStrength);
+    const textStrength = clamp(state.modelOpacity * state.glassOpacity * faceOnStrength * overlapStrength * textOpticalGate);
+    const maskStrength = textStrength;
     const maskRadius = lerp(radiusY, Math.min(radiusX, fallback.radius), faceOnStrength);
 
     return {
@@ -490,7 +500,9 @@ function initScrollLens() {
       axisY,
       faceOnStrength,
       overlapStrength,
+      textOpticalGate,
       opticalStrength,
+      textStrength,
       maskStrength
     };
   }
@@ -508,9 +520,51 @@ function initScrollLens() {
       axisY: { x: 0, y: 1 },
       faceOnStrength: 1,
       overlapStrength: 1,
+      textOpticalGate: getTextOpticalGate(state),
       opticalStrength: state.modelOpacity * state.glassOpacity,
-      maskStrength: state.modelOpacity
+      textStrength: state.modelOpacity * state.glassOpacity * getTextOpticalGate(state),
+      maskStrength: state.modelOpacity * state.glassOpacity * getTextOpticalGate(state)
     };
+  }
+
+  function smoothProjectedOptics(rawOptics, state) {
+    const target = state.target || 'none';
+    const shouldReset = !smoothedOptics
+      || smoothedOpticsTarget !== target
+      || rawOptics.faceOnStrength < 0.28
+      || smoothedOptics.faceOnStrength < 0.28;
+
+    if (shouldReset) {
+      smoothedOptics = cloneOptics(rawOptics);
+      smoothedOpticsTarget = target;
+      return cloneOptics(rawOptics);
+    }
+
+    const amount = rawOptics.faceOnStrength > 0.78 ? 0.34 : 0.55;
+    const axisX = smoothAxis(smoothedOptics.axisX, rawOptics.axisX, amount);
+    const axisY = smoothAxis(smoothedOptics.axisY, rawOptics.axisY, amount);
+    const smoothed = {
+      ...rawOptics,
+      radius: lerp(smoothedOptics.radius, rawOptics.radius, amount),
+      radiusX: lerp(smoothedOptics.radiusX, rawOptics.radiusX, amount),
+      radiusY: lerp(smoothedOptics.radiusY, rawOptics.radiusY, amount),
+      maskRadius: lerp(smoothedOptics.maskRadius, rawOptics.maskRadius, amount),
+      angle: Math.atan2(axisX.y, axisX.x),
+      axisX,
+      axisY
+    };
+
+    smoothedOptics = cloneOptics(smoothed);
+    smoothedOpticsTarget = target;
+    return smoothed;
+  }
+
+  function getTextOpticalGate(state) {
+    if (state.target !== 'final') return 1;
+
+    const scrollProgress = Number.isFinite(state.scrollProgress) ? state.scrollProgress : state.p;
+    const gate = 1 - smoothstep(0.975, 0.992, scrollProgress);
+    return gate < 0.08 ? 0 : gate;
   }
 
   function getOpticTextOverlapStrength(centerX, centerY, radiusX, radiusY, axisX, axisY, target) {
@@ -597,7 +651,22 @@ function interpolateLensState(from, to, amount) {
   return out;
 }
 
+function createCanvasTexture(canvas, name) {
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.name = name;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.flipY = false;
+  return texture;
+}
+
 function createStoryCompositor(sourceCanvas, layers) {
+  const backgroundCanvas = document.createElement('canvas');
+  const backgroundContext = backgroundCanvas.getContext('2d', { alpha: true });
+  const textCanvas = document.createElement('canvas');
+  const textContext = textCanvas.getContext('2d', { alpha: true });
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d', { alpha: true });
   let scale = 1;
@@ -606,24 +675,39 @@ function createStoryCompositor(sourceCanvas, layers) {
     scale = viewport.width < 700 ? 0.82 : Math.min(window.devicePixelRatio || 1, 1.25);
     const width = Math.max(1, Math.round(viewport.width * scale));
     const height = Math.max(1, Math.round(viewport.height * scale));
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-    }
+    [backgroundCanvas, textCanvas, canvas].forEach((target) => {
+      if (target.width !== width || target.height !== height) {
+        target.width = width;
+        target.height = height;
+      }
+    });
   }
 
   function draw(viewport) {
     resize(viewport);
+
+    backgroundContext.save();
+    backgroundContext.setTransform(scale, 0, 0, scale, 0, 0);
+    backgroundContext.clearRect(0, 0, viewport.width, viewport.height);
+    backgroundContext.drawImage(sourceCanvas, 0, 0, viewport.width, viewport.height);
+    drawStoryVignette(backgroundContext, viewport);
+    backgroundContext.restore();
+
+    textContext.save();
+    textContext.setTransform(scale, 0, 0, scale, 0, 0);
+    textContext.clearRect(0, 0, viewport.width, viewport.height);
+    layers.forEach((layer) => drawLayerText(textContext, layer));
+    textContext.restore();
+
     context.save();
-    context.setTransform(scale, 0, 0, scale, 0, 0);
-    context.clearRect(0, 0, viewport.width, viewport.height);
-    context.drawImage(sourceCanvas, 0, 0, viewport.width, viewport.height);
-    drawStoryVignette(context, viewport);
-    layers.forEach((layer) => drawLayerText(context, layer));
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(backgroundCanvas, 0, 0);
+    context.drawImage(textCanvas, 0, 0);
     context.restore();
   }
 
-  return { canvas, draw };
+  return { canvas, backgroundCanvas, textCanvas, draw };
 }
 
 function drawStoryVignette(context, viewport) {
@@ -825,11 +909,12 @@ function roundRect(context, x, y, width, height, radius) {
   context.closePath();
 }
 
-function createAppleGlassMaterial(sceneTexture) {
+function createAppleGlassMaterial(sceneTexture, textTexture) {
   return new THREE.ShaderMaterial({
     name: 'AppleGlassRefraction',
     uniforms: {
       uSceneTexture: { value: sceneTexture },
+      uTextTexture: { value: textTexture },
       uResolution: { value: new THREE.Vector2(1, 1) },
       uLensCenter: { value: new THREE.Vector2(0.5, 0.5) },
       uLensAxisX: { value: new THREE.Vector2(1, 0) },
@@ -840,6 +925,7 @@ function createAppleGlassMaterial(sceneTexture) {
       uMagnification: { value: 1.24 },
       uDistortion: { value: 1 },
       uOpticalStrength: { value: 1 },
+      uTextStrength: { value: 1 },
       uOpacity: { value: 1 },
       uTime: { value: 0 }
     },
@@ -856,6 +942,7 @@ function createAppleGlassMaterial(sceneTexture) {
     `,
     fragmentShader: `
       uniform sampler2D uSceneTexture;
+      uniform sampler2D uTextTexture;
       uniform vec2 uResolution;
       uniform vec2 uLensCenter;
       uniform vec2 uLensAxisX;
@@ -866,6 +953,7 @@ function createAppleGlassMaterial(sceneTexture) {
       uniform float uMagnification;
       uniform float uDistortion;
       uniform float uOpticalStrength;
+      uniform float uTextStrength;
       uniform float uOpacity;
       uniform float uTime;
 
@@ -890,6 +978,7 @@ function createAppleGlassMaterial(sceneTexture) {
         if (radius > 1.08) discard;
 
         float opticalStrength = clamp(uOpticalStrength, 0.0, 1.0);
+        float textStrength = clamp(uTextStrength, 0.0, 1.0);
         vec2 direction = radius > 0.0001 ? normalize(uLensAxisX * delta.x + uLensAxisY * delta.y) : vec2(0.0);
         float centerWeight = 1.0 - smoothstep(0.12, 0.92, radius);
         float edgeWeight = smoothstep(0.58, 1.0, radius);
@@ -898,16 +987,28 @@ function createAppleGlassMaterial(sceneTexture) {
         float bend = (1.0 - curvature) * 0.09 * uDistortion * opticalStrength;
         float ripple = sin((delta.x * 2.2 - delta.y * 1.7 + uTime * 0.22) * 3.14159265) * 0.0025 * edgeWeight * opticalStrength;
 
-        vec2 source = uLensCenter + screenDelta / opticalZoom;
-        source += direction * (bend + ripple) * uLensRadius;
+        vec2 backgroundSource = uLensCenter + screenDelta / opticalZoom;
+        backgroundSource += direction * (bend + ripple) * uLensRadius;
 
-        vec2 uv = screenToTexture(source);
+        vec2 uv = screenToTexture(backgroundSource);
         vec2 chroma = direction * edgeWeight * 0.0028 * uDistortion * opticalStrength;
+        float textZoom = mix(1.0, mix(1.0, uMagnification, centerWeight), textStrength);
+        float textBend = (1.0 - curvature) * 0.018 * uDistortion * textStrength;
+        vec2 textSource = uLensCenter + screenDelta / textZoom;
+        textSource += direction * textBend * uLensRadius;
+        vec2 textUv = screenToTexture(textSource);
+        vec2 textChroma = direction * edgeWeight * 0.00075 * uDistortion * textStrength * (1.0 - centerWeight * 0.5);
 
         vec3 color;
-        color.r = texture2D(uSceneTexture, screenToTexture(source + chroma * uResolution)).r;
+        color.r = texture2D(uSceneTexture, screenToTexture(backgroundSource + chroma * uResolution)).r;
         color.g = texture2D(uSceneTexture, uv).g;
-        color.b = texture2D(uSceneTexture, screenToTexture(source - chroma * uResolution)).b;
+        color.b = texture2D(uSceneTexture, screenToTexture(backgroundSource - chroma * uResolution)).b;
+        vec4 textSample = texture2D(uTextTexture, textUv);
+        vec3 textColor = vec3(
+          texture2D(uTextTexture, screenToTexture(textSource + textChroma * uResolution)).r,
+          textSample.g,
+          texture2D(uTextTexture, screenToTexture(textSource - textChroma * uResolution)).b
+        );
 
         float fresnel = pow(1.0 - max(dot(normalize(vNormalW), normalize(vViewDirW)), 0.0), 2.4);
         float rim = smoothstep(0.73, 0.98, radius) * (1.0 - smoothstep(0.985, 1.06, radius));
@@ -917,6 +1018,7 @@ function createAppleGlassMaterial(sceneTexture) {
 
         color = mix(color, color * tint, glassTint);
         color = mix(color, color * 0.9, edgeWeight * 0.14 * (0.45 + opticalStrength * 0.55));
+        color = mix(color, textColor, textSample.a * textStrength);
         color += sheen;
 
         float alpha = uOpacity * (0.58 + centerWeight * 0.08 * opticalStrength + edgeWeight * 0.08 + rim * 0.1 + fresnel * 0.06);
@@ -1070,6 +1172,46 @@ function drawStudioBand(context, x, y, width, height, rotation, color) {
 
 function clamp(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
+}
+
+function percentileRadius(values, percentile = 0.965) {
+  if (!values.length) return 0;
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const rawIndex = Math.round((sorted.length - 1) * percentile);
+  const index = Math.min(sorted.length - 1, Math.max(0, rawIndex));
+  return sorted[index] || 0;
+}
+
+function cloneOptics(optics) {
+  return {
+    ...optics,
+    axisX: { ...optics.axisX },
+    axisY: { ...optics.axisY }
+  };
+}
+
+function smoothAxis(previous, current, amount) {
+  const aligned = dotAxis(previous, current) < 0
+    ? { x: -current.x, y: -current.y }
+    : current;
+
+  return normalizeAxis({
+    x: lerp(previous.x, aligned.x, amount),
+    y: lerp(previous.y, aligned.y, amount)
+  });
+}
+
+function dotAxis(a, b) {
+  return a.x * b.x + a.y * b.y;
+}
+
+function normalizeAxis(axis) {
+  const length = Math.hypot(axis.x, axis.y) || 1;
+  return {
+    x: axis.x / length,
+    y: axis.y / length
+  };
 }
 
 function lerp(start, end, amount) {
