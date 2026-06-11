@@ -90,6 +90,54 @@ Continue from the next step, but verify the previous agent's assumptions before 
 - Run `npm test` after backend or routing changes when possible.
 - Run UI checks for frontend flow changes when possible.
 
+## Multi-Collaborator Git Workflow
+
+Use `main` as the stable judge-demo branch. Do not use it as a shared scratchpad.
+
+Before starting work:
+
+```bash
+git switch main
+git pull origin main
+git switch -c your-name/short-task-name
+```
+
+While working:
+
+```bash
+git status
+git add <changed-files>
+git commit -m "clear: short description"
+git push origin your-name/short-task-name
+```
+
+Before a pull request:
+
+```bash
+git switch main
+git pull origin main
+git switch your-name/short-task-name
+git merge main
+```
+
+Rules:
+
+- Open a pull request for review before merging into `main`.
+- Pull early and often, but do not force-pull over uncommitted work.
+- If two collaborators need the same file, coordinate first.
+- Keep `.env` local; use `.env.example` for shared configuration.
+- Avoid broad formatting-only commits while someone else is editing nearby code.
+- Keep Prisma/database migration work serialized through one owner.
+
+High-conflict ownership zones:
+
+- Homepage 3D and scroll lens: `public/js/home-3d.js`,
+  `public/js/scroll-lens.js`, `public/js/scroll-story.js`
+- Design system: `public/css/style.css`
+- Backend/API/security: `server/routes/*`, `server/middleware/*`,
+  `server/lib/*`
+- Database: `prisma/schema.prisma`, `prisma/migrations/*`
+
 ## Context Template
 
 `CONTEXT.md` should include:
