@@ -290,7 +290,10 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
-      document.getElementById('tab-' + name).classList.add('active');
+      const panel = document.getElementById('tab-' + name);
+      panel.classList.remove('active');
+      void panel.offsetWidth; // reflow to restart CSS animation
+      panel.classList.add('active');
     }
 
     // ── Status hints ──────────────────────────────────────────────────────────

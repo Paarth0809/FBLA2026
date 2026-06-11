@@ -59,115 +59,170 @@
     body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
     .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .hero-bento { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(240px, 1.25fr) minmax(140px, 0.75fr); gap: 0.85rem; }
-    .bento-main { grid-column: 1 / -1; border-radius: 1.25rem; overflow: hidden; position: relative; min-height: 260px; }
-    .bento-side { border-radius: 1rem; overflow: hidden; position: relative; min-height: 140px; }
-    .bento-main img, .bento-side img { width: 100%; height: 100%; object-fit: cover; }
-    .bento-main img { object-position: center center; }
-    @media (max-width: 640px) {
-      .hero-bento { grid-template-columns: 1fr; grid-template-rows: auto; }
-      .bento-main { grid-column: auto; min-height: 230px; }
-    }
   </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/addons/",
+        "gsap": "/vendor/gsap/index.js",
+        "gsap/ScrollTrigger": "/vendor/gsap/ScrollTrigger.js"
+      }
+    }
+  </script>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col">
 
   <!-- Navbar -->
-  <nav class="fixed top-0 w-full z-50 bg-inverse-surface border-b border-white/5" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
+  <nav class="fixed top-0 w-full z-50 bg-inverse-surface border-b border-white/5 home-cinematic-nav" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
     <div class="max-w-container mx-auto px-6 h-16 flex items-center justify-between">
       <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-lg text-white hover:text-primary-container transition-colors" aria-label="Green Level Lost &amp; Found — go to homepage">
         <span class="material-symbols-outlined icon-fill text-primary-container" style="font-size:22px">search</span>
         Green Level Lost &amp; Found
       </a>
+      <div class="home-nav-center hidden lg:flex items-center gap-1">
+        <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Search Items</a>
+        <a href="/search-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
+        <a href="/report.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Found</a>
+        <a href="#admin-section" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Main Office</a>
+      </div>
       <div class="flex items-center gap-1">
-        <a href="/search.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
-        <a href="/search-missing.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
+        <a href="/search.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
+        <a href="/search-missing.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
         <div id="nav-auth" class="flex items-center gap-2 ml-2"></div>
       </div>
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="pt-16 bg-gradient-to-br from-surface-container-low via-surface-container to-surface-container-high">
-    <div class="max-w-container mx-auto px-6 py-16 md:py-24">
-      <div class="flex flex-col md:flex-row items-center gap-12">
+  <!-- Cinematic scroll sequence -->
+  <section
+    class="scroll-story"
+    data-scroll-story
+    data-frame-count="480"
+    data-frame-path="/frames/topaztable/frame_"
+    data-frame-ext="webp"
+    aria-label="A cinematic sequence of lost items clearing from a table">
+    <div class="scroll-story-sticky">
+      <canvas class="scroll-story-canvas" data-story-canvas aria-label="Lost and found items clearing from a dark wooden table"></canvas>
+      <div class="scroll-story-vignette" aria-hidden="true"></div>
+      <div class="scroll-story-scanline" aria-hidden="true"></div>
 
-        <!-- Left: text + CTAs -->
-        <div class="flex-1 min-w-0">
-          <div class="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm text-primary border border-primary/20 rounded-full px-4 py-1.5 text-sm font-semibold mb-6" style="box-shadow:0 1px 4px rgba(0,108,73,0.08)">
+      <div class="scroll-story-loader" data-story-loader role="status" aria-live="polite">
+        <span class="scroll-story-loader-label">Preparing campus inventory</span>
+        <span class="scroll-story-loader-percent" data-story-progress>0%</span>
+      </div>
+
+      <div class="scroll-story-copy story-copy-center" data-story-layer="intro">
+        <p class="scroll-story-kicker">Official Campus Lost &amp; Found</p>
+        <h1>Lost Something?<br>We're Here to Help.</h1>
+        <p>Our campus system helps you report found items, search missing belongings, and reunite them with their owners.</p>
+      </div>
+
+      <div class="scroll-story-copy story-copy-left" data-story-layer="catalog">
+        <p class="scroll-story-kicker">Visual Catalog</p>
+        <h2>Instant Visual Cataloging.</h2>
+        <p>Found items are preserved with clear imagery, useful details, categories, and location context the moment they enter the system.</p>
+      </div>
+
+      <div class="scroll-story-copy story-copy-right" data-story-layer="verify">
+        <p class="scroll-story-kicker">Verification Loop</p>
+        <h2>Secure Verification Loop.</h2>
+        <p>Claims undergo ownership review before pickup. Restoring peace of mind, one item at a time.</p>
+      </div>
+
+      <div class="scroll-story-copy story-copy-final" data-story-layer="final">
+        <p class="scroll-story-kicker">Main Office Pickup</p>
+        <h2>Reunited with what matters.</h2>
+        <p>Direct pickup available at the Main Office.</p>
+        <div class="scroll-story-actions">
+          <a href="/search.html" class="scroll-story-button primary">Search Found Items</a>
+          <a href="/login.html" class="scroll-story-button secondary">Sign In to Report</a>
+        </div>
+      </div>
+
+      <div class="scroll-lens-refract" data-lens-refract aria-hidden="true">
+        <div class="scroll-lens-copy" data-lens-copy></div>
+      </div>
+      <canvas class="scroll-lens-canvas" data-lens-canvas aria-hidden="true"></canvas>
+    </div>
+  </section>
+
+  <!-- Hero -->
+  <section class="home-hero pt-16 relative overflow-hidden">
+    <div class="max-w-container mx-auto px-6 py-16 md:py-24 relative z-10">
+      <div class="home-hero-grid">
+
+        <!-- Left: headline + campus image -->
+        <div class="home-title-column min-w-0">
+          <div class="hero-enter inline-flex items-center gap-2 bg-white/10 text-white border border-white/20 rounded-full px-4 py-1.5 text-sm font-semibold mb-6" style="--i:0">
             <span class="material-symbols-outlined icon-fill text-primary-container" style="font-size:16px">verified_user</span>
-            Campus Lost &amp; Found
+            Official Campus Lost &amp; Found
           </div>
-          <h1 class="font-headline font-extrabold text-on-surface leading-tight tracking-tight mb-6" style="font-size:clamp(2.5rem,5vw,3.5rem);letter-spacing: 0">
+          <h1 class="hero-enter font-headline font-extrabold text-white leading-tight tracking-tight mb-6" style="--i:1;font-size:clamp(3rem,6vw,4.8rem);letter-spacing:-0.025em;text-wrap:balance">
             Lost Something?<br>We're Here to Help.
           </h1>
-          <p class="text-on-surface-variant leading-relaxed mb-8 max-w-lg" style="font-size:1.125rem">
-            Our campus lost and found system helps you report found items,
-            search for missing belongings, and reunite them with their owners.
+
+          <figure class="hero-enter home-school-card" style="--i:2">
+            <img src="/images/school.jpg" alt="Green Level High School campus">
+            <figcaption class="home-school-caption">
+              <span class="material-symbols-outlined icon-fill" aria-hidden="true">location_on</span>
+              <span><strong>Main Office</strong><br>Pickup and return desk</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <!-- Right: explanation + 3D search action -->
+        <aside class="hero-enter home-action-column" style="--i:3" aria-label="Lost and found actions">
+          <p class="home-hero-copy">
+            Our campus lost and found system helps students and staff search for found items, report missing belongings, and coordinate verified returns through the school office.
           </p>
 
-          <div class="flex flex-wrap gap-3 mb-6">
-            <a href="/search.html" class="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-all" style="box-shadow:0 4px 14px rgba(0,108,73,0.3)">
-              <span class="material-symbols-outlined" style="font-size:18px">search</span>
-              Search Found Items
-            </a>
-            <a href="/search-missing.html" class="inline-flex items-center gap-2 bg-surface-container-lowest text-primary border border-primary px-6 py-3 rounded-xl font-semibold text-sm hover:bg-surface-container-low transition-colors">
+          <a href="/search.html" class="home-model-card" data-model-card aria-label="Search found items">
+            <div class="home-model-copy">
+              <div>
+                <span class="home-model-kicker">Start Here</span>
+                <h2>Search Found Items</h2>
+              </div>
+              <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+            </div>
+            <div class="home-model-stage">
+              <canvas data-model-canvas aria-hidden="true"></canvas>
+              <div class="home-model-fallback" data-model-fallback>
+                <span class="material-symbols-outlined icon-fill">manage_search</span>
+              </div>
+            </div>
+            <div class="home-model-footer">
+              Browse approved items turned in across campus.
+            </div>
+          </a>
+
+          <div class="home-action-row">
+            <a href="/search-missing.html" class="btn btn-hero-outline btn-lg">
               <span class="material-symbols-outlined" style="font-size:18px">warning</span>
               Browse Missing Items
             </a>
           </div>
 
-          <div id="report-actions" class="flex flex-wrap gap-3 mb-6 hidden">
-            <a href="/report.html" class="inline-flex items-center gap-2 bg-surface-container-lowest text-primary border border-outline-variant px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-surface-container-low transition-colors">
+          <div id="report-actions" class="home-report-row hidden">
+            <a href="/report.html" class="btn btn-hero-subtle">
               <span class="material-symbols-outlined" style="font-size:18px">add_circle</span>
               Report Found Item
             </a>
-            <a href="/report-missing.html" class="inline-flex items-center gap-2 bg-surface-container-lowest text-on-surface-variant border border-outline-variant px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-surface-container-low transition-colors">
+            <a href="/report-missing.html" class="btn btn-hero-subtle">
               <span class="material-symbols-outlined" style="font-size:18px">report</span>
               Report Missing Item
             </a>
           </div>
 
-          <div id="signin-cta" class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 max-w-sm" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
-            <p class="font-headline font-bold text-on-surface text-base mb-1">Sign In to Report Items</p>
-            <p class="text-sm text-on-surface-variant mb-4">Create an account or sign in to report found or missing items.</p>
+          <div id="signin-cta" class="home-signin-panel p-6">
+            <p class="font-headline font-bold text-white text-base mb-1">Sign in to report items</p>
+            <p class="text-sm mb-4" style="color:rgba(255,255,255,0.65)">Create an account or sign in to report found or missing items.</p>
             <div class="flex gap-3 flex-wrap">
               <a href="/login.html" class="btn btn-primary btn-sm">Sign In</a>
-              <a href="/signup.html" class="btn btn-outline btn-sm">Create Account</a>
+              <a href="/signup.html" class="btn btn-hero-outline btn-sm">Create Account</a>
             </div>
           </div>
-        </div>
-
-        <!-- Right: bento grid photo layout -->
-        <div class="flex-shrink-0 w-full md:w-[44%]">
-          <div class="hero-bento">
-            <div class="bento-main" style="box-shadow:0 8px 30px rgba(0,0,0,0.15)">
-              <img src="/images/school.jpg" alt="Green Level High School campus">
-              <div class="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-              <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-2xl p-4">
-                <div class="flex items-center gap-2 text-primary font-headline font-bold">
-                  <span class="material-symbols-outlined icon-fill" style="font-size:22px">location_on</span>
-                  Main Office
-                </div>
-                <div class="text-xs text-on-surface-variant font-medium mt-0.5">Pickup location</div>
-              </div>
-            </div>
-            <div class="bento-side bg-primary-container/20 flex items-center justify-center" style="box-shadow:0 4px 12px rgba(0,0,0,0.08)">
-              <div class="text-center p-4">
-                <span class="material-symbols-outlined icon-fill text-primary block mb-1" style="font-size:36px">inventory_2</span>
-                <div class="font-headline font-bold text-2xl text-on-surface">Report</div>
-                <div class="text-xs text-on-surface-variant">Found items securely</div>
-              </div>
-            </div>
-            <div class="bento-side bg-surface-container flex items-center justify-center" style="box-shadow:0 4px 12px rgba(0,0,0,0.06)">
-              <div class="text-center p-4">
-                <span class="material-symbols-outlined icon-fill text-primary block mb-1" style="font-size:36px">fact_check</span>
-                <div class="font-headline font-bold text-2xl text-on-surface">Verify</div>
-                <div class="text-xs text-on-surface-variant">Claims before pickup</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        </aside>
 
       </div>
     </div>
@@ -177,22 +232,22 @@
   <section class="bg-surface-container py-12">
     <div class="max-w-container mx-auto px-6">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center border border-outline-variant/40" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="home-step-tile p-6 text-center">
           <span class="material-symbols-outlined icon-fill text-primary block mb-2" style="font-size:28px">assignment</span>
           <div class="font-headline font-bold text-2xl text-on-surface">Report</div>
           <div class="text-sm text-on-surface-variant mt-1">Submit item details</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center border border-outline-variant/40" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="home-step-tile p-6 text-center">
           <span class="material-symbols-outlined icon-fill text-primary block mb-2" style="font-size:28px">manage_search</span>
           <div class="font-headline font-bold text-2xl text-on-surface">Browse</div>
           <div class="text-sm text-on-surface-variant mt-1">Search campus listings</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center border border-outline-variant/40" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="home-step-tile p-6 text-center">
           <span class="material-symbols-outlined icon-fill text-primary block mb-2" style="font-size:28px">verified</span>
           <div class="font-headline font-bold text-2xl text-on-surface">Verify</div>
           <div class="text-sm text-on-surface-variant mt-1">Review ownership claims</div>
         </div>
-        <div class="bg-surface-container-lowest rounded-2xl p-6 text-center border border-outline-variant/40" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="home-step-tile p-6 text-center">
           <span class="material-symbols-outlined icon-fill text-primary block mb-2" style="font-size:28px">school</span>
           <div class="font-headline font-bold text-2xl text-on-surface">Return</div>
           <div class="text-sm text-on-surface-variant mt-1">Coordinate pickup</div>
@@ -210,17 +265,17 @@
       </div>
       <div class="relative grid grid-cols-1 md:grid-cols-3 gap-8">
         <div class="hidden md:block absolute top-10 left-[16%] right-[16%] h-px bg-outline-variant"></div>
-        <div class="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/50" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="reveal process-card p-8 text-center" style="--i:0">
           <div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center mx-auto mb-5 font-headline font-bold text-on-primary-container text-xl relative z-10">1</div>
           <h3 class="font-headline font-bold text-lg text-on-surface mb-3">Report Found Items</h3>
           <p class="text-on-surface-variant text-sm leading-relaxed">Found something on campus? Sign in and fill out a quick form with details about the item, where you found it, and optionally upload a photo.</p>
         </div>
-        <div class="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/50" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="reveal process-card p-8 text-center" style="--i:1">
           <div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center mx-auto mb-5 font-headline font-bold text-on-primary-container text-xl relative z-10">2</div>
           <h3 class="font-headline font-bold text-lg text-on-surface mb-3">Search &amp; Browse</h3>
           <p class="text-on-surface-variant text-sm leading-relaxed">Lost something? Search our database by keyword or category to see if anyone has turned in your item. No account needed to search.</p>
         </div>
-        <div class="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/50" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+        <div class="reveal process-card p-8 text-center" style="--i:2">
           <div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center mx-auto mb-5 font-headline font-bold text-on-primary-container text-xl relative z-10">3</div>
           <h3 class="font-headline font-bold text-lg text-on-surface mb-3">Submit a Claim</h3>
           <p class="text-on-surface-variant text-sm leading-relaxed">Found your item listed? Submit a claim with proof of ownership. The admin team will review it and help coordinate the return.</p>
@@ -232,7 +287,7 @@
   <!-- Admin Section -->
   <section id="admin-section" class="py-16 bg-surface-container">
     <div class="max-w-lg mx-auto px-6">
-      <div class="bg-surface-container-lowest rounded-2xl p-8 text-center border border-outline-variant/50" style="box-shadow:0 4px 20px rgba(0,0,0,0.04)">
+      <div class="surface-card p-8 text-center">
         <span class="material-symbols-outlined text-primary block mb-4" style="font-size:40px">admin_panel_settings</span>
         <h3 class="font-headline font-bold text-xl text-on-surface mb-3">For Administrators</h3>
         <p class="text-on-surface-variant text-sm mb-6 leading-relaxed">
@@ -258,6 +313,9 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/nav.js"></script>
+  <script src="/js/scroll-story.js"></script>
+  <script type="module" src="/js/scroll-lens.js"></script>
+  <script type="module" src="/js/home-3d.js"></script>
   <script>
     document.addEventListener('userLoaded', function(e) {
       const user = e.detail;

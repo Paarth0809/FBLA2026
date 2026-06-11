@@ -196,15 +196,19 @@
                 Photo <span class="text-on-surface-variant font-normal text-xs">(optional)</span>
               </label>
               <div class="upload-zone" id="upload-zone">
-                <input type="file" id="photo" name="photo" accept="image/*" aria-describedby="photo-hint">
+                <input type="file" id="photo" name="photo" accept="image/*,.heic,.heif" aria-describedby="photo-hint">
                 <div class="upload-icon">
                   <span class="material-symbols-outlined text-outline" style="font-size:32px">photo_camera</span>
                 </div>
                 <p class="upload-text"><span>Click to upload</span> or drag &amp; drop</p>
-                <p class="form-hint mt-1" id="photo-hint">JPG, PNG, GIF — max 10 MB</p>
+                <p class="form-hint mt-1" id="photo-hint">JPG, PNG, GIF, HEIC — max 10 MB</p>
               </div>
               <div class="photo-preview hidden" id="preview-container">
                 <img id="photo-preview-img" alt="Preview">
+                <div id="photo-preview-fallback" class="photo-preview-fallback hidden">
+                  <span class="material-symbols-outlined">image</span>
+                  HEIC photo selected. It will be converted after submission.
+                </div>
                 <button type="button" onclick="clearPhoto()" class="btn btn-ghost btn-sm mt-2">
                   <span class="material-symbols-outlined" style="font-size:14px">close</span> Remove photo
                 </button>
@@ -247,9 +251,22 @@
       const file = this.files[0];
       if (!file) return;
       if (file.size > 10 * 1024 * 1024) { showToast('Photo must be under 10 MB.', 'error'); this.value = ''; return; }
+      const previewImg = document.getElementById('photo-preview-img');
+      const previewFallback = document.getElementById('photo-preview-fallback');
+      const isHeic = /\.(heic|heif)$/i.test(file.name) || /^image\/hei[cf]/i.test(file.type);
+      if (isHeic) {
+        previewImg.removeAttribute('src');
+        previewImg.classList.add('hidden');
+        previewFallback.classList.remove('hidden');
+        document.getElementById('preview-container').classList.remove('hidden');
+        document.getElementById('upload-zone').style.display = 'none';
+        return;
+      }
       const reader = new FileReader();
       reader.onload = e => {
-        document.getElementById('photo-preview-img').src = e.target.result;
+        previewFallback.classList.add('hidden');
+        previewImg.classList.remove('hidden');
+        previewImg.src = e.target.result;
         document.getElementById('preview-container').classList.remove('hidden');
         document.getElementById('upload-zone').style.display = 'none';
       };
@@ -259,6 +276,9 @@
     function clearPhoto() {
       document.getElementById('photo').value = '';
       document.getElementById('preview-container').classList.add('hidden');
+      document.getElementById('photo-preview-img').removeAttribute('src');
+      document.getElementById('photo-preview-img').classList.remove('hidden');
+      document.getElementById('photo-preview-fallback').classList.add('hidden');
       document.getElementById('upload-zone').style.display = '';
     }
 
@@ -269,7 +289,7 @@
       const successBox = document.getElementById('success-box');
       errorBox.classList.add('hidden');
       successBox.classList.add('hidden');
-      btn.disabled = true; btn.textContent = 'Submitting…';
+      btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Submitting…';
 
       try {
         await api.post('/missing-items', new FormData(this));
@@ -280,7 +300,7 @@
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.classList.remove('hidden');
-        btn.disabled = false; btn.textContent = 'Submit Missing Item';
+        btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">check_circle</span> Submit Missing Item';
       }
     });
   </script>

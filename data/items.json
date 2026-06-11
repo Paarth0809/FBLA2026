@@ -79,5 +79,81 @@
       ],
       "detailedDescription": "The item is a pair of white Apple AirPods Pro, presented in its open charging case. The case is compact, with a smooth, glossy white finish and rounded edges, characteristic of Apple's design. Inside, two individual white in-ear style earbuds are clearly visible, each featuring a black ear tip. The charging case lid is fully open, revealing the internal compartments for the earbuds. The item rests on a light brown wooden surface, possibly a floor or table, with visible wood grain and reflections. A part of a person's arm or leg is visible on the left side of the frame, and a white cable end is partially visible on the bottom right."
     }
+  },
+  {
+    "id": "fddbeeea-b4f3-4960-9927-120896102e79",
+    "itemName": "Iphone",
+    "category": "Electronics",
+    "description": "it has a clear case and it has two cameras on the back",
+    "locationFound": "cafeteria",
+    "dateFound": "2026-06-10",
+    "contactEmail": "student2@school.edu",
+    "photo": "5be11a19-c742-4ea0-a6ad-61150361d5f2.png",
+    "status": "approved",
+    "submittedBy": "user-002",
+    "submitterName": "Jordan Lee",
+    "createdAt": "2026-06-10T22:11:57.875Z",
+    "aiProfile": {
+      "keywords": [
+        "iphone",
+        "smartphone",
+        "mobile phone",
+        "electronics",
+        "clear case",
+        "device",
+        "cell phone",
+        "technology",
+        "personal item"
+      ],
+      "color": "dark (with clear case)",
+      "brand": "Apple (iPhone)",
+      "material": "glass, metal, plastic (case)",
+      "distinguishingFeatures": [
+        "Equipped with a clear, transparent protective case.",
+        "Screen is dark, indicating it is off or in sleep mode.",
+        "Volume buttons and silent switch visible on the left side.",
+        "Features two cameras on the back (as per user description)."
+      ],
+      "detailedDescription": "A dark-colored smartphone, specifically identified as an iPhone, is depicted in the image. It is protected by a clear, transparent case, through which the phone's dark frame and buttons are visible. The screen is entirely black, suggesting the device is either powered off or in sleep mode. The left side of the phone clearly shows the silver-colored volume buttons and the mute switch. According to the user's description, the phone is also characterized by having two cameras on its back, though this side is not visible in the provided photograph. The phone rests on a light-colored, textured surface, possibly a leather couch or car seat."
+    }
+  },
+  {
+    "id": "cf9fd927-5e0d-42e1-89de-ad45f7dee4c8",
+    "itemName": "phone",
+    "category": "Electronics",
+    "description": "small phone and the case has butterflys on it",
+    "locationFound": "bathroom",
+    "dateFound": "2026-06-10",
+    "contactEmail": "student2@school.edu",
+    "photo": "f4059e66-92b9-4611-bf5d-b2d8c4246219.jpg",
+    "status": "approved",
+    "submittedBy": "user-002",
+    "submitterName": "Jordan Lee",
+    "createdAt": "2026-06-10T22:19:51.190Z",
+    "aiProfile": {
+      "keywords": [
+        "smartphone",
+        "phone case",
+        "butterfly design",
+        "clear case",
+        "gilded butterfly",
+        "pink butterflies",
+        "single camera",
+        "dark phone",
+        "mobile phone",
+        "electronic device"
+      ],
+      "color": "dark grey, brown, clear, pink, lavender",
+      "brand": "unknown",
+      "material": "plastic, silicone, glass, metal",
+      "distinguishingFeatures": [
+        "Clear phone case with dark brown/bronze tinted edges",
+        "Multiple light pink/lavender butterfly designs on the back of the case",
+        "Text 'Gilded butterfly' printed on the back of the case",
+        "Single camera lens and flash module in the top-left corner of the phone",
+        "Small star embellishments scattered among the butterfly designs"
+      ],
+      "detailedDescription": "This item is a smartphone, housed within a clear or translucent protective case. The phone itself appears to be dark-colored, likely black or dark grey, and features a single camera lens and flash unit positioned in the upper left corner of its back, indicative of an older iPhone model. The accompanying phone case has distinctive dark brown or bronze tinted edges, contrasting with its clear back panel. Embellishing the back of the case are several light pink or lavender-colored butterfly designs of various sizes, some with a slightly textured or peeling appearance. The phrase 'Gilded butterfly' is subtly printed on the case in a curved script, surrounded by a few small star-shaped details."
+    }
   }
 ]

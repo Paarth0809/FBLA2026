@@ -144,7 +144,7 @@
 
     function render(item) {
       const img = item.photo
-        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}">`
+        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}" class="img-load-fade" onload="this.classList.add('loaded')">`
         : `<span style="font-size:5rem">${categoryEmoji(item.category)}</span>`;
 
       const claimedBanner = (item.status === 'claimed')
@@ -161,7 +161,7 @@
           <!-- Right: info card + action card -->
           <div class="flex flex-col gap-4">
             <!-- Info card -->
-            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow hero-enter" style="--i:0">
               <div class="flex items-start justify-between gap-3 mb-4">
                 <h1 class="font-headline font-bold text-2xl text-on-surface leading-tight">${escapeHtml(item.itemName)}</h1>
                 ${statusBadge(item.status)}
@@ -190,7 +190,7 @@
               </div>
             </div>
             <!-- Action card -->
-            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant card-shadow hero-enter" style="--i:1">
               <div class="flex items-center gap-2 mb-3">
                 <span class="material-symbols-outlined filled text-primary" style="font-size:20px">help</span>
                 <span class="font-headline font-bold text-base text-on-surface">Is this yours?</span>

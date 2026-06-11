@@ -10,34 +10,13 @@
 //   POST   /api/items                — submit a new found item (with optional photo)
 
 const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { readJSON, writeJSON } = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
+const { upload, normalizeUploadedPhoto } = require('../lib/photoUpload');
 
 const router = express.Router();
-
-// ── Multer configuration for photo uploads ────────────────────────────────────
-// Multer is middleware that handles multipart/form-data (file uploads).
-// diskStorage lets us control where files are saved and what they're named.
-const storage = multer.diskStorage({
-  // Save all uploaded photos into the top-level uploads/ folder
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
-  // Name each file with a UUID so filenames never collide, keeping the original extension
-  filename:    (req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`)
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // reject files larger than 10 MB
-  fileFilter: (req, file, cb) => {
-    // Only allow image files — reject PDFs, executables, etc.
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only image files are allowed.'));
-  }
-});
 
 // GET /api/items — return all approved found items, with optional search filters.
 // The ?keyword= and ?category= query parameters narrow down the results.
@@ -108,8 +87,9 @@ router.get('/:id', (req, res) => {
 // POST /api/items — submit a new found item report.
 // upload.single('photo') runs Multer first to handle the file upload,
 // then our handler runs with req.file populated (or null if no photo was attached).
-router.post('/', requireAuth, upload.single('photo'), (req, res) => {
+router.post('/', requireAuth, upload.single('photo'), async (req, res) => {
   try {
+    await normalizeUploadedPhoto(req.file);
     const { itemName, category, description, locationFound, dateFound, contactEmail } = req.body;
 
     // All text fields are required — photo is optional

@@ -199,7 +199,7 @@
       const successBox = document.getElementById('success-box');
       errorBox.classList.add('hidden');
       successBox.classList.add('hidden');
-      btn.disabled = true; btn.textContent = 'Submitting…';
+      btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Submitting…';
 
       try {
         await api.post('/claims', {
@@ -216,7 +216,7 @@
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.classList.remove('hidden');
-        btn.disabled = false; btn.textContent = 'Submit Claim';
+        btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">pan_tool</span> Submit Claim';
       }
     });
   </script>

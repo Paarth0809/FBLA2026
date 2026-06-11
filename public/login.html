@@ -77,7 +77,7 @@
   </div>
 
   <!-- Right panel: login form -->
-  <div class="flex-1 flex flex-col justify-center p-8 md:p-12 overflow-y-auto">
+  <div class="flex-1 flex flex-col justify-center p-8 md:p-12 overflow-y-auto hero-enter" style="--i:0">
     <div class="max-w-md w-full mx-auto">
 
       <a href="/index.html" class="flex md:hidden items-center gap-2 font-headline font-bold text-primary mb-8 text-base">
@@ -186,6 +186,10 @@
         errorBox.classList.remove('hidden');
         btn.disabled    = false;
         btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">login</span> Sign In';
+        const form = document.getElementById('login-form');
+        form.classList.remove('shake');
+        void form.offsetWidth; // reflow to restart animation
+        form.classList.add('shake');
       }
     });
   </script>

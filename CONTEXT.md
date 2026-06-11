@@ -1,7 +1,82 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-09 ~7:00pm EDT
+> Last updated: 2026-06-11 ~12:15am EDT by Codex
+
+---
+
+## Latest Update — Cinematic Scroll Story Landing Intro
+
+Current goal completed: added a premium scrollytelling intro before the existing homepage hero using the user's `topaztable.mp4` sequence. The intro uses a sticky full-screen canvas, scroll-scrubbed 480-frame playback, staged copy overlays, a minimalist fade-in navigation bar, and a smooth visual handoff into the existing "Lost Something? We're Here to Help." homepage section.
+
+Completed:
+- Extracted `/Users/paarthrathod/Downloads/topaztable.mp4` into 480 optimized WebP frames at 1440x810 under `public/frames/topaztable/`.
+- Added `public/js/scroll-story.js` with native canvas rendering, concurrent image preloading, progress counter, nearest-loaded-frame fallback, scroll-linked frame selection, copy layer choreography, nav visibility toggling, and reduced-motion behavior.
+- Updated `public/index.html` to place the new `<section data-scroll-story>` before `.home-hero`.
+- Updated the homepage nav for the cinematic intro:
+  - Brand remains `Green Level Lost & Found`.
+  - Removed the dead `/claim.html` "Verification" nav link and replaced it with a real `/search-missing.html` "Missing Items" link.
+  - The nav starts nearly hidden and fades in after the user scrolls into the story.
+- Updated `public/css/style.css` with the cinematic dark emerald/black stage, canvas overlays, loader, scroll copy typography, CTA buttons, transition gradient into the existing hero, responsive breakpoints, and reduced-motion fallbacks.
+
+Verification:
+- `node --check public/js/scroll-story.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 84 / 84.
+- Browser/Playwright verification on `http://127.0.0.1:3000/` confirmed:
+  - All 480 frames load and the story reaches `.story-loaded`.
+  - Canvas draws non-empty frames and owns the viewport bottom at tested scroll positions.
+  - Story chapters appear at the intended scroll milestones: intro, visual catalog, verification loop, final CTA.
+  - Final CTA stays within viewport bounds on desktop and 390px mobile.
+  - No horizontal overflow on desktop or mobile.
+  - The handoff into the existing homepage hero works, and the existing magnifying-glass Three.js card remains present.
+  - Console only shows the existing Tailwind CDN warning and the expected logged-out `/api/auth/me` 401.
+
+Commands/assets:
+- Temporary FFmpeg tooling was installed outside the repo at `/tmp/fbla-ffmpeg` to extract the MP4 frames; no FFmpeg dependency was added to the project.
+- Generated frame set size is about 11 MB.
+- Local QA screenshots were generated in the repo root during verification and deleted afterward to keep the tree clean.
+
+Known notes:
+- The intro preloads all 480 frames for the smoothest demo playback. This is acceptable for the current 11 MB optimized local asset set, but if the project is deployed to a slow network, consider responsive/lower-res frame sets or a progressive frame window.
+- The repo remains dirty from broader previous UI, HEIC, and Three.js work; do not assume all modified files are from this scroll-story task.
+
+---
+
+## Latest Update — 3D Homepage Hero
+
+Current goal completed: restructured the homepage hero so the school photo sits under the "Lost Something? We're Here to Help." headline, the explanatory text sits in the right column, and a local Three.js magnifying glass model acts as a clickable "Search Found Items" card linking to `/search.html`.
+
+Completed:
+- Installed `three` and added it to `package.json` / `package-lock.json`.
+- Copied `/Users/paarthrathod/Downloads/magnifying_glass.glb` to `public/models/magnifying-glass.glb`.
+- Added local Three browser modules under `public/vendor/three/` so the hero does not rely on a CDN for the 3D renderer.
+- Added `public/js/home-3d.js`.
+- Updated `public/index.html` with a local import map and new hero structure.
+- Updated `public/css/style.css` with responsive hero layout, model card styling, mobile nav tightening, and reduced-motion handling.
+- Tuned the magnifying glass to sit in a stable diagonal pose and spin slowly without orbiting around the card.
+- Follow-up material correction: added `RoomEnvironment` reflections and warmer physical metal/black/glass materials, then removed the fake white oval/circle glint meshes because they looked artificial.
+- Follow-up layout correction: reverted the extra WebGL scene grid and larger/local-axis spin experiment after it made the card feel too heavy; the model card is back to the subtle CSS grid background.
+- Follow-up reflection correction: removed the fake glass highlight plane and removed the custom screen-space shader band because they looked like pasted-on stickers rather than real reflections.
+- Added a local CC0 Poly Haven photo-studio HDRI at `public/textures/photo-studio-01-1k.hdr` and vendored Three's `HDRLoader` at `public/vendor/three/addons/loaders/HDRLoader.js`. The homepage now uses a real HDR environment map for reflections, with the generated studio environment kept as a fallback.
+- Retuned the glass to a physical material that preserves the GLB's light/transparent look while using the HDR environment for the reflective response. Known tradeoff: the exact Sketchfab/source-site reflection cannot be reproduced from the `.glb` alone because the `.glb` does not include Sketchfab's HDR environment, post-processing, tone mapping, or camera setup.
+- Follow-up polish: darkened the metal rim to a warm pewter, lowered its roughness, increased its environment response/clearcoat, and increased the model spin speed from `0.1` to `0.22` radians/sec so the homepage card feels more alive without becoming distracting.
+
+Verification:
+- `node --check public/js/home-3d.js` passed.
+- `npm test` passed 84 / 84.
+- `git diff --check` passed.
+- Browser verification on `http://127.0.0.1:3000/` confirmed:
+  - GLB reaches `.model-loaded`.
+  - The 3D card click redirects to `/search.html`.
+  - Desktop and 390px mobile have no horizontal overflow.
+  - Console only shows the expected logged-out `/api/auth/me` 401 and the existing Tailwind CDN warning.
+  - The HDR asset and `HDRLoader.js` load from local `/public` static routes.
+
+Known notes:
+- The app is still running on port `3000` unless the foreground server session has been stopped.
+- The repo remains dirty from broader previous UI and HEIC work; do not assume all modified files are from this one hero change.
+- Existing old handoff notes below may be stale in places, especially around "do not edit style.css"; the current implementation intentionally uses `public/css/style.css` as the central design system.
 
 ---
 
@@ -294,6 +369,25 @@ These are the classes used in JS-generated HTML. Do not remove or rename them.
 - Min score: 20, max matches: 5 per missing item
 - Requires `AI_MATCHING_ENABLED=true` + `GEMINI_API_KEY` in .env for AI features
 - Works without AI key (falls back to keyword/category matching)
+
+---
+
+## Homepage Cinematic Scrollytelling
+
+- `public/js/scroll-story.js` drives the 480-frame canvas sequence from `public/frames/topaztable/`.
+- `public/js/scroll-lens.js` overlays the actual `public/models/magnifying-glass.glb` during scroll milestones and uses GSAP ScrollTrigger for one continuous no-snap motion timeline.
+- The lens layer is now WebGL-only:
+  - An offscreen canvas composites the active story frame, vignette, visible story text, and CTA buttons into a `CanvasTexture`.
+  - The GLB glass mesh uses a custom shader that samples that texture in screen space with radial zoom, edge refraction, subtle chromatic dispersion, rim darkening, and glossy glass highlights.
+  - The old DOM clone/refract layer is intentionally hidden; do not reintroduce a visible oval/bubble/circle effect.
+- The GLB transform order matters: normalize scale first, then compute the glass anchor and subtract it. Doing the anchor translation before normalization moves the model behind the camera.
+- After anchoring, keep the model root unrotated during scroll and apply face/roll motion to the `modelPivot` group. Rotating the model root makes the authored glass center drift away from the shader center.
+- The model keeps its original proportions. The lens size is based on the target text block's height, then scans horizontally across the text; do not stretch the GLB or resize only the glass/rim.
+- When the lens crosses text, the GLB is kept flat to camera. During transitions, the path can roll/spin/lift the model, but the movement must remain continuous through the scroll story.
+- The original story copy is masked out under the circular glass so the visible text inside the lens comes from the WebGL composite texture rather than a doubled original-plus-shader stack.
+- For the catalog and verification beats, lens targeting intentionally ignores the gold kicker and sits lower over the heading/body block so body copy stays readable inside the frame.
+- `?lensDebug=1` visualizes the shader center/radius while tuning.
+- Reduced motion disables the story/lens overlays and leaves the static intro copy visible.
 
 ---
 

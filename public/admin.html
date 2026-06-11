@@ -224,7 +224,10 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       event.target.classList.add('active');
       event.target.setAttribute('aria-selected', 'true');
-      document.getElementById('tab-' + name).classList.add('active');
+      const panel = document.getElementById('tab-' + name);
+      panel.classList.remove('active');
+      void panel.offsetWidth;
+      panel.classList.add('active');
     }
 
     // ── Load everything ───────────────────────────────────────

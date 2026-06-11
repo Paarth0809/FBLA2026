@@ -32,11 +32,6 @@
     body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
     .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .item-card { background: #fff; border: 1px solid rgba(187,202,191,0.5); border-radius: 1rem; overflow: hidden; transition: box-shadow 0.2s, transform 0.2s; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
-    .item-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.08); transform: translateY(-2px); }
-    .item-card-img { aspect-ratio: 16/9; background: #e8f0e9; display: flex; align-items: center; justify-content: center; font-size: 3rem; overflow: hidden; position: relative; }
-    .item-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-    .item-card:hover .item-card-img img { transform: scale(1.05); }
     .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
   </style>
 </head>
@@ -47,7 +42,10 @@
     <div class="max-w-container mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
       <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-base text-white hover:text-primary-container transition-colors shrink-0" aria-label="Green Level Lost &amp; Found — go to homepage">
         <span class="material-symbols-outlined filled text-primary-container" style="font-size:20px">search</span>
-        <span class="hidden md:block">Green Level Lost &amp; Found</span>
+        <span class="hidden md:flex items-baseline gap-1">
+          <span>Green Level</span>
+          <span>Lost &amp; Found</span>
+        </span>
       </a>
       <div class="flex items-center gap-1 shrink-0">
         <a href="/search.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg text-sm transition-colors">Found Items</a>
@@ -97,8 +95,8 @@
         </div>
         <form id="search-form" class="surface-card p-3 mb-5">
           <div class="relative">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">search</span>
-            <input class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface placeholder-on-surface-variant/60 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
+            <span class="search-field-icon material-symbols-outlined absolute top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">search</span>
+            <input class="search-field-input w-full pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface placeholder-on-surface-variant/60 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
                    type="text" id="keyword" placeholder="Search missing items by name, description, or location…" aria-label="Search missing items">
           </div>
         </form>
@@ -144,21 +142,25 @@
         countEl.textContent = `${items.length} item${items.length !== 1 ? 's' : ''} found`;
         countEl.classList.remove('hidden');
         if (items.length === 0) {
-          content.innerHTML = `<div class="empty-state"><div class="icon"><span class="material-symbols-outlined">manage_search</span></div><h3>No missing items found</h3><p>${keyword || category ? 'Try different search terms.' : 'No missing items have been reported yet.'}</p></div>`;
+          const emptyMsg = keyword || category
+            ? `Nothing matched your search — try different keywords or a broader category.`
+            : `No missing items have been reported yet. Check back soon.`;
+          content.innerHTML = `<div class="empty-state"><div class="icon float"><span class="material-symbols-outlined">manage_search</span></div><h3>No missing items found</h3><p>${emptyMsg}</p></div>`;
           return;
         }
-        content.innerHTML = `<div class="items-grid">${items.map(itemCard).join('')}</div>`;
+        content.innerHTML = `<div class="items-grid">${items.map((item, i) => itemCard(item, i)).join('')}</div>`;
       } catch (err) {
         content.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
       }
     }
 
-    function itemCard(item) {
+    function itemCard(item, index) {
       const img = item.photo
         ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}">`
         : `<span title="${safeAttr(item.category)}">${categoryEmoji(item.category)}</span>`;
+      const i = Math.min(index, 7);
       return `
-        <div class="item-card">
+        <div class="item-card card-stagger" style="--i:${i}">
           <div class="item-card-img">${img}
             <span class="badge badge-category" style="position:absolute;top:10px;left:10px">${escapeHtml(item.category)}</span>
           </div>

@@ -11,30 +11,13 @@
 //   POST   /api/missing-items                   — submit a new missing item report
 
 const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { readJSON, writeJSON } = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
+const { upload, normalizeUploadedPhoto } = require('../lib/photoUpload');
 
 const router = express.Router();
-
-// ── Multer configuration (same as items.js) ───────────────────────────────────
-// Photos are optional on missing item reports but supported for recognition purposes.
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../uploads')),
-  filename:    (req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`)
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only image files are allowed.'));
-  }
-});
 
 // GET /api/missing-items — list approved missing item reports.
 // Supports ?keyword= and ?category= filters just like the found items endpoint.
@@ -112,8 +95,9 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/missing-items — submit a new missing item report.
-router.post('/', requireAuth, upload.single('photo'), (req, res) => {
+router.post('/', requireAuth, upload.single('photo'), async (req, res) => {
   try {
+    await normalizeUploadedPhoto(req.file);
     const { itemName, category, description, lastSeenLocation, lastSeenDate, contactEmail } = req.body;
 
     if (!itemName || !category || !description || !lastSeenLocation || !lastSeenDate || !contactEmail)

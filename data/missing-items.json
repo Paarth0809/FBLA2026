@@ -104,5 +104,44 @@
       ],
       "detailedDescription": "A white Apple AirPods Pro (2nd generation) charging case is depicted, resting on a white fabric with festive red and grey patterns. The case is small, compact, and has a smooth, glossy finish with rounded edges, typical of Apple's design. A clear horizontal seam separates the lid from the main body. On the front surface, below the lid seam, there is a small, subtle LED indicator light and a noticeable small black dot or mark. The surface of the case also shows several minor scuffs and scratches, indicative of regular use."
     }
+  },
+  {
+    "id": "d68da162-5429-4902-9366-c61d12cdd126",
+    "itemName": "Iphone",
+    "category": "Electronics",
+    "description": "It has a clear case, i phone 16",
+    "lastSeenLocation": "cafeteria",
+    "lastSeenDate": "2026-06-09",
+    "contactEmail": "student@school.edu",
+    "photo": "c7fbab7e-3140-4a5c-9232-7a1c0506c552.png",
+    "status": "approved",
+    "submittedBy": "user-001",
+    "submitterName": "Alex Chen",
+    "createdAt": "2026-06-10T22:08:50.050Z",
+    "aiProfile": {
+      "keywords": [
+        "iphone",
+        "smartphone",
+        "mobile phone",
+        "clear case",
+        "electronics",
+        "portable",
+        "apple",
+        "device",
+        "phone",
+        "digital"
+      ],
+      "color": "Black (screen), Transparent (case)",
+      "brand": "Apple",
+      "material": "Glass, metal, plastic, TPU",
+      "distinguishingFeatures": [
+        "Enclosed in a transparent protective case",
+        "Screen is dark and off, showing reflections",
+        "A button cutout is visible on the right side of the clear case (from the camera's perspective)",
+        "Identified by user as an 'iPhone 16'",
+        "Minor dust or wear marks visible on the clear case surface"
+      ],
+      "detailedDescription": "A dark-colored smartphone, specifically identified as an iPhone 16, is depicted resting horizontally on a polished wooden surface. The device is fully encased in a transparent, clear protective case, which allows the phone's original design to be partially visible. The screen of the iPhone is off, appearing as a uniform dark, reflective rectangle. Visible on the right side of the clear case is a raised section indicating a button or control. The case appears to be made of a flexible plastic or TPU material and shows some subtle reflections and possibly minor surface dust or scuffs."
+    }
   }
 ]

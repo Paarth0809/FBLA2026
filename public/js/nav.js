@@ -153,8 +153,147 @@ function showToast(message, type = 'info') {
   toast.className = `toast toast-${type}`;
   toast.innerHTML = `<span class="material-symbols-outlined">${icons[type] || 'info'}</span><span>${message}</span>`;
   container.appendChild(toast);
-  // Auto-remove after 4 seconds
-  setTimeout(() => toast.remove(), 4000);
+  // Auto-remove after 4 seconds with a short exit animation.
+  setTimeout(() => {
+    toast.classList.add('leaving');
+    setTimeout(() => toast.remove(), 180);
+  }, 4000);
+}
+
+// initMotion — lightweight, fail-open interaction motion.
+// Content stays visible by default; this only adds refinement when supported.
+function initMotion() {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) return;
+
+  document.documentElement.classList.add('motion-ready');
+
+  const updateScrollState = () => {
+    document.body.classList.toggle('nav-scrolled', window.scrollY > 6);
+  };
+  updateScrollState();
+  window.addEventListener('scroll', updateScrollState, { passive: true });
+
+  const revealItems = Array.from(document.querySelectorAll('.reveal'));
+  if ('IntersectionObserver' in window && revealItems.length) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.18, rootMargin: '0px 0px -6% 0px' });
+    revealItems.forEach((el) => observer.observe(el));
+  } else {
+    revealItems.forEach((el) => el.classList.add('visible'));
+  }
+
+  document.querySelectorAll('img.img-load, img.img-load-fade').forEach((img) => {
+    if (img.complete) {
+      img.classList.add('loaded');
+    } else {
+      img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+    }
+  });
+
+  document.addEventListener('pointerdown', (event) => {
+    const button = event.target.closest?.('.btn');
+    if (!(button instanceof HTMLElement) || button.hasAttribute('disabled')) return;
+    button.classList.remove('is-pressing');
+    void button.offsetWidth;
+    button.classList.add('is-pressing');
+  });
+
+  document.addEventListener('animationend', (event) => {
+    if (event.animationName === 'buttonPress' && event.target instanceof HTMLElement) {
+      event.target.classList.remove('is-pressing');
+    }
+  });
+
+  document.querySelectorAll('.upload-zone').forEach((zone) => {
+    const input = zone.querySelector('input[type="file"]');
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      zone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        zone.classList.add('drag-over');
+      });
+    });
+    ['dragleave', 'drop'].forEach((eventName) => {
+      zone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        zone.classList.remove('drag-over');
+      });
+    });
+    zone.addEventListener('drop', (event) => {
+      if (!input || !event.dataTransfer?.files?.length) return;
+      try {
+        input.files = event.dataTransfer.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch {
+        showToast('Use click to upload if dragging is blocked by your browser.', 'info');
+      }
+    });
+  });
+
+  document.addEventListener('invalid', (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLElement)) return;
+    field.classList.add('input-error', 'shake');
+    setTimeout(() => field.classList.remove('shake'), 320);
+  }, true);
+
+  document.addEventListener('input', (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLElement)) return;
+    field.classList.remove('input-error');
+    if (field.matches('input, textarea, select') && field.hasAttribute('required')) {
+      field.classList.toggle('input-valid', field.checkValidity() && Boolean(field.value));
+    }
+  });
+
+  document.addEventListener('blur', (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLElement) || !field.matches('input, textarea, select')) return;
+    if (!field.hasAttribute('required')) return;
+    field.classList.toggle('input-valid', field.checkValidity() && Boolean(field.value));
+  }, true);
+
+  const showImageFallback = (img) => {
+    if (!(img instanceof HTMLImageElement) || img.dataset.fallbackShown === 'true') return;
+    img.dataset.fallbackShown = 'true';
+    const fallback = document.createElement('span');
+    fallback.className = 'uploaded-image-fallback';
+    fallback.setAttribute('role', 'img');
+    fallback.setAttribute('aria-label', 'Photo format is not supported for preview');
+    fallback.innerHTML = '<span class="material-symbols-outlined">image_not_supported</span>';
+    img.replaceWith(fallback);
+  };
+
+  const markDynamicImages = (root = document) => {
+    root.querySelectorAll?.('.item-card-img img:not(.img-load), .detail-img img:not(.img-load), .match-thumb:not(.img-load), img[src^="/uploads/"]:not(.img-load)').forEach((img) => {
+      img.classList.add('img-load');
+      if (img.complete) {
+        if (img.naturalWidth === 0) showImageFallback(img);
+        else img.classList.add('loaded');
+      } else {
+        img.addEventListener('load', () => img.classList.add('loaded'), { once: true });
+        img.addEventListener('error', () => showImageFallback(img), { once: true });
+      }
+    });
+  };
+  markDynamicImages();
+
+  if ('MutationObserver' in window) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement) markDynamicImages(node);
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 }
 
 // ── Utility helpers ───────────────────────────────────────────────────────────
@@ -202,4 +341,5 @@ function categoryEmoji(category) {
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 // Run loadUser as soon as this script is parsed so the nav renders before the
 // rest of the page's scripts fire their userLoaded listeners.
+initMotion();
 loadUser();
