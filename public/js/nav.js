@@ -627,16 +627,20 @@ function initDomTranslationRegistry() {
       }
       
       // Track input placeholders
-      if (node.hasAttribute('placeholder') && !node._originalPlaceholder) {
-        node._originalPlaceholder = node.getAttribute('placeholder');
+      if (node.hasAttribute('placeholder')) {
+        if (!node._originalPlaceholder) {
+          node._originalPlaceholder = node.getAttribute('placeholder');
+        }
         translatableElements.push(node);
       }
       
       // Check simple container
       if (isSimpleTextContainer(node)) {
         const text = node.innerHTML.trim();
-        if (text && text.length > 0 && !node._originalHTML) {
-          node._originalHTML = node.innerHTML;
+        if (text && text.length > 0) {
+          if (!node._originalHTML) {
+            node._originalHTML = node.innerHTML;
+          }
           translatableElements.push(node);
         }
         return;
@@ -648,8 +652,10 @@ function initDomTranslationRegistry() {
       }
     } else if (node.nodeType === 3) { // Text Node
       const text = node.textContent.trim();
-      if (text && text.length > 0 && !node._originalText) {
-        node._originalText = node.textContent;
+      if (text && text.length > 0) {
+        if (!node._originalText) {
+          node._originalText = node.textContent;
+        }
         translatableNodes.push(node);
       }
     }
@@ -715,12 +721,20 @@ function translateRegistry(lang) {
   });
 }
 
+let translationObserver = null;
+
 function applyTranslations(lang) {
-  isTranslating = true;
+  if (translationObserver) {
+    translationObserver.disconnect();
+  }
+  
   initDomTranslationRegistry();
   translateRegistry(lang);
   renderLanguageDropdown(lang);
-  isTranslating = false;
+  
+  if (translationObserver) {
+    translationObserver.observe(document.body, { childList: true, subtree: true });
+  }
   
   // Custom event for page scripts to know language changed
   document.dispatchEvent(new CustomEvent('languageChanged', { detail: lang }));
@@ -728,9 +742,7 @@ function applyTranslations(lang) {
 
 function watchTranslations(lang) {
   if ('MutationObserver' in window) {
-    const observer = new MutationObserver((mutations) => {
-      if (isTranslating) return;
-      
+    translationObserver = new MutationObserver((mutations) => {
       let needsTranslate = false;
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
@@ -745,13 +757,14 @@ function watchTranslations(lang) {
       });
       
       if (needsTranslate) {
-        isTranslating = true;
+        translationObserver.disconnect();
         initDomTranslationRegistry();
         translateRegistry(lang);
-        isTranslating = false;
+        translationObserver.observe(document.body, { childList: true, subtree: true });
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    
+    translationObserver.observe(document.body, { childList: true, subtree: true });
   }
 }
 
