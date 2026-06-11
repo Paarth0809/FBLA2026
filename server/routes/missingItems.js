@@ -16,6 +16,8 @@ const { readJSON, writeJSON } = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
 const { upload, normalizeUploadedPhoto } = require('../lib/photoUpload');
+const { getSessionUser } = require('../middleware/auth');
+const { publicMissingItem } = require('../lib/dto');
 
 const router = express.Router();
 
@@ -23,6 +25,7 @@ const router = express.Router();
 // Supports ?keyword= and ?category= filters just like the found items endpoint.
 router.get('/', (req, res) => {
   const { keyword, category } = req.query;
+  const currentUser = getSessionUser(req);
   let items = readJSON('missing-items.json').filter(i => i.status === 'approved');
 
   if (keyword) {
@@ -38,7 +41,7 @@ router.get('/', (req, res) => {
     items = items.filter(i => i.category === category);
 
   items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(items);
+  res.json(items.map(item => publicMissingItem(item, currentUser)));
 });
 
 // DELETE /api/missing-items/mine/resolved — remove found/rejected reports from the user's history.
@@ -81,17 +84,20 @@ router.put('/:id/mark-found', requireAuth, (req, res) => {
 // GET /api/missing-items/:id — return a single missing item report.
 // Pending and rejected items are only visible to the submitter or an admin.
 router.get('/:id', (req, res) => {
+  const currentUser = getSessionUser(req);
   const item = readJSON('missing-items.json').find(i => i.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found.' });
 
   // "approved" and "found" items are public
   if (item.status !== 'approved' && item.status !== 'found') {
     if (!req.session.userId) return res.status(404).json({ error: 'Item not found.' });
-    if (req.session.userRole !== 'admin' && item.submittedBy !== req.session.userId)
+    if (currentUser?.role !== 'admin' && item.submittedBy !== req.session.userId)
       return res.status(404).json({ error: 'Item not found.' });
   }
 
-  res.json(item);
+  const isAdmin = currentUser?.role === 'admin';
+  const isOwner = currentUser && item.submittedBy === currentUser.id;
+  res.json(isAdmin || isOwner ? item : publicMissingItem(item, currentUser));
 });
 
 // POST /api/missing-items — submit a new missing item report.

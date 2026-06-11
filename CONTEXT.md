@@ -5,6 +5,63 @@
 
 ---
 
+## Latest Update — Production-Lite / Offline Judge Demo Hardening
+
+Current goal: implement the production-lite architecture/review plan as the main agent, with special attention to judge-day reliability on slow Wi-Fi or no Wi-Fi.
+
+Completed:
+- Ran a self adversarial review focused on privacy, auth/session security, admin role checks, messaging permissions, upload exposure, JSON data integrity, offline dependencies, and judge-readiness.
+- Added public DTO filtering in `server/lib/dto.js` and updated public found/missing item routes so contact emails, submitter IDs, and generated profile metadata are not exposed on public APIs.
+- Hardened auth middleware so admin access reloads the user role from persisted data instead of trusting stale session state.
+- Regenerated sessions on login/signup, moved the session secret to `SESSION_SECRET`, and added production cookie defaults.
+- Added browser-origin checks for mutating requests, Helmet headers, API-only rate limiting, and controlled image upload serving.
+- Made JSON persistence safer by throwing on malformed JSON and writing via temp-file rename.
+- Added secure missing-item owner messaging that does not require exposing the owner email to the browser.
+- Added tests covering public privacy leaks, stale admin session downgrade, secure missing-owner messaging, and existing lifecycle flows.
+- Added Prisma/Postgres production-lite schema, Prisma config, and JSON-to-Postgres migration script while preserving existing route names for the current demo.
+- Vendored the UI assets required for offline presentation:
+  - Tailwind build: `public/css/tailwind-local.css`
+  - Local Tailwind source/config: `public/css/tailwind-source.css`, `tailwind.config.cjs`
+  - Local fonts: `public/vendor/fonts/`
+  - Local Material Symbols: `public/vendor/material-symbols/`
+- Replaced HTML CDN font/icon/Tailwind links with local CSS links.
+- Fixed the offline Tailwind conversion regression where `.modal-overlay.hidden` could still intercept clicks after `style.css` overrode Tailwind's `.hidden`.
+- Added judge-ready docs:
+  - `docs/JUDGE_README.md`
+  - `docs/ARCHITECTURE.md`
+  - `docs/SOURCES_AND_LICENSES.md`
+  - `docs/ACCESSIBILITY.md`
+  - `docs/PRESENTATION_NOTES.md`
+- Updated `README.md` and `.env.example` for the offline/local demo and production-lite database lane.
+- Applied safe dependency audit fixes and upgraded `uuid` to `11.1.1`.
+- Moved Prisma CLI to devDependencies; note that `@prisma/client` still exposes an optional Prisma CLI audit advisory unless optional dependencies are omitted.
+
+Verification:
+- `npm test` passed 93 / 93.
+- `npm run test:ui` passed 6 / 6 Playwright lifecycle tests.
+- `node --check server/index.js` passed.
+- `node --check public/js/nav.js` passed.
+- `node --check public/js/scroll-lens.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `git diff --check` passed.
+- `DATABASE_URL=postgresql://user:pass@localhost:5432/fbla npm run prisma:validate` passed.
+- `npm audit --omit=dev --omit=optional` found 0 vulnerabilities.
+- `npm audit --omit=dev` still reports Prisma optional CLI tooling through `@prisma/client`; do not run `npm audit fix --force` because it downgrades Prisma and is a breaking change.
+- App-facing offline scan found no CDN/font/script URLs in `public/*.html`, `public/css/style.css`, `public/js/*.js`, or server scripts. Only localhost docs/comments were matched.
+
+Known risks / remaining work:
+- The app still runs on JSON persistence by default. Prisma/Postgres schema and migration scripts are present, but route code has not been fully switched to Prisma-backed repositories yet.
+- CSRF hardening is currently an origin check, not token-based CSRF middleware.
+- Validation is improved through existing route checks, but broad Zod schemas are not yet wired through every route.
+- Production audit is clean when optional dependencies are omitted; default npm audit still flags Prisma's optional CLI dependency.
+- Full manual visual QA across every page is still recommended before judges, especially mobile screens and long admin tables.
+- Unrelated untracked files/directories remain: `.claude/`, `.planning/`, `.vscode/`, `home-bolder.png`, `motion-home.png`, `motion-search.png`.
+
+Next step:
+- Final review/punch list: separate must-fix before judges, nice-to-have polish, and presentation talking points.
+
+---
+
 ## Latest Update — Scroll Lens Artifact Polish
 
 Current goal completed: polished the cinematic homepage magnifying-glass optical rendering without changing the model choreography. The final “Reunited with what matters.” swipe no longer drops text magnification mid-pass, and the catalog/verification text zoom now uses steadier sampling so letters do not visibly swim.

@@ -22,15 +22,18 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 // readJSON — load a JSON file and return its contents as a JavaScript array.
-// Returns an empty array [] if the file doesn't exist yet (first run) or if
-// the file contains invalid JSON (prevents crashes from corrupt data).
+// Returns an empty array [] if the file doesn't exist yet (first run). Malformed
+// JSON fails loudly so bad data cannot be silently treated as an empty database.
 function readJSON(filename) {
   const filePath = path.join(DATA_DIR, filename);
   if (!fs.existsSync(filePath)) return [];
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch {
-    return []; // malformed JSON — treat the file as empty
+    const raw = fs.readFileSync(filePath, 'utf8');
+    if (!raw.trim()) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    throw new Error(`Could not read ${filename}: ${err.message}`);
   }
 }
 
@@ -39,7 +42,9 @@ function readJSON(filename) {
 // human-readable when opened directly, which helps with debugging.
 function writeJSON(filename, data) {
   const filePath = path.join(DATA_DIR, filename);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+  const tmpPath = `${filePath}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+  fs.renameSync(tmpPath, filePath);
 }
 
 module.exports = { readJSON, writeJSON };

@@ -6,6 +6,8 @@ require('dotenv').config();   // load .env settings
 
 const express = require('express');
 const session = require('express-session');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const fs = require('fs');
 
@@ -26,8 +28,44 @@ seed();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+
+function getSessionSecret() {
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === 'test') return 'test-session-secret-change-me';
+  console.warn('  Warning: SESSION_SECRET is not set. Using a development-only fallback.');
+  return 'dev-only-session-secret-change-me-before-deploying';
+}
+
+function createSessionStore() {
+  if (process.env.SESSION_STORE !== 'postgres' || !process.env.DATABASE_URL) {
+    return undefined;
+  }
+  const pgSession = require('connect-pg-simple')(session);
+  const { Pool } = require('pg');
+  return new pgSession({
+    pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+    tableName: 'user_sessions',
+    createTableIfMissing: true
+  });
+}
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
+
+app.use(helmet({
+  // The current frontend is a static HTML app with inline page scripts. We keep
+  // CSP disabled for this production-lite demo while preserving the rest of
+  // Helmet's security headers.
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: process.env.NODE_ENV === 'test' ? 10000 : 600,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Parse incoming JSON request bodies (used by our API endpoints)
 app.use(express.json());
@@ -38,24 +76,54 @@ app.use(express.urlencoded({ extended: true }));
 // Session middleware — stores the logged-in user's ID and role in a server-side
 // session tied to a cookie. We use this instead of JWTs to keep things simple.
 app.use(session({
-  secret: 'fbla-lost-found-2026-secret-key',  // used to sign the session cookie
+  store: createSessionStore(),
+  secret: getSessionSecret(),  // used to sign the session cookie
   resave: false,            // don't re-save the session if nothing changed
   saveUninitialized: false, // don't create a session until the user logs in
+  name: 'glhs.sid',
   cookie: {
     httpOnly: true,         // prevents JavaScript from reading the cookie (XSS protection)
-    secure: false,          // set to true in production when using HTTPS
+    secure: isProduction,   // set to true in production when using HTTPS
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000  // session lasts 7 days
   }
 }));
 
-// Serve uploaded item photos at /uploads/<filename> as static files.
-// Multer saves files to the uploads/ folder; Express serves them directly.
-app.use('/uploads', express.static(uploadsDir));
+// Lightweight CSRF protection for browser-originated mutations. SameSite cookies
+// do most of the work locally; this rejects unsafe requests if a browser sends
+// an Origin header from another site. CLI tests without Origin remain supported.
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  const origin = req.get('origin');
+  if (!origin) return next();
+  try {
+    const originHost = new URL(origin).host;
+    if (originHost === req.get('host')) return next();
+  } catch {
+    // Fall through to forbidden response.
+  }
+  return res.status(403).json({ error: 'Request origin is not allowed.' });
+});
+
+// Serve uploaded item photos through a small controlled route rather than a raw
+// directory mount. Filenames are UUID-based, and this blocks path traversal or
+// accidental non-image file exposure.
+app.get('/uploads/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename || '');
+  if (!/^[a-f0-9-]+\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) {
+    return res.status(404).send('Not found');
+  }
+  const filePath = path.join(uploadsDir, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(filePath);
+});
 
 // ── API Routes ─────────────────────────────────────────────────────────────────
 // Each route file handles a specific resource. The prefix is set here so the
 // individual route files don't need to repeat it.
 
+app.use('/api', apiLimiter);
 app.use('/api/auth',          require('./routes/auth'));         // signup, login, logout, delete account
 app.use('/api/items',         require('./routes/items'));        // found items (public search + submit)
 app.use('/api/missing-items', require('./routes/missingItems')); // missing items

@@ -12,9 +12,10 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { readJSON, writeJSON } = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, getSessionUser } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
 const { upload, normalizeUploadedPhoto } = require('../lib/photoUpload');
+const { publicFoundItem } = require('../lib/dto');
 
 const router = express.Router();
 
@@ -43,7 +44,7 @@ router.get('/', (req, res) => {
 
   // Return newest items first
   items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(items);
+  res.json(items.map(publicFoundItem));
 });
 
 // DELETE /api/items/mine/resolved — remove claimed or rejected items from the user's history.
@@ -71,17 +72,20 @@ router.get('/mine', requireAuth, (req, res) => {
 // GET /api/items/:id — return a single found item by its UUID.
 // Non-approved items are hidden from the public — only the submitter or an admin can see them.
 router.get('/:id', (req, res) => {
+  const currentUser = getSessionUser(req);
   const item = readJSON('items.json').find(i => i.id === req.params.id);
   if (!item) return res.status(404).json({ error: 'Item not found.' });
 
   // Allow approved and claimed items to be viewed by anyone
   if (item.status !== 'approved' && item.status !== 'claimed') {
     if (!req.session.userId) return res.status(404).json({ error: 'Item not found.' });
-    if (req.session.userRole !== 'admin' && item.submittedBy !== req.session.userId)
+    if (currentUser?.role !== 'admin' && item.submittedBy !== req.session.userId)
       return res.status(404).json({ error: 'Item not found.' });
   }
 
-  res.json(item);
+  const isAdmin = currentUser?.role === 'admin';
+  const isOwner = currentUser && item.submittedBy === currentUser.id;
+  res.json(isAdmin || isOwner ? item : publicFoundItem(item));
 });
 
 // POST /api/items — submit a new found item report.

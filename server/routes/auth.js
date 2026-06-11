@@ -9,6 +9,21 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+function publicUser(user) {
+  return { id: user.id, name: user.name, email: user.email, role: user.role };
+}
+
+function establishSession(req, user) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((err) => {
+      if (err) return reject(err);
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      resolve();
+    });
+  });
+}
+
 // POST /api/auth/signup — create a new student account
 router.post('/signup', async (req, res) => {
   try {
@@ -42,13 +57,11 @@ router.post('/signup', async (req, res) => {
     users.push(user);
     writeJSON('users.json', users);
 
-    // Auto-login: start a session immediately after signup so the user
-    // doesn't have to log in again right after creating their account
-    req.session.userId   = user.id;
-    req.session.userRole = user.role;
+    // Auto-login with a fresh session ID to prevent session fixation.
+    await establishSession(req, user);
 
     // Return the public-safe user object (never include passwordHash in responses)
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.json(publicUser(user));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });
@@ -74,11 +87,11 @@ router.post('/login', async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.passwordHash)))
       return res.status(401).json({ error: 'Invalid email or password.' });
 
-    // Store the user's ID and role in the session — this is what requireAuth checks
-    req.session.userId   = user.id;
-    req.session.userRole = user.role;
+    // Store the user's ID in a freshly regenerated session. Authorization later
+    // reloads the role from the data store so stale cookies cannot keep admin access.
+    await establishSession(req, user);
 
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.json(publicUser(user));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });
@@ -87,7 +100,10 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/logout — destroy the session and clear the cookie
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => res.json({ message: 'Logged out.' }));
+  req.session.destroy(() => {
+    res.clearCookie('glhs.sid');
+    res.json({ message: 'Logged out.' });
+  });
 });
 
 // GET /api/auth/me — return the currently logged-in user's info
@@ -101,7 +117,7 @@ router.get('/me', (req, res) => {
   if (!user)
     return res.status(401).json({ error: 'User not found.' });
 
-  res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+  res.json(publicUser(user));
 });
 
 // DELETE /api/auth/account — permanently delete the current user's account
@@ -143,7 +159,10 @@ router.delete('/account', requireAuth, (req, res) => {
   }
 
   // End the session so the browser is logged out
-  req.session.destroy(() => res.json({ message: 'Account deleted.' }));
+  req.session.destroy(() => {
+    res.clearCookie('glhs.sid');
+    res.json({ message: 'Account deleted.' });
+  });
 });
 
 module.exports = router;

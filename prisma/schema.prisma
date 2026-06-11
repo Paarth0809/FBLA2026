@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../server/generated/prisma"
+  runtime  = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum FoundItemStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CLAIMED
+}
+
+enum MissingItemStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FOUND
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ItemType {
+  FOUND
+  MISSING
+}
+
+enum AssetPurpose {
+  FOUND_ITEM_PHOTO
+  MISSING_ITEM_PHOTO
+  CLAIM_EVIDENCE
+}
+
+enum AuditAction {
+  DATA_MIGRATED
+  USER_SIGNED_UP
+  USER_LOGGED_IN
+  FOUND_ITEM_CREATED
+  MISSING_ITEM_CREATED
+  FOUND_ITEM_APPROVED
+  FOUND_ITEM_REJECTED
+  FOUND_ITEM_DELETED
+  FOUND_ITEM_MARKED_CLAIMED
+  MISSING_ITEM_APPROVED
+  MISSING_ITEM_REJECTED
+  MISSING_ITEM_DELETED
+  MISSING_ITEM_MARKED_FOUND
+  CLAIM_CREATED
+  CLAIM_APPROVED
+  CLAIM_REJECTED
+  CLAIM_DELETED
+  MESSAGE_SENT
+  MESSAGE_DELETED
+  ACCOUNT_DELETED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(USER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  foundItems    FoundItem[]
+  missingItems  MissingItem[]
+  claims        Claim[]       @relation("ClaimSubmitter")
+  ownedClaims   Claim[]       @relation("ClaimOwner")
+  sentMessages  Message[]     @relation("MessageSender")
+  inboxMessages Message[]     @relation("MessageReceiver")
+  uploadedAssets UploadedAsset[]
+  auditLogs     AuditLog[]    @relation("AuditActor")
+}
+
+model FoundItem {
+  id                  String           @id @default(uuid())
+  itemName            String
+  category            String
+  description         String
+  locationFound       String
+  dateFound           DateTime
+  contactEmailPrivate String
+  status              FoundItemStatus  @default(PENDING)
+  submitterName       String
+  aiProfile           Json?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  submittedById String
+  submittedBy   User   @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+
+  photoAssetId String?
+  photoAsset   UploadedAsset? @relation("FoundItemPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([submittedById])
+}
+
+model MissingItem {
+  id                  String            @id @default(uuid())
+  itemName            String
+  category            String
+  description         String
+  lastSeenLocation    String
+  lastSeenDate        DateTime
+  contactEmailPrivate String
+  status              MissingItemStatus @default(PENDING)
+  submitterName       String
+  aiProfile           Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  submittedById String
+  submittedBy   User   @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+
+  photoAssetId String?
+  photoAsset   UploadedAsset? @relation("MissingItemPhoto", fields: [photoAssetId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([submittedById])
+}
+
+model Claim {
+  id               String      @id @default(uuid())
+  itemId           String
+  itemType         ItemType
+  itemName         String
+  claimerName      String
+  claimerEmail     String
+  claimerPhone     String?
+  description      String
+  status           ClaimStatus @default(PENDING)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  submittedById String
+  submittedBy   User   @relation("ClaimSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+
+  ownerId String?
+  owner   User?   @relation("ClaimOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([itemType, itemId])
+  @@index([submittedById])
+  @@index([ownerId])
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  itemId      String
+  itemType    ItemType?
+  itemName    String
+  content     String
+  replyToId   String?
+  createdAt   DateTime @default(now())
+
+  senderId   String
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+model UploadedAsset {
+  id           String       @id @default(uuid())
+  ownerId      String
+  owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  originalName String
+  storedName   String       @unique
+  mimeType     String
+  sizeBytes    Int
+  sha256       String?
+  purpose      AssetPurpose
+  createdAt    DateTime     @default(now())
+
+  foundItemPhoto   FoundItem[]   @relation("FoundItemPhoto")
+  missingItemPhoto MissingItem[] @relation("MissingItemPhoto")
+
+  @@index([ownerId])
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  actorId    String?
+  actor      User?       @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action     AuditAction
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+}

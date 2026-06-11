@@ -96,7 +96,7 @@ test.describe.serial('Full lost & found lifecycle', () => {
 
     // ── Verify success message ────────────────────────────────────────────────
     await expect(page.locator('#success-box')).toBeVisible();
-    await expect(page.locator('#success-box')).toContainText('administrator will review');
+    await expect(page.locator('#success-box')).toContainText('Check the My Submissions tab');
 
     // ── State BEFORE admin review (checked from User1's session) ────────────
     // Public search must return nothing — only approved items appear there
@@ -165,7 +165,7 @@ test.describe.serial('Full lost & found lifecycle', () => {
 
     // ── Verify success message ────────────────────────────────────────────────
     await expect(page.locator('#success-box')).toBeVisible();
-    await expect(page.locator('#success-box')).toContainText('administrator will review');
+    await expect(page.locator('#success-box')).toContainText('Check the My Submissions tab');
 
     // ── State BEFORE admin review (checked from User2's session) ────────────
     // Public search must still return nothing — item is pending

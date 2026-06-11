@@ -422,6 +422,17 @@ async function runTests() {
     assert(r.body.every(i => i.status === 'approved'), 'All returned items must be approved');
   });
 
+  await test('GET /items — public response does not leak private contact fields', async () => {
+    const r = await req('GET', '/api/items');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.length > 0, 'Expected at least one item');
+    for (const item of r.body) {
+      assert(!('contactEmail' in item), 'Public found item list must not include contactEmail');
+      assert(!('submittedBy' in item), 'Public found item list must not include submittedBy');
+      assert(!('aiProfile' in item), 'Public found item list must not include private aiProfile data');
+    }
+  });
+
   await test('GET /items?keyword=backpack — filters by keyword', async () => {
     const r = await req('GET', '/api/items?keyword=backpack');
     assert(r.status === 200, `Expected 200, got ${r.status}`);
@@ -452,6 +463,14 @@ async function runTests() {
     assert(r.body.id === 'item-001', `Expected item-001`);
     assert(r.body.itemName, 'Expected itemName field');
     assert(r.body.category, 'Expected category field');
+  });
+
+  await test('GET /items/:id — public detail does not leak private contact fields', async () => {
+    const r = await req('GET', '/api/items/item-001');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(!('contactEmail' in r.body), 'Public found item detail must not include contactEmail');
+    assert(!('submittedBy' in r.body), 'Public found item detail must not include submittedBy');
+    assert(!('aiProfile' in r.body), 'Public found item detail must not include private aiProfile data');
   });
 
   await test('GET /items/:id — non-existent → 404', async () => {
@@ -508,6 +527,17 @@ async function runTests() {
     assert(r.body.every(i => i.status === 'approved'), 'All must be approved');
   });
 
+  await test('GET /missing-items — public response does not leak private contact fields', async () => {
+    const r = await req('GET', '/api/missing-items');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.length > 0, 'Expected at least one missing item');
+    for (const item of r.body) {
+      assert(!('contactEmail' in item), 'Public missing item list must not include contactEmail');
+      assert(!('submittedBy' in item), 'Public missing item list must not include submittedBy');
+      assert(!('aiProfile' in item), 'Public missing item list must not include private aiProfile data');
+    }
+  });
+
   await test('GET /missing-items?keyword=flask — filters correctly', async () => {
     const r = await req('GET', '/api/missing-items?keyword=flask');
     assert(r.status === 200, `Expected 200, got ${r.status}`);
@@ -525,6 +555,22 @@ async function runTests() {
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.id === 'missing-001', 'Expected missing-001');
     assert(r.body.lastSeenLocation, 'Expected lastSeenLocation field');
+  });
+
+  await test('GET /missing-items/:id — public detail does not leak private contact fields', async () => {
+    const r = await req('GET', '/api/missing-items/missing-001');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(!('contactEmail' in r.body), 'Public missing item detail must not include contactEmail');
+    assert(!('submittedBy' in r.body), 'Public missing item detail must not include submittedBy');
+    assert(!('aiProfile' in r.body), 'Public missing item detail must not include private aiProfile data');
+  });
+
+  await test('GET /missing-items/:id — logged-in non-owner can message without email leak', async () => {
+    const r = await req('GET', '/api/missing-items/missing-001', null, userCookie);
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.canMessageOwner === true, 'Logged-in non-owner should be allowed to message owner');
+    assert(!('contactEmail' in r.body), 'Missing item detail must not reveal owner email to non-owner');
+    assert(!('submittedBy' in r.body), 'Missing item detail must not reveal owner user id to non-owner');
   });
 
   await test('GET /missing-items/:id — non-existent → 404', async () => {
@@ -629,6 +675,37 @@ async function runTests() {
   });
 
   // ══════════════════════════════════════════════════
+  //  MESSAGES
+  // ══════════════════════════════════════════════════
+  console.log('\n💬  Messages');
+  console.log('────────────────────────────────────────────────');
+
+  await test('POST /messages — missing-item owner can be messaged without exposing receiverEmail', async () => {
+    const r = await req('POST', '/api/messages', {
+      itemId: 'missing-001',
+      itemName: 'Blue Hydro Flask',
+      content: 'I found a bottle matching this description near the cafeteria.'
+    }, userCookie);
+    assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(r.body.receiverEmail === 'student@school.edu', 'Server should resolve the owner account internally');
+  });
+
+  await test('GET /messages/inbox — missing-item owner receives secure contact message', async () => {
+    const r = await req('GET', '/api/messages/inbox', null, user001Cookie);
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.some(m => m.itemId === 'missing-001' && m.senderEmail), 'Expected owner inbox to include missing item message');
+  });
+
+  await test('POST /messages — missing-item owner cannot message themselves through owner shortcut', async () => {
+    const r = await req('POST', '/api/messages', {
+      itemId: 'missing-001',
+      itemName: 'Blue Hydro Flask',
+      content: 'Self-message should not be allowed.'
+    }, user001Cookie);
+    assert(r.status === 400, `Expected 400, got ${r.status}`);
+  });
+
+  // ══════════════════════════════════════════════════
   //  ADMIN
   // ══════════════════════════════════════════════════
   console.log('\n⚙️   Admin');
@@ -649,6 +726,21 @@ async function runTests() {
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(Array.isArray(r.body), 'Expected array');
     assert(r.body.some(i => i.status === 'pending'), 'Admin should see pending items');
+  });
+
+  await test('GET /admin/items — revoked admin role in DB cannot use stale session', async () => {
+    const usersPath = path.join(TEST_DATA, 'users.json');
+    const users = JSON.parse(fs.readFileSync(usersPath, 'utf8'));
+    const admin = users.find(u => u.email === 'admin@school.edu');
+    assert(admin, 'Expected seeded admin account');
+    admin.role = 'user';
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+
+    const r = await req('GET', '/api/admin/items', null, adminCookie);
+
+    admin.role = 'admin';
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+    assert(r.status === 403, `Expected 403 after DB role downgrade, got ${r.status}`);
   });
 
   await test('GET /admin/missing-items — admin → 200', async () => {

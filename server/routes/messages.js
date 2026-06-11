@@ -21,7 +21,8 @@ router.use(requireAuth);
 // Send a new message from the logged-in user to another registered user.
 //
 // Expected JSON body:
-//   receiverEmail  {string}  — email of the recipient (must be a registered user)
+//   receiverEmail  {string?} — email of the recipient, or omitted when messaging
+//                              the owner of a missing-item report
 //   itemId         {string}  — UUID of the item this message is about
 //   itemName       {string}  — human-readable item name (stored for display, max 200 chars)
 //   content        {string}  — message body (5–1000 characters)
@@ -30,8 +31,8 @@ router.post('/', (req, res) => {
   const { receiverEmail, itemId, content, itemName, replyToId } = req.body;
 
   // ── Syntactic validation — are all required fields present and the right type? ──
-  if (!receiverEmail || typeof receiverEmail !== 'string') {
-    return res.status(400).json({ error: 'receiverEmail is required.' });
+  if (receiverEmail !== undefined && typeof receiverEmail !== 'string') {
+    return res.status(400).json({ error: 'receiverEmail must be a string.' });
   }
   if (!itemId || typeof itemId !== 'string') {
     return res.status(400).json({ error: 'itemId is required.' });
@@ -40,9 +41,9 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Message content is required.' });
   }
 
-  // Simplified RFC 5322 email format check
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!EMAIL_RE.test(receiverEmail.trim())) {
+  const hasExplicitReceiver = typeof receiverEmail === 'string' && receiverEmail.trim().length > 0;
+  if (hasExplicitReceiver && !EMAIL_RE.test(receiverEmail.trim())) {
     return res.status(400).json({ error: 'receiverEmail is not a valid email address.' });
   }
 
@@ -58,26 +59,11 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Message cannot exceed 1000 characters.' });
   }
 
-  const normalizedReceiver = receiverEmail.trim().toLowerCase();
-
   // Resolve the sender's full record from their active session.
   const users = readJSON('users.json');
   const sender = users.find(u => u.id === req.session.userId);
   if (!sender) {
     return res.status(401).json({ error: 'Sender account not found. Please log in again.' });
-  }
-
-  // Users cannot message themselves.
-  if (sender.email.toLowerCase() === normalizedReceiver) {
-    return res.status(400).json({ error: 'You cannot send a message to yourself.' });
-  }
-
-  // The receiver must be a registered user in the system.
-  const receiver = users.find(u => u.email.toLowerCase() === normalizedReceiver);
-  if (!receiver) {
-    return res.status(404).json({
-      error: 'No account found for that email address. The recipient must be a registered user.'
-    });
   }
 
   // ── Item existence + relationship authorization ────────────────────────────
@@ -87,14 +73,38 @@ router.post('/', (req, res) => {
   const trimmedItemId = itemId.trim();
   const allFoundItems   = readJSON('items.json');
   const allMissingItems = readJSON('missing-items.json');
-  const item = allFoundItems.find(i => i.id === trimmedItemId) ||
-               allMissingItems.find(i => i.id === trimmedItemId);
+  const foundItem = allFoundItems.find(i => i.id === trimmedItemId);
+  const missingItem = allMissingItems.find(i => i.id === trimmedItemId);
+  const item = foundItem || missingItem;
   if (!item) {
     return res.status(403).json({ error: 'Cannot verify relationship to this item.' });
   }
 
   // Always use the item name from the database; ignore the client-supplied value.
   const resolvedItemName = item.itemName || '';
+
+  let receiver = null;
+  if (hasExplicitReceiver) {
+    const normalizedReceiver = receiverEmail.trim().toLowerCase();
+    receiver = users.find(u => u.email.toLowerCase() === normalizedReceiver);
+    if (!receiver) {
+      return res.status(404).json({
+        error: 'No account found for that email address. The recipient must be a registered user.'
+      });
+    }
+  } else if (missingItem) {
+    receiver = users.find(u => u.id === missingItem.submittedBy);
+    if (!receiver) {
+      return res.status(404).json({ error: 'The owner account for this missing item no longer exists.' });
+    }
+  } else {
+    return res.status(400).json({ error: 'receiverEmail is required for this message.' });
+  }
+
+  // Users cannot message themselves.
+  if (sender.email.toLowerCase() === receiver.email.toLowerCase()) {
+    return res.status(400).json({ error: 'You cannot send a message to yourself.' });
+  }
 
   const allClaims   = readJSON('claims.json');
   const allMessages = readJSON('messages.json');
@@ -125,9 +135,7 @@ router.post('/', (req, res) => {
       )
     );
   // 4. Any logged-in user → missing-item owner (e.g. finder saying "I found your item")
-  const isMissingItemContact =
-    allMissingItems.some(mi => mi.id === trimmedItemId) &&
-    item.submittedBy === receiver.id;
+  const isMissingItemContact = Boolean(missingItem) && item.submittedBy === receiver.id;
 
   if (!isFinderToApprovedClaimer && !isApprovedClaimerToFinder && !isReplyParticipant && !isMissingItemContact) {
     return res.status(403).json({

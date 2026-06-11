@@ -5,10 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Missing Item Details – Green Level Lost &amp; Found</title>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/vendor/fonts/fonts.css">
+  <link rel="stylesheet" href="/vendor/material-symbols/material-symbols.css">
+  <link rel="stylesheet" href="/css/tailwind-local.css">
   <script>
+
+    window.tailwind = window.tailwind || {};
     tailwind.config = {
       theme: { extend: {
         colors: {
@@ -131,16 +133,35 @@
       }
     }
 
-    document.addEventListener('userLoaded', function() { maybeShowMessageBtn(); });
+    document.addEventListener('userLoaded', function() {
+      if (_currentItem) render(_currentItem);
+      maybeShowMessageBtn();
+    });
 
     function maybeShowMessageBtn() {
       const placeholder = document.getElementById('msg-btn-placeholder');
       if (!placeholder || !_currentItem || !currentUser) return;
-      if (currentUser.id === _currentItem.submittedBy) return;
+      if (!_currentItem.canMessageOwner) return;
       placeholder.innerHTML =
         '<button onclick="openMessageModal()" class="btn btn-outline btn-sm mt-2">' +
         '<span class="material-symbols-outlined" style="font-size:16px">chat</span> Message Owner' +
         '</button>';
+    }
+
+    function renderContactBlock(item) {
+      if (item.contactEmail) {
+        return 'This is your report. Contact email on file: ' +
+          '<a href="mailto:' + escapeHtml(item.contactEmail) + '" style="color:#006c49">' + escapeHtml(item.contactEmail) + '</a>';
+      }
+      if (currentUser && item.canMessageOwner) {
+        return 'The owner\\'s email stays private. Send a secure message instead.' +
+          '<div id="msg-btn-placeholder"></div>';
+      }
+      if (!currentUser) {
+        return '<a href="/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search) +
+          '" style="color:#006c49;font-weight:700">Sign in</a> to message the owner securely.';
+      }
+      return 'Contact details are private unless you are part of this item conversation.';
     }
 
     function render(item) {
@@ -155,7 +176,7 @@
       document.getElementById('content').innerHTML =
         foundBanner +
         '<div class="alert alert-warning mb-4"><span class="material-symbols-outlined">warning</span> This item has been reported as <strong>missing</strong>. ' +
-        'If you\'ve found it, please <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a> or contact the owner.</div>' +
+        'If you\'ve found it, please <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a> or message the owner securely.</div>' +
         '<div class="detail-grid">' +
           '<div><div class="detail-img">' + img + '</div></div>' +
           '<div class="flex flex-col gap-4">' +
@@ -170,10 +191,7 @@
                 '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">location_on</span> Last Seen Location</div><div class="detail-value">' + escapeHtml(item.lastSeenLocation) + '</div></div>' +
                 '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">calendar_today</span> Date Last Seen</div><div class="detail-value">' + formatDate(item.lastSeenDate) + '</div></div>' +
                 '<div class="detail-field"><div class="detail-label">Reported By</div><div class="detail-value">' + escapeHtml(item.submitterName) + '</div></div>' +
-                '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">mail</span> Contact</div><div class="detail-value">' +
-                  '<a href="mailto:' + escapeHtml(item.contactEmail) + '" style="color:#006c49">' + escapeHtml(item.contactEmail) + '</a>' +
-                  '<div id="msg-btn-placeholder"></div>' +
-                '</div></div>' +
+                '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">mail</span> Contact</div><div class="detail-value">' + renderContactBlock(item) + '</div></div>' +
               '</div>' +
             '</div>' +
             '<a href="/report.html" class="btn btn-success btn-lg w-full">' +
@@ -183,11 +201,11 @@
         '</div>';
     }
 
-    let _msgState = { receiverEmail: '', itemId: '', itemName: '' };
+    let _msgState = { itemId: '', itemName: '' };
 
     function openMessageModal() {
       if (!_currentItem) return;
-      _msgState = { receiverEmail: _currentItem.contactEmail, itemId: _currentItem.id, itemName: _currentItem.itemName };
+      _msgState = { itemId: _currentItem.id, itemName: _currentItem.itemName };
       document.getElementById('msg-modal-title').textContent = 'Message Owner';
       document.getElementById('msg-modal-context').innerHTML =
         '<strong>To:</strong> ' + escapeHtml(_currentItem.submitterName) +
@@ -218,7 +236,7 @@
       errorEl.classList.add('hidden');
       sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
       try {
-        await api.post('/messages', { receiverEmail: _msgState.receiverEmail, itemId: _msgState.itemId, itemName: _msgState.itemName, content });
+        await api.post('/messages', { itemId: _msgState.itemId, itemName: _msgState.itemName, content });
         closeMessageModal();
         showToast('Message sent!', 'success');
       } catch (err) {

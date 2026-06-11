@@ -3,8 +3,6 @@
    Central UI system for the FBLA 2026 lost-and-found app.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-
 :root {
   --primary: #006c49;
   --primary-dark: #005236;
@@ -1516,6 +1514,12 @@ tbody tr:hover td { background: #f7fbf7; }
 
 /* Modals */
 .modal-overlay { position: fixed; inset: 0; z-index: var(--z-modal-backdrop); display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(22,29,25,0.58); backdrop-filter: blur(5px); animation: fadeIn .15s ease; }
+.modal-overlay.hidden,
+.alert.hidden,
+.photo-preview.hidden,
+.photo-preview-fallback.hidden {
+  display: none !important;
+}
 .modal-overlay .modal { position: relative; z-index: var(--z-modal); }
 .modal { width: 100%; max-width: 540px; background: var(--surface-card); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideUp .18s ease; }
 .modal-header, .modal-footer { padding: 1.1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }

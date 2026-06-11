@@ -1,113 +1,95 @@
 # Green Level Lost & Found
+
 **FBLA Website Coding & Development 2026**
-Paarth Rathod & Aadit Urhekar — Green Level High School, Cary NC
+Paarth Rathod & Aadit Urhekar — Green Level High School, Cary, NC
 
----
+## Overview
 
-## What is this?
+Green Level Lost & Found is a campus lost-and-found system for reporting found
+items, posting missing items, submitting ownership claims, receiving item-match
+suggestions, messaging securely, and letting school staff approve each step.
 
-Our school's physical lost and found is a table in the main office that overflows and nobody checks. We built a web app to replace it — students can post found items, report missing ones, search the board, and submit claims. An admin account handles approvals so nothing goes live without being reviewed first.
+The project is designed for a competition demo room: it runs locally, keeps core
+assets bundled in the repo, and does not require Wi-Fi for the main presentation
+or judging walkthrough.
 
-No templates were used. Everything was written by hand.
+## Quick Start
 
----
-
-## How to run it
-
-You need Node.js installed. That's the only requirement.
-
-```
-git clone https://github.com/Paarth0809/FBLA2026.git
-cd FBLA2026
+```bash
 npm install
 npm start
 ```
 
-Go to http://localhost:3000. The demo accounts get created automatically the first time.
+Open `http://localhost:3000`.
 
----
+Demo accounts are created automatically on first run:
 
-## Demo accounts
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@school.edu` | `admin123` |
+| Student | `student@school.edu` | `student123` |
+| Student | `student2@school.edu` | `student123` |
 
-| | Email | Password |
-|---|---|---|
-| Admin | admin@school.edu | admin123 |
-| Student 1 | student@school.edu | student123 |
-| Student 2 | student2@school.edu | student123 |
+## Offline Demo Notes
 
-There are quick-fill buttons for these right on the login page.
+- The app runs from local JSON data by default, so no database server is required
+  during judging.
+- Fonts, icons, Tailwind utilities, GSAP, Three.js, the GLB model, HDRI, and the
+  480 scroll frames are vendored locally.
+- Optional photo profiling for richer matching is disabled by default and the
+  matcher falls back to local keyword/category logic.
+- PostgreSQL + Prisma is included as the production-lite data path for migration
+  and deployment, but the local demo remains self-contained.
 
----
+## Core Features
 
-## What it can do
+- Public homepage with cinematic scroll story and reduced-motion fallback
+- Public search for approved found items and approved missing reports
+- Found item and missing item submissions with photo upload and HEIC conversion
+- Student portal with found reports, missing reports, claims, matches, messages
+- Claim submission and admin claim approval
+- Secure in-app messaging for approved claim participants and missing-item owners
+- Admin dashboard for approvals, rejections, deletes, claimed/found status changes
+- Privacy-safe public APIs that do not expose contact emails or owner IDs
+- Stale-session admin protection: admin status is reloaded from storage
+- Local tests covering auth, privacy, routes, messaging, and admin actions
 
-- Report a found item with a photo, category, location, and contact email
-- Report a missing item with last-seen location
-- Search and browse all approved items (no account needed)
-- Submit a claim on a found item with proof of ownership
-- Admin approves/rejects submissions and claims
-- Once a claim is approved, both students get each other's contact info
-- Missing item reporter can mark their own report as found once it's resolved
-- My Submissions page shows live status of everything you've posted
-- Clear history removes resolved entries without touching anything still pending
+## Production-Lite Database Lane
 
----
+The default judging path uses local JSON files for zero-setup reliability. The
+repository also includes a Prisma schema for PostgreSQL and a JSON migration
+script.
 
-## File layout
-
-```
-server/
-  index.js              — server entry point
-  middleware/auth.js    — requireAuth / requireAdmin
-  lib/db.js             — read/write JSON helpers
-  lib/seed.js           — creates demo accounts on first run
-  routes/               — auth, items, missingItems, claims, admin
-
-public/
-  css/style.css         — all styles, no framework
-  js/api.js             — fetch() wrapper
-  js/nav.js             — shared nav, auth state, helper functions
-  images/school.jpg     — Green Level campus photo
-  *.html                — 12 pages total
-
-data/                   — JSON files (users, items, missing-items, claims)
-uploads/                — uploaded photos (gitignored)
-tests/
-  run.js                — 75 API tests
-  ui-flow.test.js       — Playwright end-to-end tests
+```bash
+cp .env.example .env
+npm run prisma:validate
+npm run prisma:generate
+npm run prisma:migrate
+npm run data:migrate-json
 ```
 
----
+Set `DATABASE_URL` in `.env` before running migrations. Set
+`SESSION_STORE=postgres` only when a Postgres database is running.
 
-## Libraries used
+## Useful Commands
 
-| Library | What we used it for | Link |
-|---|---|---|
-| Express | HTTP server and routing | https://expressjs.com |
-| express-session | Login sessions | https://github.com/expressjs/session |
-| bcryptjs | Password hashing | https://github.com/dcodeIO/bcrypt.js |
-| multer | Photo uploads | https://github.com/expressjs/multer |
-| uuid | Unique IDs for every item | https://github.com/uuidjs/uuid |
-| nodemon | Auto-restart during dev | https://nodemon.io |
-| Playwright | End-to-end UI testing | https://playwright.dev |
-| Inter (Google Fonts) | Font | https://fonts.google.com/specimen/Inter |
-
-All MIT licensed except Playwright (Apache 2.0) and Inter (OFL).
-
----
-
-## Tests
-
-```
-npm test        — runs 75 API tests against an isolated data directory
-npm run test:ui — runs Playwright UI tests (full signup → report → claim → resolve flow)
+```bash
+npm run build:css          # rebuild local Tailwind CSS
+npm test                   # API/unit test suite
+npm run test:ui            # Playwright UI tests, when configured
+npm run prisma:validate    # validate database schema
 ```
 
----
+## Documentation
 
-## Notes
+- [Judge README](docs/JUDGE_README.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Sources and Licenses](docs/SOURCES_AND_LICENSES.md)
+- [Accessibility](docs/ACCESSIBILITY.md)
+- [Presentation Notes](docs/PRESENTATION_NOTES.md)
 
-- Data is stored in JSON files using Node's built-in `fs` module — no database
-- The frontend is plain HTML/CSS/JS — no React, Vue, or any build step
-- Passwords are hashed with bcrypt before being written anywhere
-- All submission endpoints redirect to login if you're not signed in
+## Technology
+
+Node.js, Express, plain HTML/CSS/JavaScript, Tailwind generated locally, GSAP,
+Three.js, Prisma/PostgreSQL migration support, bcrypt password hashing, session
+cookies, Multer uploads, HEIC conversion, and Playwright-compatible tests.

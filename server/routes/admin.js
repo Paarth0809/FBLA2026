@@ -143,19 +143,37 @@ router.put('/claims/:id/approve', (req, res) => {
   const i = claims.findIndex(c => c.id === req.params.id);
   if (i === -1) return res.status(404).json({ error: 'Claim not found.' });
 
-  claims[i].status = 'approved';
-  writeJSON('claims.json', claims);
+  const claim = claims[i];
+  let targetCollection = null;
+  let targetFilename = '';
+  let targetIndex = -1;
+  let targetStatus = '';
 
-  // Cascade: update the item's status to reflect that it's been resolved
-  if (claims[i].itemType === 'found') {
-    const items = readJSON('items.json');
-    const j = items.findIndex(x => x.id === claims[i].itemId);
-    if (j !== -1) { items[j].status = 'claimed'; writeJSON('items.json', items); }
-  } else if (claims[i].itemType === 'missing') {
-    const items = readJSON('missing-items.json');
-    const j = items.findIndex(x => x.id === claims[i].itemId);
-    if (j !== -1) { items[j].status = 'found'; writeJSON('missing-items.json', items); }
+  if (claim.itemType === 'found') {
+    targetCollection = readJSON('items.json');
+    targetFilename = 'items.json';
+    targetIndex = targetCollection.findIndex(x => x.id === claim.itemId);
+    targetStatus = 'claimed';
+  } else if (claim.itemType === 'missing') {
+    targetCollection = readJSON('missing-items.json');
+    targetFilename = 'missing-items.json';
+    targetIndex = targetCollection.findIndex(x => x.id === claim.itemId);
+    targetStatus = 'found';
+  } else {
+    return res.status(400).json({ error: 'Claim has an invalid item type.' });
   }
+
+  if (targetIndex === -1) {
+    return res.status(409).json({ error: 'Cannot approve claim because the related item no longer exists.' });
+  }
+
+  claims[i].status = 'approved';
+  targetCollection[targetIndex].status = targetStatus;
+
+  // Write the item first, then the claim. Each file write is atomic; the
+  // Postgres lane uses real transactions for the same transition.
+  writeJSON(targetFilename, targetCollection);
+  writeJSON('claims.json', claims);
 
   res.json(claims[i]);
 });
