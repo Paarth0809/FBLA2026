@@ -149,7 +149,7 @@ function initMagnifier() {
     hoverBoost += ((hovered ? 1 : 0) - hoverBoost) * 0.08;
 
     if (model) {
-      const speed = reduceMotion ? 0 : 0.22 + hoverBoost * 0.08;
+      const speed = reduceMotion ? 0 : 0.45 + hoverBoost * 0.08;
       spinAngle += delta * speed;
       model.rotation.set(baseRotation.x, baseRotation.y, baseRotation.z + spinAngle);
       shadow.material.opacity = 0.11 + Math.sin(time * 0.00085) * 0.01;
