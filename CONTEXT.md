@@ -5,11 +5,22 @@
 
 ---
 
-## Latest Update — Local PostgreSQL + Prisma Runtime Migration
+## Latest Update — Dynamic Language Switcher Implementation
 
-Current goal: switch the live app to local PostgreSQL + Prisma persistence so the
-judge demo is database-backed and still works without Wi-Fi when the local DB
-service is running.
+Current goal: implement dynamic language switcher supporting English and 16 target languages with a luxury dropdown component, dynamic selector option updates, and prevention of word duplication.
+
+Completed:
+- Created translation dictionary file `public/js/translations.js`.
+- Modified `public/js/nav.js` to inject switcher, load translations, cache original DOM text content/inner HTML, translate elements, and watch dynamic changes via a non-self-triggering MutationObserver.
+- Resolved MutationObserver race conditions that cleared the translation registry.
+- Ensured original English keys are preserved while elements are kept in the translation loop, fixing duplication issues.
+- Installed local PostgreSQL, set up the development databases, applied migrations, and verified that 93/93 tests pass successfully.
+- Verified dynamic language switching using automated browser diagnostics.
+- Switched to main, pulled origin main, merged main into our branch, and pushed the feature branch `aau007/language-switcher` to origin.
+
+---
+
+## Latest Update — Local PostgreSQL + Prisma Runtime Migration
 
 Completed:
 - Installed and started Homebrew `postgresql@16` locally.
