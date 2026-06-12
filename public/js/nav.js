@@ -824,7 +824,7 @@ function bootstrapTranslations() {
 
   if (!window.APP_TRANSLATIONS) {
     const script = document.createElement('script');
-    script.src = '/js/translations.js?v=1.0.2';
+    script.src = '/js/translations.js?v=1.0.3';
     script.async = false;
     script.onload = () => {
       applyTranslations(activeLang);
