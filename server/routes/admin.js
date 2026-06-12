@@ -4,6 +4,8 @@ const express = require('express');
 const { prisma } = require('../lib/prisma');
 const { requireAdmin } = require('../middleware/auth');
 const { generateAndSave } = require('../lib/aiProfile');
+const { triggerAlert } = require('../lib/notificationService');
+const { findMatchesForMissingItems } = require('../lib/matcher');
 const { asyncHandler } = require('../lib/asyncHandler');
 const {
   foundItemToApi,
@@ -49,6 +51,36 @@ router.put('/items/:id/approve', asyncHandler(async (req, res) => {
 
   const item = foundItemToApi(record);
   if (item.photo && !item.aiProfile) generateAndSave(item.id, 'found');
+
+  // Trigger status alert for the reporter of the found item
+  triggerAlert(item.submittedBy, 'STATUS', { itemType: 'found', itemName: item.itemName, status: 'APPROVED' });
+
+  // Check for matches and alert missing item owners
+  (async () => {
+    try {
+      const myMissingRecords = await prisma.missingItem.findMany({
+        where: { status: 'APPROVED' },
+        include: itemIncludes
+      });
+      const matches = findMatchesForMissingItems(
+        myMissingRecords.map(missingItemToApi),
+        [item]
+      );
+      for (const group of matches) {
+        if (group.foundMatches.length > 0) {
+          triggerAlert(group.missingItem.submittedBy, 'MATCH', {
+            itemName: group.missingItem.itemName,
+            matchName: item.itemName,
+            category: item.category,
+            locationFound: item.locationFound
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Notification] Match check failed on found item approval:', err.message);
+    }
+  })();
+
   res.json(item);
 }));
 
@@ -71,7 +103,9 @@ router.put('/items/:id/reject', asyncHandler(async (req, res) => {
     return item;
   });
   if (!record) return res.status(404).json({ error: 'Item not found.' });
-  res.json(foundItemToApi(record));
+  const item = foundItemToApi(record);
+  triggerAlert(item.submittedBy, 'STATUS', { itemType: 'found', itemName: item.itemName, status: 'REJECTED' });
+  res.json(item);
 }));
 
 router.put('/items/:id/mark-claimed', asyncHandler(async (req, res) => {
@@ -146,6 +180,38 @@ router.put('/missing-items/:id/approve', asyncHandler(async (req, res) => {
 
   const item = missingItemToApi(record);
   if (item.photo && !item.aiProfile) generateAndSave(item.id, 'missing');
+
+  // Trigger status alert for the reporter of the missing item
+  triggerAlert(item.submittedBy, 'STATUS', { itemType: 'missing', itemName: item.itemName, status: 'APPROVED' });
+
+  // Check for matches and alert the owner
+  (async () => {
+    try {
+      const approvedFoundRecords = await prisma.foundItem.findMany({
+        where: { status: 'APPROVED' },
+        include: itemIncludes
+      });
+      const matches = findMatchesForMissingItems(
+        [item],
+        approvedFoundRecords.map(foundItemToApi)
+      );
+      for (const group of matches) {
+        if (group.foundMatches.length > 0) {
+          // Send a match alert with details of the best match
+          const bestMatch = group.foundMatches[0].item;
+          triggerAlert(item.submittedBy, 'MATCH', {
+            itemName: item.itemName,
+            matchName: bestMatch.itemName,
+            category: bestMatch.category,
+            locationFound: bestMatch.locationFound
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[Notification] Match check failed on missing item approval:', err.message);
+    }
+  })();
+
   res.json(item);
 }));
 
@@ -168,7 +234,9 @@ router.put('/missing-items/:id/reject', asyncHandler(async (req, res) => {
     return item;
   });
   if (!record) return res.status(404).json({ error: 'Item not found.' });
-  res.json(missingItemToApi(record));
+  const item = missingItemToApi(record);
+  triggerAlert(item.submittedBy, 'STATUS', { itemType: 'missing', itemName: item.itemName, status: 'REJECTED' });
+  res.json(item);
 }));
 
 router.delete('/missing-items/:id', asyncHandler(async (req, res) => {
@@ -238,7 +306,10 @@ router.put('/claims/:id/approve', asyncHandler(async (req, res) => {
   if (result.kind === 'missing') return res.status(404).json({ error: 'Claim not found.' });
   if (result.kind === 'orphan') return res.status(409).json({ error: 'Cannot approve claim because the related item no longer exists.' });
   if (result.kind === 'invalid') return res.status(400).json({ error: 'Claim has an invalid item type.' });
-  res.json(claimToApi(result.claim));
+  
+  const claim = claimToApi(result.claim);
+  triggerAlert(claim.submittedBy, 'CLAIM_STATUS', { itemName: claim.itemName, status: 'APPROVED' });
+  res.json(claim);
 }));
 
 router.put('/claims/:id/reject', asyncHandler(async (req, res) => {
@@ -260,7 +331,9 @@ router.put('/claims/:id/reject', asyncHandler(async (req, res) => {
     return claim;
   });
   if (!record) return res.status(404).json({ error: 'Claim not found.' });
-  res.json(claimToApi(record));
+  const claim = claimToApi(record);
+  triggerAlert(claim.submittedBy, 'CLAIM_STATUS', { itemName: claim.itemName, status: 'REJECTED' });
+  res.json(claim);
 }));
 
 router.delete('/claims/:id', asyncHandler(async (req, res) => {

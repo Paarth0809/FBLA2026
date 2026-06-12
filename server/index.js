@@ -124,6 +124,7 @@ app.use('/api/claims',        require('./routes/claims'));       // ownership cl
 app.use('/api/admin',         require('./routes/admin'));        // admin-only approval/rejection actions
 app.use('/api/messages',      require('./routes/messages'));     // in-app messaging between finders and claimers
 app.use('/api/matches',       require('./routes/matches'));      // potential item matches
+app.use('/api/notifications', require('./routes/notifications')); // notification preferences & logs
 
 app.use('/api', (err, req, res, next) => {
   console.error(err);

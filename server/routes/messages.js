@@ -150,6 +150,13 @@ router.post('/', asyncHandler(async (req, res) => {
     return msg;
   });
 
+  const { triggerAlert } = require('../lib/notificationService');
+  triggerAlert(receiver.id, 'MESSAGE', {
+    senderName: sender.name,
+    itemName: item.itemName,
+    content: trimmedContent
+  });
+
   res.status(201).json(messageToApi(record));
 }));
 
