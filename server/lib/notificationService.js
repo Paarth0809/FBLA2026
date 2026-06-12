@@ -5,6 +5,42 @@ const { prisma } = require('./prisma');
 const PREFS_FILE = path.join(__dirname, '../../data/notification-preferences.json');
 const LOGS_FILE = path.join(__dirname, '../../data/notification-logs.json');
 
+// Initialize Nodemailer transporter if config is present
+let transporter = null;
+if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  try {
+    const nodemailer = require('nodemailer');
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587 (STARTTLS)
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      },
+      tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: false
+      }
+    });
+    console.log('[NotificationService] Nodemailer SMTP transporter initialized.');
+  } catch (err) {
+    console.error('[NotificationService] Failed to initialize Nodemailer:', err.message);
+  }
+}
+
+// Initialize Twilio client if config is present
+let twilioClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+  try {
+    const twilio = require('twilio');
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    console.log('[NotificationService] Twilio SMS client initialized.');
+  } catch (err) {
+    console.error('[NotificationService] Failed to initialize Twilio:', err.message);
+  }
+}
+
 // Ensure database files exist helper
 function ensureFile(filePath, defaultContent) {
   if (!fs.existsSync(filePath)) {
@@ -68,7 +104,6 @@ function addLog(logEntry) {
       ...logEntry
     };
     logs.unshift(entry);
-    // Keep last 100 logs
     if (logs.length > 100) logs.pop();
     fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2));
     return entry;
@@ -89,9 +124,34 @@ function getLogs(userId) {
   }
 }
 
-// Dispatch email notification (simulation)
-function dispatchEmail(userId, to, subject, body) {
-  console.log(`
+// Dispatch email notification (with SMTP support)
+async function dispatchEmail(userId, to, subject, body) {
+  // Always log to simulated client first
+  addLog({
+    userId,
+    type: 'EMAIL',
+    recipient: to,
+    subject,
+    body
+  });
+
+  if (transporter) {
+    try {
+      const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+      const fromName = process.env.SMTP_FROM_NAME || 'Green Level Lost & Found';
+      await transporter.sendMail({
+        from: `"${fromName}" <${fromEmail}>`,
+        to,
+        subject,
+        text: body
+      });
+      console.log(`[NotificationService] REAL email sent successfully to ${to}`);
+    } catch (err) {
+      console.error(`[NotificationService] Failed to send REAL email to ${to}:`, err.message);
+    }
+  } else {
+    // Shorthand simulator console logs
+    console.log(`
 ┌─────────────────── SIMULATED EMAIL DISPATCH ───────────────────
 │ To:      ${to}
 │ Subject: ${subject}
@@ -100,27 +160,12 @@ function dispatchEmail(userId, to, subject, body) {
 │ ${body.split('\n').join('\n│ ')}
 └────────────────────────────────────────────────────────────────
 `);
-
-  addLog({
-    userId,
-    type: 'EMAIL',
-    recipient: to,
-    subject,
-    body
-  });
+  }
 }
 
-// Dispatch SMS notification (simulation)
-function dispatchSMS(userId, phone, message) {
-  console.log(`
-┌──────────────────── SIMULATED SMS DISPATCH ────────────────────
-│ Phone:   ${phone}
-│ Date:    ${new Date().toLocaleString()}
-├────────────────────────────────────────────────────────────────
-│ ${message}
-└────────────────────────────────────────────────────────────────
-`);
-
+// Dispatch SMS notification (with Twilio support)
+async function dispatchSMS(userId, phone, message) {
+  // Always log to simulated client first
   addLog({
     userId,
     type: 'SMS',
@@ -128,6 +173,29 @@ function dispatchSMS(userId, phone, message) {
     subject: 'SMS Alert',
     body: message
   });
+
+  if (twilioClient && process.env.TWILIO_FROM_NUMBER) {
+    try {
+      await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_FROM_NUMBER,
+        to: phone
+      });
+      console.log(`[NotificationService] REAL SMS sent successfully to ${phone}`);
+    } catch (err) {
+      console.error(`[NotificationService] Failed to send REAL SMS to ${phone}:`, err.message);
+    }
+  } else {
+    // Shorthand simulator console logs
+    console.log(`
+┌──────────────────── SIMULATED SMS DISPATCH ────────────────────
+│ Phone:   ${phone}
+│ Date:    ${new Date().toLocaleString()}
+├────────────────────────────────────────────────────────────────
+│ ${message}
+└────────────────────────────────────────────────────────────────
+`);
+  }
 }
 
 // Trigger alert based on preferences
@@ -141,6 +209,7 @@ async function triggerAlert(userId, alertType, data) {
     // Check if user has turned off this alert type
     if (alertType === 'MATCH' && !prefs.matchAlerts) return;
     if (alertType === 'STATUS' && !prefs.statusAlerts) return;
+    if (alertType === 'CLAIM_STATUS' && !prefs.statusAlerts) return;
     if (alertType === 'MESSAGE' && !prefs.messageAlerts) return;
 
     const emailRecipient = prefs.email || user.email;
@@ -159,15 +228,15 @@ async function triggerAlert(userId, alertType, data) {
     } 
     else if (alertType === 'STATUS') {
       emailSubject = `📋 Submission Status Updated - Green Level Lost & Found`;
-      emailBody = `Hi ${user.name},\n\nYour reported ${data.itemType} item "${data.itemName}" status has been updated to: ${data.status}.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
+      emailBody = `Hi ${user.name},\n\nYour reported ${data.itemType} item "${data.itemName}" status has been updated to: ${data.status.toUpperCase()}.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
 
-      smsMessage = `📋 GL Lost & Found: Status updated for your reported ${data.itemType} "${data.itemName}" to: ${data.status}.`;
+      smsMessage = `📋 GL Lost & Found: Status updated for your reported ${data.itemType} "${data.itemName}" to: ${data.status.toUpperCase()}.`;
     } 
     else if (alertType === 'CLAIM_STATUS') {
       emailSubject = `📋 Claim Status Updated - Green Level Lost & Found`;
-      emailBody = `Hi ${user.name},\n\nYour claim for "${data.itemName}" has been ${data.status} by an administrator.\n\nView updates in your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
+      emailBody = `Hi ${user.name},\n\nYour claim for "${data.itemName}" has been ${data.status.toUpperCase()} by an administrator.\n\nView updates in your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
 
-      smsMessage = `📋 GL Lost & Found: Your claim for "${data.itemName}" has been ${data.status} by admin.`;
+      smsMessage = `📋 GL Lost & Found: Your claim for "${data.itemName}" has been ${data.status.toUpperCase()} by admin.`;
     }
     else if (alertType === 'MESSAGE') {
       emailSubject = `💬 New Message Received - Green Level Lost & Found`;
@@ -178,10 +247,10 @@ async function triggerAlert(userId, alertType, data) {
 
     // ── Dispatching ──
     if (prefs.emailEnabled && emailRecipient) {
-      dispatchEmail(userId, emailRecipient, emailSubject, emailBody);
+      await dispatchEmail(userId, emailRecipient, emailSubject, emailBody);
     }
     if (prefs.smsEnabled && phoneRecipient) {
-      dispatchSMS(userId, phoneRecipient, smsMessage);
+      await dispatchSMS(userId, phoneRecipient, smsMessage);
     }
   } catch (err) {
     console.error('[NotificationService] Error triggering alert:', err.message);

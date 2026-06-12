@@ -1,1 +1,101 @@
-[]
+[
+  {
+    "id": "9nandvm",
+    "timestamp": "2026-06-12T16:11:29.754Z",
+    "userId": "user-001",
+    "type": "EMAIL",
+    "recipient": "student@school.edu",
+    "subject": "📋 Claim Status Updated - Green Level Lost & Found",
+    "body": "Hi Alex Chen,\n\nYour claim for \"AP Calculus Textbook\" has been REJECTED by an administrator.\n\nView updates in your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "uxsme6t",
+    "timestamp": "2026-06-12T16:11:29.685Z",
+    "userId": "admin-001",
+    "type": "EMAIL",
+    "recipient": "admin@school.edu",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Administrator,\n\nYour reported found item \"iPhone 14 (Space Gray)\" status has been updated to: APPROVED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "71ymrh3",
+    "timestamp": "2026-06-12T16:11:29.681Z",
+    "userId": "464a8de8-6477-4704-b78e-7ade32e6acca",
+    "type": "EMAIL",
+    "recipient": "tester_1781280688971@test.com",
+    "subject": "📋 Claim Status Updated - Green Level Lost & Found",
+    "body": "Hi Test User,\n\nYour claim for \"iPhone 14 (Space Gray)\" has been APPROVED by an administrator.\n\nView updates in your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "af6grg8",
+    "timestamp": "2026-06-12T16:11:29.670Z",
+    "userId": "user-001",
+    "type": "EMAIL",
+    "recipient": "student@school.edu",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Alex Chen,\n\nYour reported missing item \"HP Laptop Charger\" status has been updated to: APPROVED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "sj5rnia",
+    "timestamp": "2026-06-12T16:11:29.662Z",
+    "userId": "464a8de8-6477-4704-b78e-7ade32e6acca",
+    "type": "EMAIL",
+    "recipient": "tester_1781280688971@test.com",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Test User,\n\nYour reported missing item \"Test Headphones\" status has been updated to: REJECTED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "9ddz3wp",
+    "timestamp": "2026-06-12T16:11:29.653Z",
+    "userId": "464a8de8-6477-4704-b78e-7ade32e6acca",
+    "type": "EMAIL",
+    "recipient": "tester_1781280688971@test.com",
+    "subject": "✨ New Potential Match Found! - Green Level Lost & Found",
+    "body": "Hi Test User,\n\nWe found a potential match for your missing item \"Test Headphones\"! \n\nMatched Item: White Wireless Earbuds\nCategory: Electronics\nLocation Found: Gymnasium\n\nLog in to your Student Portal and check the \"AI Matches\" tab to claim this item:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "l3yy14p",
+    "timestamp": "2026-06-12T16:11:29.652Z",
+    "userId": "464a8de8-6477-4704-b78e-7ade32e6acca",
+    "type": "EMAIL",
+    "recipient": "tester_1781280688971@test.com",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Test User,\n\nYour reported missing item \"Test Headphones\" status has been updated to: APPROVED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "eb541ux",
+    "timestamp": "2026-06-12T16:11:29.634Z",
+    "userId": "admin-001",
+    "type": "EMAIL",
+    "recipient": "admin@school.edu",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Administrator,\n\nYour reported found item \"White Wireless Earbuds\" status has been updated to: APPROVED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "8selyoa",
+    "timestamp": "2026-06-12T16:11:29.625Z",
+    "userId": "464a8de8-6477-4704-b78e-7ade32e6acca",
+    "type": "EMAIL",
+    "recipient": "tester_1781280688971@test.com",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Test User,\n\nYour reported found item \"Test Wallet\" status has been updated to: REJECTED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "4biddsf",
+    "timestamp": "2026-06-12T16:11:29.615Z",
+    "userId": "464a8de8-6477-4704-b78e-7ade32e6acca",
+    "type": "EMAIL",
+    "recipient": "tester_1781280688971@test.com",
+    "subject": "📋 Submission Status Updated - Green Level Lost & Found",
+    "body": "Hi Test User,\n\nYour reported found item \"Test Wallet\" status has been updated to: APPROVED.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  },
+  {
+    "id": "fy9pv97",
+    "timestamp": "2026-06-12T16:11:29.550Z",
+    "userId": "user-001",
+    "type": "EMAIL",
+    "recipient": "student@school.edu",
+    "subject": "💬 New Message Received - Green Level Lost & Found",
+    "body": "Hi Alex Chen,\n\nYou received a new message from Test User regarding the item \"Blue Hydro Flask\":\n\n\"I found a bottle matching this description near the cafeteria.\"\n\nReply in the Messages tab of your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found"
+  }
+]
