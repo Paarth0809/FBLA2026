@@ -108,7 +108,7 @@
   </div>
 
   <script src="/js/api.js"></script>
-  <script src="/js/nav.js"></script>
+  <script src="/js/nav.js?v=1.0.2"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get('id');
@@ -154,7 +154,7 @@
           '<a href="mailto:' + escapeHtml(item.contactEmail) + '" style="color:#006c49">' + escapeHtml(item.contactEmail) + '</a>';
       }
       if (currentUser && item.canMessageOwner) {
-        return 'The owner\\'s email stays private. Send a secure message instead.' +
+        return 'The owner\'s email stays private. Send a secure message instead.' +
           '<div id="msg-btn-placeholder"></div>';
       }
       if (!currentUser) {

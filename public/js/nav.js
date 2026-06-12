@@ -75,6 +75,14 @@ function renderNav() {
       renderLanguageDropdownInside(langContainer, getCurrentLanguage());
     }
   }
+
+  // Clean up floating switcher if a navbar or sidebar is rendered
+  if (document.querySelector('#nav-auth, #nav-auth-mobile, [data-nav-auth], .student-sidebar, aside')) {
+    const floatingContainer = document.getElementById('lang-switcher-floating-container');
+    if (floatingContainer) {
+      floatingContainer.remove();
+    }
+  }
 }
 
 function renderLoggedInNav(mode = 'default') {
@@ -519,6 +527,12 @@ function injectLanguageSwitcherCSS() {
       background: var(--primary, #006c49);
       color: #ffffff;
     }
+    .lang-switcher-floating {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 9999;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -576,6 +590,33 @@ function renderLanguageDropdownInside(container, activeLang) {
 function renderLanguageDropdown(activeLang) {
   const containers = document.querySelectorAll('[id^="nav-lang-container-"]');
   containers.forEach(container => renderLanguageDropdownInside(container, activeLang));
+  
+  const floatingContainer = document.getElementById('lang-switcher-floating-container');
+  if (floatingContainer) {
+    renderLanguageDropdownInside(floatingContainer, activeLang);
+  }
+}
+
+function ensureFloatingSwitcher(activeLang) {
+  const hasNavbar = document.querySelector('#nav-auth, #nav-auth-mobile, [data-nav-auth]');
+  const hasSidebar = document.querySelector('.student-sidebar, aside');
+  
+  if (hasNavbar || hasSidebar) {
+    const existing = document.getElementById('lang-switcher-floating-container');
+    if (existing) existing.remove();
+    return;
+  }
+
+  let container = document.getElementById('lang-switcher-floating-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'lang-switcher-floating-container';
+    container.className = 'lang-switcher-floating';
+    container.setAttribute('data-i18n-skip', 'true');
+    document.body.appendChild(container);
+  }
+
+  renderLanguageDropdownInside(container, activeLang);
 }
 
 function toggleLangDropdown(event) {
@@ -593,6 +634,7 @@ function toggleLangDropdown(event) {
 function changeLanguage(langCode) {
   localStorage.setItem('preferred-language', langCode);
   applyTranslations(langCode);
+  ensureFloatingSwitcher(langCode);
 }
 
 // Close language dropdown when clicking outside
@@ -782,14 +824,16 @@ function bootstrapTranslations() {
 
   if (!window.APP_TRANSLATIONS) {
     const script = document.createElement('script');
-    script.src = '/js/translations.js';
+    script.src = '/js/translations.js?v=1.0.2';
     script.async = false;
     script.onload = () => {
       applyTranslations(activeLang);
+      ensureFloatingSwitcher(activeLang);
     };
     document.head.appendChild(script);
   } else {
     applyTranslations(activeLang);
+    ensureFloatingSwitcher(activeLang);
   }
 }
 
