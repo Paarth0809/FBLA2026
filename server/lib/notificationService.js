@@ -220,25 +220,25 @@ async function triggerAlert(userId, alertType, data) {
     let smsMessage = '';
 
     if (alertType === 'MATCH') {
-      emailSubject = `✨ New Potential Match Found! - Green Level Lost & Found`;
+      emailSubject = `✨ Potential Match for "${data.itemName}" - Green Level Lost & Found`;
       emailBody = `Hi ${user.name},\n\nWe found a potential match for your missing item "${data.itemName}"! \n\nMatched Item: ${data.matchName}\nCategory: ${data.category}\nLocation Found: ${data.locationFound}\n\nLog in to your Student Portal and check the "AI Matches" tab to claim this item:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
       
       smsMessage = `✨ GL Lost & Found: We found a potential match for your missing "${data.itemName}"! Check the AI Matches tab in your student portal.`;
     } 
     else if (alertType === 'STATUS') {
-      emailSubject = `📋 Submission Status Updated - Green Level Lost & Found`;
+      emailSubject = `📋 "${data.itemName}" Status Updated to ${data.status.toUpperCase()} - Green Level Lost & Found`;
       emailBody = `Hi ${user.name},\n\nYour reported ${data.itemType} item "${data.itemName}" status has been updated to: ${data.status.toUpperCase()}.\n\nView details inside your submissions dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
 
       smsMessage = `📋 GL Lost & Found: Status updated for your reported ${data.itemType} "${data.itemName}" to: ${data.status.toUpperCase()}.`;
     } 
     else if (alertType === 'CLAIM_STATUS') {
-      emailSubject = `📋 Claim Status Updated - Green Level Lost & Found`;
+      emailSubject = `📋 Claim for "${data.itemName}" ${data.status.toUpperCase()} - Green Level Lost & Found`;
       emailBody = `Hi ${user.name},\n\nYour claim for "${data.itemName}" has been ${data.status.toUpperCase()} by an administrator.\n\nView updates in your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
 
       smsMessage = `📋 GL Lost & Found: Your claim for "${data.itemName}" has been ${data.status.toUpperCase()} by admin.`;
     }
     else if (alertType === 'MESSAGE') {
-      emailSubject = `💬 New Message Received - Green Level Lost & Found`;
+      emailSubject = `💬 New Message from ${data.senderName} (Item: "${data.itemName}") - Green Level Lost & Found`;
       emailBody = `Hi ${user.name},\n\nYou received a new message from ${data.senderName} regarding the item "${data.itemName}":\n\n"${data.content}"\n\nReply in the Messages tab of your dashboard:\nhttp://localhost:3000/my-submissions.html\n\nBest regards,\nGreen Level Lost & Found`;
 
       smsMessage = `💬 GL Lost & Found: New message from ${data.senderName} regarding "${data.itemName}": "${data.content.substring(0, 40)}..."`;
