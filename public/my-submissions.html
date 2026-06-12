@@ -57,6 +57,35 @@
         height: 150px;
       }
     }
+    @keyframes pulse-sparkle {
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+      50% { transform: scale(1.2) rotate(15deg); opacity: 1; filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.6)); }
+    }
+    @keyframes shimmer-bg {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .ai-sparkle {
+      display: inline-block;
+      animation: pulse-sparkle 2s infinite ease-in-out;
+      background: linear-gradient(135deg, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .ai-text {
+      font-weight: 850;
+      background: linear-gradient(120deg, #8b5cf6, #ec4899, #3b82f6, #8b5cf6);
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer-bg 4s linear infinite;
+      display: inline-block;
+      letter-spacing: 0.05em;
+    }
+    .tab:hover .ai-text {
+      filter: brightness(1.25);
+    }
   </style>
 </head>
 <body class="bg-surface min-h-screen flex">
@@ -129,7 +158,7 @@
         <div>
           <div class="eyebrow mb-2">Student Portal</div>
           <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Welcome back</h1>
-          <p class="text-on-surface-variant text-sm">Track reports, claims, matches, and messages from one place.</p>
+          <p class="text-on-surface-variant text-sm">Track reports, claims, <span class="ai-text" data-i18n-skip>AI</span> matches, and messages from one place.</p>
         </div>
         <div class="flex gap-2 flex-wrap">
           <a href="/report.html" class="btn btn-primary btn-sm flex items-center gap-1.5">
@@ -175,9 +204,9 @@
           <div class="flex items-center justify-between gap-4">
             <div>
               <div class="num" id="stat-matches-count">-</div>
-              <div class="lbl">Potential Matches</div>
+              <div class="lbl">Potential <span class="ai-text" data-i18n-skip>AI</span> Matches</div>
             </div>
-            <span class="material-symbols-outlined filled text-primary" style="font-size:32px">compare_arrows</span>
+            <span class="material-symbols-outlined filled text-purple-600" style="font-size:32px; color: #8b5cf6;">auto_awesome</span>
           </div>
         </div>
       </section>
@@ -187,7 +216,7 @@
         <button class="tab active" onclick="switchTab('found',    this)" role="tab" aria-selected="true"  aria-controls="tab-found"><span class="material-symbols-outlined">inventory_2</span> Found</button>
         <button class="tab"        onclick="switchTab('missing',  this)" role="tab" aria-selected="false" aria-controls="tab-missing"><span class="material-symbols-outlined">search</span> Missing</button>
         <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">pan_tool</span> Claims</button>
-        <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn"><span class="material-symbols-outlined">compare_arrows</span> Matches</button>
+        <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn"><span class="material-symbols-outlined text-purple-600 ai-sparkle" style="color: #8b5cf6;">auto_awesome</span><span class="ai-text" data-i18n-skip style="margin-left: 0.25rem; margin-right: 0.25rem;">AI</span>Matches</button>
         <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn"><span class="material-symbols-outlined">mail</span> Messages</button>
       </div>
 
@@ -678,7 +707,8 @@
         if (matchBtn) {
           const total = withMatches.reduce((n, g) => n + g.foundMatches.length, 0);
           setDashStat('stat-matches-count', total);
-          matchBtn.innerHTML = '<span class="material-symbols-outlined">compare_arrows</span> ' +
+          matchBtn.innerHTML = '<span class="material-symbols-outlined text-purple-600 ai-sparkle" style="color: #8b5cf6;">auto_awesome</span>' +
+            '<span class="ai-text" data-i18n-skip style="margin-left: 0.25rem; margin-right: 0.25rem;">AI</span>' +
             (total > 0 ? 'Matches (' + total + ')' : 'Matches');
         }
 
