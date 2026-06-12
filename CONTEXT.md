@@ -1,13 +1,26 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-11 by Codex
+> Last updated: 2026-06-12 by Codex
 
 ---
 
-## Latest Update — Dynamic Language Switcher Implementation
+## Latest Update — Translation Feature and Dictionary Fixes
 
-Current goal: implement dynamic language switcher supporting English and 16 target languages with a luxury dropdown component, dynamic selector option updates, and prevention of word duplication.
+Current goal: fix the translation feature issues where certain elements, headings, and dynamic strings fail to translate, or translate back to English upon dynamic DOM mutations.
+
+Completed:
+- Fixed HTML entity normalization in `public/js/nav.js`'s `lookupTranslation()` function to decode entity wrappers like `&amp;` to match standard dictionary keys.
+- Resolved MutationObserver stale language closure in `watchTranslations()` by referencing the current language dynamically via `getCurrentLanguage()` instead of the stale closed-over initialization language parameter.
+- Added missing translations for `"Green Level Lost & Found"`, `"Found Items"`, and `"Preparing campus inventory"` across all 16 target languages in `public/js/translations.js`.
+- Added `data-i18n-skip` attribute to number circles and loader progress indicators in `public/index.html` to bypass translation audits.
+- Ran backend test suite (`npm test`) — all 93 / 93 passed.
+- Ran Playwright UI end-to-end test suite (`npm run test:ui`) — all 6 / 6 passed.
+- Pushed changes to feature branch `aau007/language-switcher`.
+
+---
+
+## Historical Context — Dynamic Language Switcher Implementation
 
 Completed:
 - Created translation dictionary file `public/js/translations.js`.
