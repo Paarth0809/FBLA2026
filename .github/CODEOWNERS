@@ -1,0 +1,10 @@
+# High-risk files should be reviewed by the project owner before merging.
+/public/js/scroll-lens.js @Paarth0809
+/public/js/scroll-story.js @Paarth0809
+/public/js/home-3d.js @Paarth0809
+/public/css/style.css @Paarth0809
+/server/routes/ @Paarth0809
+/server/middleware/ @Paarth0809
+/server/lib/prisma.js @Paarth0809
+/prisma/schema.prisma @Paarth0809
+/prisma/migrations/ @Paarth0809
