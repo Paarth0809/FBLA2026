@@ -246,119 +246,66 @@
         <div id="messages-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading messages"></div></div></div>
       </div>
 
-      <!-- Tab: Alerts Settings & Simulators -->
-      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-label="Alert preferences and logs">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- Tab: Alerts Settings -->
+      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-label="Alert preferences">
+        <div class="max-w-2xl bg-white border border-outline-variant p-6 rounded-2xl shadow-sm flex flex-col gap-6">
+          <div>
+            <h3 class="font-headline font-bold text-lg text-on-surface mb-1">Alert Preferences</h3>
+            <p class="text-xs text-on-surface-variant">Configure how you receive notifications for lost and found activity.</p>
+          </div>
           
-          <!-- Left: Preference settings form -->
-          <div class="lg:col-span-5 bg-white border border-outline-variant p-6 rounded-2xl shadow-sm flex flex-col gap-6">
-            <div>
-              <h3 class="font-headline font-bold text-lg text-on-surface mb-1">Alert Preferences</h3>
-              <p class="text-xs text-on-surface-variant">Configure how you receive notifications for lost and found activity.</p>
-            </div>
-            
-            <form id="prefs-form" class="flex flex-col gap-6" onsubmit="savePrefsForm(event)">
-              <!-- Email Configuration -->
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-sm flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary" style="font-size:20px">mail</span> Email Alerts
-                  </span>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="pref-email-enabled" class="sr-only peer" onchange="toggleInputState('pref-email-address', this.checked)">
-                    <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-                <input type="email" id="pref-email-address" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Notification Email">
-              </div>
-
-              <!-- SMS Configuration -->
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-sm flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary" style="font-size:20px">sms</span> SMS / Phone Alerts
-                  </span>
-                  <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="pref-sms-enabled" class="sr-only peer" onchange="toggleInputState('pref-sms-phone', this.checked)">
-                    <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-                <input type="tel" id="pref-sms-phone" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Phone Number (e.g. +1 555-0199)">
-              </div>
-
-              <div class="border-t border-outline-variant my-1"></div>
-
-              <!-- Alert Triggers selection -->
-              <div class="flex flex-col gap-3">
-                <h4 class="font-headline font-semibold text-sm text-on-surface">Notify me when:</h4>
-                <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
-                  <input type="checkbox" id="pref-trigger-matches" class="rounded border-outline-variant text-primary focus:ring-primary/20">
-                  <span>A potential AI match is detected</span>
-                </label>
-                <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
-                  <input type="checkbox" id="pref-trigger-status" class="rounded border-outline-variant text-primary focus:ring-primary/20">
-                  <span>My submission is approved/rejected</span>
-                </label>
-                <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
-                  <input type="checkbox" id="pref-trigger-messages" class="rounded border-outline-variant text-primary focus:ring-primary/20">
-                  <span>I receive a chat message</span>
-                </label>
-              </div>
-
-              <button type="submit" class="btn btn-primary w-full mt-4 flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:18px">save</span> Save Alert Settings
-              </button>
-            </form>
-          </div>
-
-          <!-- Right: Simulated live inbox client & SMS timeline -->
-          <div class="lg:col-span-7 flex flex-col gap-6">
-            
-            <!-- Mock Email Inbox -->
-            <div class="bg-white border border-outline-variant p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+          <form id="prefs-form" class="flex flex-col gap-6" onsubmit="savePrefsForm(event)">
+            <!-- Email Configuration -->
+            <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-                    <span class="material-symbols-outlined" style="font-size:20px">alternate_email</span>
-                  </div>
-                  <div>
-                    <h3 class="font-headline font-bold text-sm text-on-surface">Simulated Email Inbox</h3>
-                    <p class="text-[10px] text-on-surface-variant">Real-time simulation client for email delivery</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-1.5 text-[10px] font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
-                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span> Active
-                </div>
+                <span class="font-semibold text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary" style="font-size:20px">mail</span> Email Alerts
+                </span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="pref-email-enabled" class="sr-only peer" onchange="toggleInputState('pref-email-address', this.checked)">
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
               </div>
-              
-              <div id="email-inbox-sim" class="flex flex-col gap-3 min-h-[160px] max-h-[260px] overflow-y-auto pr-1 bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/60">
-                <div class="text-xs text-muted text-center py-12">No simulated emails received yet. Actions (like approvals/replies) will trigger live emails here.</div>
-              </div>
+              <input type="email" id="pref-email-address" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Notification Email">
             </div>
 
-            <!-- Mock SMS Phone UI -->
-            <div class="bg-white border border-outline-variant p-5 rounded-2xl shadow-sm flex flex-col gap-4">
+            <!-- SMS Configuration -->
+            <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                    <span class="material-symbols-outlined" style="font-size:20px">phone_android</span>
-                  </div>
-                  <div>
-                    <h3 class="font-headline font-bold text-sm text-on-surface">Simulated SMS Feed</h3>
-                    <p class="text-[10px] text-on-surface-variant">Live text message log for your device</p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-1.5 text-[10px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span> Connected
-                </div>
+                <span class="font-semibold text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary" style="font-size:20px">sms</span> SMS / Phone Alerts
+                </span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="pref-sms-enabled" class="sr-only peer" onchange="toggleInputState('pref-sms-phone', this.checked)">
+                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
               </div>
-
-              <div id="sms-feed-sim" class="flex flex-col gap-3 min-h-[160px] max-h-[260px] overflow-y-auto pr-1 bg-surface-container-lowest rounded-xl p-3 border border-outline-variant/60">
-                <div class="text-xs text-muted text-center py-12">No SMS notifications received yet. Toggling SMS alerts and generating updates triggers live SMS logs here.</div>
-              </div>
+              <input type="tel" id="pref-sms-phone" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Phone Number (e.g. +1 555-0199)">
             </div>
 
-          </div>
+            <div class="border-t border-outline-variant my-1"></div>
+
+            <!-- Alert Triggers selection -->
+            <div class="flex flex-col gap-3">
+              <h4 class="font-headline font-semibold text-sm text-on-surface">Notify me when:</h4>
+              <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="pref-trigger-matches" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+                <span>A potential AI match is detected</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="pref-trigger-status" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+                <span>My submission is approved/rejected</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="pref-trigger-messages" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+                <span>I receive a chat message</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full mt-4 flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined" style="font-size:18px">save</span> Save Alert Settings
+            </button>
+          </form>
         </div>
       </div>
 
@@ -440,7 +387,6 @@
       loadMatches();
       loadMessages();
       loadNotificationPrefs();
-      loadNotificationLogs();
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
@@ -456,12 +402,6 @@
       panel.classList.remove('active');
       void panel.offsetWidth; // reflow to restart CSS animation
       panel.classList.add('active');
-
-      if (name === 'settings') {
-        startLogPolling();
-      } else {
-        stopLogPolling();
-      }
     }
 
     // ── Status hints ──────────────────────────────────────────────────────────
@@ -1272,63 +1212,7 @@
       }
     }
 
-    async function loadNotificationLogs() {
-      const emailContainer = document.getElementById('email-inbox-sim');
-      const smsContainer = document.getElementById('sms-feed-sim');
 
-      if (!emailContainer || !smsContainer) return;
-
-      try {
-        const logs = await api.get('/notifications/logs');
-        
-        const emailLogs = logs.filter(l => l.type === 'EMAIL');
-        const smsLogs = logs.filter(l => l.type === 'SMS');
-
-        // Render Email Logs
-        if (emailLogs.length === 0) {
-          emailContainer.innerHTML = `<div class="text-xs text-muted text-center py-12">No simulated emails received yet. Actions (like approvals/replies) will trigger live emails here.</div>`;
-        } else {
-          emailContainer.innerHTML = emailLogs.map(log => `
-            <div class="border border-outline-variant/60 rounded-lg p-3 bg-white shadow-sm flex flex-col gap-2 transition-all hover:border-primary/30">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-on-surface truncate max-w-[70%]">${escapeHtml(log.subject)}</span>
-                <span class="text-[9px] text-muted">${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-              </div>
-              <div class="text-[10px] text-muted-variant truncate">To: ${escapeHtml(log.recipient)}</div>
-              <div class="text-xs text-on-surface-variant whitespace-pre-wrap mt-1 border-t border-outline-variant/30 pt-2 font-mono bg-surface-container-lowest p-2 rounded">${escapeHtml(log.body)}</div>
-            </div>
-          `).join('');
-        }
-
-        // Render SMS Logs
-        if (smsLogs.length === 0) {
-          smsContainer.innerHTML = `<div class="text-xs text-muted text-center py-12">No SMS notifications received yet. Toggling SMS alerts and generating updates triggers live SMS logs here.</div>`;
-        } else {
-          smsContainer.innerHTML = smsLogs.map(log => `
-            <div class="flex flex-col gap-1 items-start max-w-[90%] mb-1">
-              <span class="text-[9px] text-muted ml-2">${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} &middot; To: ${escapeHtml(log.recipient)}</span>
-              <div class="bg-primary text-white rounded-2xl rounded-tl-none px-3 py-2 text-xs shadow-sm leading-relaxed">${escapeHtml(log.body)}</div>
-            </div>
-          `).join('');
-        }
-
-      } catch (err) {
-        console.error('Failed to load notification logs:', err);
-      }
-    }
-
-    let logPollInterval = null;
-    function startLogPolling() {
-      if (logPollInterval) clearInterval(logPollInterval);
-      loadNotificationLogs();
-      logPollInterval = setInterval(loadNotificationLogs, 4000);
-    }
-    function stopLogPolling() {
-      if (logPollInterval) {
-        clearInterval(logPollInterval);
-        logPollInterval = null;
-      }
-    }
 
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeMessageModal();
