@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  checks:
+    name: Static, Prisma, and backend tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fbla_app
+          POSTGRES_PASSWORD: fbla_app_password
+          POSTGRES_DB: fbla2026_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      SESSION_SECRET: ci-session-secret-change-me
+      SESSION_STORE: postgres
+      DATABASE_URL: postgresql://fbla_app:fbla_app_password@localhost:5432/fbla2026_test?schema=public
+      TEST_DATABASE_URL: postgresql://fbla_app:fbla_app_password@localhost:5432/fbla2026_test?schema=public
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma validate
+        run: npm run prisma:validate
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Apply migrations
+        run: npm run prisma:deploy
+
+      - name: Syntax checks
+        run: |
+          node --check server/index.js
+          node --check public/js/nav.js
+          node --check public/js/scroll-lens.js
+          node --check public/js/scroll-story.js
+
+      - name: Whitespace check
+        run: git diff --check
+
+      - name: High-risk file notice
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD)"
+          echo "$changed"
+          echo "$changed" | grep -E '^(public/js/(scroll-lens|scroll-story|home-3d)\.js|public/css/style\.css|server/routes/|server/middleware/|server/lib/prisma\.js|prisma/schema\.prisma|prisma/migrations/)' && {
+            echo "::warning::This PR touches high-risk files. Confirm owner coordination and review before merging."
+          } || true
+
+      - name: Backend tests
+        run: npm test
