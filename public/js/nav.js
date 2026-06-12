@@ -369,6 +369,7 @@ const languageNames = {
     ur: 'Urdu',
     ne: 'Nepali',
     mr: 'Marathi',
+    el: 'Greek',
     select: 'Select Language'
   },
   es: {
@@ -390,6 +391,7 @@ const languageNames = {
     ur: 'Urdu',
     ne: 'Nepalí',
     mr: 'Maratí',
+    el: 'Griego',
     select: 'Seleccionar idioma'
   },
   zh: {
@@ -411,6 +413,7 @@ const languageNames = {
     ur: '乌尔都语',
     ne: '尼泊尔语',
     mr: '马拉地语',
+    el: '希腊语',
     select: '选择语言'
   },
   fr: {
@@ -432,6 +435,7 @@ const languageNames = {
     ur: 'Ourdou',
     ne: 'Népalais',
     mr: 'Marathi',
+    el: 'Grec',
     select: 'Choisir la langue'
   },
   de: {
@@ -453,6 +457,7 @@ const languageNames = {
     ur: 'Urdu',
     ne: 'Nepalesisch',
     mr: 'Marathi',
+    el: 'Griechisch',
     select: 'Sprache wählen'
   },
   vi: {
@@ -474,6 +479,7 @@ const languageNames = {
     ur: 'Tiếng Urdu',
     ne: 'Tiếng Nepal',
     mr: 'Tiếng Marathi',
+    el: 'Tiếng Hy Lạp',
     select: 'Chọn ngôn ngữ'
   },
   ar: {
@@ -494,7 +500,8 @@ const languageNames = {
     ta: 'التاميلية',
     ur: 'الأردية',
     ne: 'النيبالية',
-    mr: 'المाराثية',
+    mr: 'الماراتية',
+    el: 'اليونانية',
     select: 'اختر اللغة'
   },
   ko: {
@@ -509,13 +516,14 @@ const languageNames = {
     hi: '힌디어',
     gu: '구자라트어',
     tl: '타갈로그어/필리핀어',
-    ru: '러シア어',
+    ru: '러시아어',
     ja: '일본어',
     te: '텔루구어',
     ta: '타밀어',
     ur: '우르두어',
     ne: '네팔어',
     mr: '마라티어',
+    el: '그리스어',
     select: '언어 선택'
   },
   hi: {
@@ -537,6 +545,7 @@ const languageNames = {
     ur: 'उर्दू',
     ne: 'नेपाली',
     mr: 'मराठी',
+    el: 'यूनानी',
     select: 'भाषा चुनें'
   },
   gu: {
@@ -554,6 +563,7 @@ const languageNames = {
     ru: 'રશિયન',
     ne: 'નેપાળી',
     mr: 'મરાઠી',
+    el: 'ગ્રીક',
     select: 'ભાષા પસંદ કરો'
   },
   tl: {
@@ -575,6 +585,7 @@ const languageNames = {
     ur: 'Urdu',
     ne: 'Nepali',
     mr: 'Marathi',
+    el: 'Griyego',
     select: 'Pumili ng Wika'
   },
   ru: {
@@ -596,6 +607,7 @@ const languageNames = {
     ur: 'Урду',
     ne: 'Непальский',
     mr: 'Маратхи',
+    el: 'Греческий',
     select: 'Выбрать язык'
   },
   ja: {
@@ -617,27 +629,29 @@ const languageNames = {
     ur: 'ウルドゥー語',
     ne: 'ネパール語',
     mr: 'マラーティー語',
+    el: 'ギリシャ語',
     select: '言語を選択'
   },
   te: {
     en: 'ఆంగ్లం',
     es: 'స్పానిష్',
-    zh: 'చైనీస్',
+    zh: 'చైనీಸ್',
     fr: 'ఫ్రెంచ్',
-    de: 'जर्मन',
-    vi: 'వియత్నామీస్',
+    de: 'జర్మన్',
+    vi: 'వియ‌త్నామీస్',
     ar: 'అరబిక్',
     ko: 'కొరియన్',
     hi: 'హీందీ',
     gu: 'గుజరాతీ',
     tl: 'తగలోగ్/ఫిలిపినో',
-    ru: 'రష్యัน',
+    ru: 'రష్యన్',
     ja: 'జపనీస్',
     te: 'తెలుగు',
     ta: 'తమిళం',
-    ur: 'ఉర్దూ',
-    ne: 'नेपाली',
+    ur: 'ఉర్दూ',
+    ne: 'నేపాలీ',
     mr: 'మరాఠీ',
+    el: 'గ్రీక్',
     select: 'భాషను ఎంచుకోండి'
   },
   ta: {
@@ -649,7 +663,7 @@ const languageNames = {
     vi: 'வியட்நாமிய மொழி',
     ar: 'அரபிக்',
     ko: 'கொரியன்',
-    hi: 'இந்தि',
+    hi: 'இந்தி',
     gu: 'குஜராத்தி',
     tl: 'தகலாக்',
     ru: 'ரஷ்யன்',
@@ -659,6 +673,7 @@ const languageNames = {
     ur: 'உருது',
     ne: 'நேபாளி',
     mr: 'மராத்தி',
+    el: 'கிரேக்கம்',
     select: 'மொழியைத் தேர்வுசெய்'
   },
   ur: {
@@ -680,6 +695,7 @@ const languageNames = {
     ur: 'اردو',
     ne: 'نیپالی',
     mr: 'مراٹھی',
+    el: 'یونانی',
     select: 'زبان منتخب کریں'
   },
   ne: {
@@ -701,6 +717,7 @@ const languageNames = {
     ur: 'उर्दू',
     ne: 'नेपाली',
     mr: 'मराठी',
+    el: 'ग्रीक',
     select: 'भाषा चयन गर्नुहोस्'
   },
   mr: {
@@ -722,7 +739,30 @@ const languageNames = {
     ur: 'उर्दू',
     ne: 'नेपाळी',
     mr: 'मराठी',
+    el: 'ग्रीक',
     select: 'भाषा निवडा'
+  },
+  el: {
+    en: 'Αγγλικά',
+    es: 'Ισπανικά',
+    zh: 'Κινεζικά',
+    fr: 'Γαλλικά',
+    de: 'Γερμανικά',
+    vi: 'Βιετναμικά',
+    ar: 'Αραβικά',
+    ko: 'Κορεατικά',
+    hi: 'Χίντι',
+    gu: 'Γκουτζαράτι',
+    tl: 'Ταγκαλόγκ/Φιλιπινέζικα',
+    ru: 'Ρωσικά',
+    ja: 'Ιαπωνικά',
+    te: 'Τελούγκου',
+    ta: 'Ταμίλ',
+    ur: 'Ουρντού',
+    ne: 'Νεπαλικά',
+    mr: 'Μαράθι',
+    el: 'Ελληνικά',
+    select: 'Επιλογή γλώσσας'
   }
 };
 
