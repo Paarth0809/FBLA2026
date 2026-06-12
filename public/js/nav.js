@@ -297,7 +297,11 @@ function initMotion() {
     if (!(img instanceof HTMLImageElement) || img.dataset.fallbackShown === 'true') return;
     img.dataset.fallbackShown = 'true';
     const fallback = document.createElement('span');
-    fallback.className = 'uploaded-image-fallback';
+    fallback.className = 'uploaded-image-fallback' + (img.className ? ' ' + img.className : '');
+    const styleAttr = img.getAttribute('style');
+    if (styleAttr) {
+      fallback.setAttribute('style', styleAttr);
+    }
     fallback.setAttribute('role', 'img');
     fallback.setAttribute('aria-label', 'Photo format is not supported for preview');
     fallback.innerHTML = '<span class="material-symbols-outlined">image_not_supported</span>';
