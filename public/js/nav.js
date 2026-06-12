@@ -930,6 +930,38 @@ function injectLanguageSwitcherCSS() {
       right: 12px;
       z-index: 9999;
     }
+    .lang-switcher-floating .lang-switcher-btn {
+      background: var(--surface-container-lowest, #ffffff) !important;
+      border: 1px solid var(--outline-variant, #bbcabf) !important;
+      color: var(--on-surface, #161d19) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    }
+    .lang-switcher-floating .lang-switcher-btn:hover {
+      background: var(--surface-container-low, #eef6ee) !important;
+      border-color: var(--primary, #006c49) !important;
+      color: var(--primary, #006c49) !important;
+      box-shadow: 0 4px 16px rgba(0, 108, 73, 0.15) !important;
+    }
+    .lang-switcher-floating .lang-switcher-btn .lang-arrow {
+      color: var(--outline, #6c7a71) !important;
+    }
+    .lang-switcher-floating .lang-switcher-menu {
+      background: var(--surface-container-lowest, #ffffff) !important;
+      border: 1px solid var(--outline-variant, #bbcabf) !important;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15) !important;
+      backdrop-filter: none !important;
+    }
+    .lang-switcher-floating .lang-switcher-item {
+      color: var(--on-surface, #161d19) !important;
+    }
+    .lang-switcher-floating .lang-switcher-item:hover {
+      background: rgba(0, 108, 73, 0.08) !important;
+      color: var(--primary, #006c49) !important;
+    }
+    .lang-switcher-floating .lang-switcher-item.is-selected {
+      background: var(--primary, #006c49) !important;
+      color: #ffffff !important;
+    }
   `;
   document.head.appendChild(style);
 }

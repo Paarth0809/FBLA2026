@@ -50,7 +50,7 @@
     <div class="relative z-10">
       <a href="/index.html" class="flex items-center gap-2 text-white font-headline font-bold text-lg hover:text-primary-container transition-colors">
         <span class="material-symbols-outlined filled text-primary-container" style="font-size:22px">search</span>
-        Green Level Lost &amp; Found
+        <span>Green Level Lost & Found</span>
       </a>
     </div>
 
@@ -58,25 +58,25 @@
     <div class="relative z-10">
       <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
         <span class="material-symbols-outlined filled text-primary-container" style="font-size:14px">verified</span>
-        Verified Community
+        <span>Official Campus Lost & Found</span>
       </div>
       <h2 class="font-headline font-extrabold text-4xl text-white leading-tight tracking-tight mb-4">
-        Reuniting<br>campus<br>community.
+        Create Account
       </h2>
       <p class="text-white/70 text-sm leading-relaxed auth-visual-copy">
-        Create a secure account to report items, track submissions, and coordinate verified returns through the school portal.
+        Our campus lost and found system helps students and staff search for found items, report missing belongings, and coordinate verified returns through the school office.
       </p>
     </div>
 
     <!-- Bottom: service notes -->
     <div class="relative z-10 auth-visual-facts">
       <div class="auth-visual-fact">
-        <div class="font-headline font-bold text-lg text-white">Private by default</div>
-        <div class="text-white/60 text-xs mt-0.5">Contact details stay protected until a claim is approved.</div>
+        <div class="font-headline font-bold text-lg text-white">Verification Loop</div>
+        <div class="text-white/60 text-xs mt-0.5">Claims undergo ownership review before pickup. Restoring peace of mind, one item at a time.</div>
       </div>
       <div class="auth-visual-fact">
-        <div class="font-headline font-bold text-lg text-white">Campus managed</div>
-        <div class="text-white/60 text-xs mt-0.5">Administrators review submissions before they appear publicly.</div>
+        <div class="font-headline font-bold text-lg text-white">Main Office Pickup</div>
+        <div class="text-white/60 text-xs mt-0.5">Direct pickup available at the Main Office.</div>
       </div>
     </div>
   </div>
@@ -85,11 +85,13 @@
   <div class="flex-1 flex flex-col justify-center p-8 md:p-12 overflow-y-auto hero-enter" style="--i:0">
     <div class="max-w-md w-full mx-auto">
 
-      <!-- Mobile brand link -->
-      <a href="/index.html" class="flex md:hidden items-center gap-2 font-headline font-bold text-primary mb-8 text-base">
-        <span class="material-symbols-outlined filled text-primary-container" style="font-size:20px">search</span>
-        Green Level Lost &amp; Found
-      </a>
+      <!-- Back to Public Site button -->
+      <div class="mb-6">
+        <a href="/index.html" class="inline-flex items-center gap-2 bg-surface-container hover:bg-surface-container-highest text-on-surface hover:text-primary px-3.5 py-2 rounded-xl text-xs font-semibold border border-outline-variant/30 transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+          <span>Back to Public Site</span>
+        </a>
+      </div>
 
       <h2 class="font-headline font-bold text-3xl text-on-surface mb-1">Create an account</h2>
       <p class="text-on-surface-variant text-sm mb-8">Join to report found items and submit claims.</p>
@@ -100,50 +102,48 @@
       <!-- Signup form — all fields required except phone -->
       <form id="signup-form" class="space-y-4">
         <div>
-          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="name">Full Name <span class="text-error">*</span></label>
+          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="name">Full Name</label>
           <div class="relative auth-field">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">badge</span>
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">person</span>
             <input class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
-                   type="text" id="name" placeholder="Your full name" required autofocus>
+                   type="text" id="name" placeholder="John Doe" required autofocus data-i18n-skip="true">
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="email">Email Address <span class="text-error">*</span></label>
+          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="email">Email Address</label>
           <div class="relative auth-field">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">mail</span>
             <input class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
-                   type="email" id="email" placeholder="you@school.edu" required>
+                   type="email" id="email" placeholder="you@school.edu" required data-i18n-skip="true">
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="password">Password <span class="text-error">*</span></label>
+          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="password">Password</label>
           <div class="relative auth-field">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">lock</span>
             <input class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
-                   type="password" id="password" placeholder="At least 6 characters" required minlength="6">
+                   type="password" id="password" placeholder="At least 6 characters" required>
           </div>
-          <p class="text-xs text-on-surface-variant mt-1.5">Minimum 6 characters</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="confirm">Confirm Password <span class="text-error">*</span></label>
+          <label class="block text-sm font-semibold text-on-surface mb-1.5" for="confirmPassword">Confirm Password</label>
           <div class="relative auth-field">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">lock_reset</span>
-            <!-- Confirm password — checked client-side before the form is submitted -->
             <input class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
-                   type="password" id="confirm" placeholder="Repeat your password" required>
+                   type="password" id="confirmPassword" placeholder="Re-enter your password" required>
           </div>
         </div>
         <button type="submit" id="submit-btn"
                 class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors mt-2"
                 style="box-shadow:0 2px 0 #005236">
-          Create Account
-          <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>
+          <span class="material-symbols-outlined" style="font-size:18px">person_add</span>
+          <span>Create Account</span>
         </button>
       </form>
 
       <!-- Link back to login for returning users -->
       <p class="text-center text-sm text-on-surface-variant mt-6">
-        Already have an account? <a href="/login.html" class="text-primary font-semibold hover:underline">Sign in</a>
+        <span>Already have an account?</span> <a href="/login.html" class="text-primary font-semibold hover:underline">Sign In</a>
       </p>
     </div>
   </div>
@@ -165,7 +165,7 @@
       const name     = document.getElementById('name').value.trim();
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const confirm  = document.getElementById('confirm').value;
+      const confirm  = document.getElementById('confirmPassword').value;
 
       // Client-side password match check — catches mismatches before hitting the server
       if (password !== confirm) {
@@ -185,7 +185,7 @@
         errorBox.textContent = err.message;
         errorBox.classList.remove('hidden');
         btn.disabled  = false;
-        btn.innerHTML = 'Create Account <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>';
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">person_add</span> <span>Create Account</span>';
         const form = document.getElementById('signup-form');
         form.classList.remove('shake');
         void form.offsetWidth;
