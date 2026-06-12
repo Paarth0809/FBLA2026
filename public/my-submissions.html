@@ -383,10 +383,10 @@
     }
 
     async function clearFoundHistory() {
-      if (!confirm('Remove all claimed and rejected found items from your history? Active submissions will not be affected.')) return;
+      if (!confirm(window.t('Remove all claimed and rejected found items from your history? Active submissions will not be affected.'))) return;
       try {
         await api.delete('/items/mine/resolved');
-        showToast('History cleared.', 'success');
+        showToast(window.t('History cleared.'), 'success');
         loadFound();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -509,10 +509,10 @@
     }
 
     async function clearMissingHistory() {
-      if (!confirm('Remove all found and rejected missing items from your history? Active submissions will not be affected.')) return;
+      if (!confirm(window.t('Remove all found and rejected missing items from your history? Active submissions will not be affected.'))) return;
       try {
         await api.delete('/missing-items/mine/resolved');
-        showToast('History cleared.', 'success');
+        showToast(window.t('History cleared.'), 'success');
         loadMissing();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -537,7 +537,7 @@
 
     // ── Delete account ────────────────────────────────────────────────────────
     async function deleteAccount() {
-      if (!confirm('Are you sure you want to delete your account? This will permanently remove all your items and claims and cannot be undone.')) return;
+      if (!confirm(window.t('Are you sure you want to delete your account? This will permanently remove all your items and claims and cannot be undone.'))) return;
       try {
         await api.delete('/auth/account');
         window.location.href = '/';
@@ -547,10 +547,10 @@
     }
 
     async function markMissingFound(id) {
-      if (!confirm('Mark this item as found? This will remove it from the public missing items board.')) return;
+      if (!confirm(window.t('Mark this item as found? This will remove it from the public missing items board.'))) return;
       try {
         await api.put('/missing-items/' + id + '/mark-found');
-        showToast('Item marked as found!', 'success');
+        showToast(window.t('Item marked as found!'), 'success');
         loadMissing();
       } catch (err) {
         showToast(err.message, 'error');
@@ -602,10 +602,10 @@
     }
 
     async function clearClaimsHistory() {
-      if (!confirm('Remove all approved and rejected claims from your history? Pending claims will not be affected.')) return;
+      if (!confirm(window.t('Remove all approved and rejected claims from your history? Pending claims will not be affected.'))) return;
       try {
         await api.delete('/claims/mine/resolved');
-        showToast('History cleared.', 'success');
+        showToast(window.t('History cleared.'), 'success');
         loadMyClaims();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -673,12 +673,10 @@
         if (!_matchesNotified && withMatches.length > 0) {
           _matchesNotified = true;
           const total = withMatches.reduce((n, g) => n + g.foundMatches.length, 0);
-          showToast(
-            total + ' potential match' + (total !== 1 ? 'es' : '') +
-            ' found for your missing item' + (withMatches.length !== 1 ? 's' : '') +
-            '! Check the Matches tab.',
-            'success'
-          );
+          const toastMsg = total === 1
+            ? window.t("1 potential match found for your missing item! Check the Matches tab.")
+            : window.t("Potential matches found for your missing items! Check the Matches tab.").replace('Potential matches', total + ' potential matches');
+          showToast(toastMsg, 'success');
         }
 
         if (results.length === 0) {
@@ -868,7 +866,7 @@
 
     // ── Delete a message ──────────────────────────────────────────────────────
     async function deleteMessage(id) {
-      if (!confirm('Delete this message? This cannot be undone.')) return;
+      if (!confirm(window.t('Delete this message? This cannot be undone.'))) return;
       try {
         await api.delete('/messages/' + id);
         const card = document.getElementById('msg-card-' + id);
@@ -882,7 +880,7 @@
               <p class="text-muted">Messages from finders and claimers appear here once claims are approved.</p>
             </div>`;
         }
-        showToast('Message deleted.', 'success');
+        showToast(window.t('Message deleted.'), 'success');
         loadMessages();
       } catch (err) {
         showToast(err.message, 'error');
@@ -989,25 +987,25 @@
       const sendBtn  = document.getElementById('msg-send-btn');
 
       if (!content) {
-        errorEl.textContent = 'Please enter a message before sending.';
+        errorEl.textContent = window.t('Please enter a message before sending.');
         errorEl.classList.remove('hidden');
         return;
       }
 
       if (content.length < 5) {
-        errorEl.textContent = 'Your message is too short — please include at least 5 characters.';
+        errorEl.textContent = window.t('Your message is too short — please include at least 5 characters.');
         errorEl.classList.remove('hidden');
         return;
       }
       if (content.length > 1000) {
-        errorEl.textContent = 'Message exceeds 1000 characters. Please shorten it.';
+        errorEl.textContent = window.t('Message exceeds 1000 characters. Please shorten it.');
         errorEl.classList.remove('hidden');
         return;
       }
 
       errorEl.classList.add('hidden');
       sendBtn.disabled     = true;
-      sendBtn.textContent  = 'Sending…';
+      sendBtn.textContent  = window.t('Sending…');
 
       try {
         await api.post('/messages', {
@@ -1019,10 +1017,10 @@
         });
 
         closeMessageModal();
-        showToast('Message sent!', 'success');
+        showToast(window.t('Message sent!'), 'success');
         loadMessages();
       } catch (err) {
-        errorEl.textContent = err.message || 'Failed to send message. Please try again.';
+        errorEl.textContent = err.message || window.t('Failed to send message. Please try again.');
         errorEl.classList.remove('hidden');
         sendBtn.disabled    = false;
         sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span> Send Message';

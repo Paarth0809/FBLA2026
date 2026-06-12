@@ -729,6 +729,44 @@ function lookupTranslation(translations, key) {
   const normalizedDecodedKey = decodedKey.trim().replace(/\s+/g, ' ');
   if (translations[normalizedDecodedKey]) return translations[normalizedDecodedKey];
   
+  // Try pattern matching for dynamic numbers:
+  // 1. Matches (N)
+  let match = normalizedKey.match(/^Matches\s+\((\d+)\)$/i);
+  if (match) {
+    const base = lookupTranslation(translations, "Matches") || "Matches";
+    return `${base} (${match[1]})`;
+  }
+  
+  // 2. Messages (N)
+  match = normalizedKey.match(/^Messages\s+\((\d+)\)$/i);
+  if (match) {
+    const base = lookupTranslation(translations, "Messages") || "Messages";
+    return `${base} (${match[1]})`;
+  }
+  
+  // 3. Clear Resolved (N)
+  match = normalizedKey.match(/^Clear\s+Resolved\s+\((\d+)\)$/i);
+  if (match) {
+    const base = lookupTranslation(translations, "Clear Resolved") || "Clear Resolved";
+    return `${base} (${match[1]})`;
+  }
+
+  // 4. Messages count (e.g. "1 message" or "3 messages")
+  match = normalizedKey.match(/^(\d+)\s+messages?$/i);
+  if (match) {
+    const isSingular = match[1] === '1';
+    const baseKey = isSingular ? "Message" : "Messages";
+    const base = lookupTranslation(translations, baseKey) || baseKey;
+    return `${match[1]} ${base.toLowerCase()}`;
+  }
+  
+  // 5. N claim(s) received — contact info below
+  match = normalizedKey.match(/^(\d+)\s+claims?\s+received\s+—\s+contact\s+info\s+below$/i);
+  if (match) {
+    const base = lookupTranslation(translations, "claims received — contact info below") || "claims received — contact info below";
+    return `${match[1]} ${base}`;
+  }
+  
   return null;
 }
 
@@ -829,11 +867,20 @@ function watchTranslations(lang) {
   }
 }
 
+function t(key) {
+  const lang = getCurrentLanguage();
+  if (lang === 'en') return key;
+  const translations = window.APP_TRANSLATIONS ? window.APP_TRANSLATIONS[lang] : null;
+  if (!translations) return key;
+  return lookupTranslation(translations, key) || key;
+}
+
 // Expose language switcher API globally
 window.changeLanguage = changeLanguage;
 window.toggleLangDropdown = toggleLangDropdown;
 window.applyTranslations = applyTranslations;
 window.getCurrentLanguage = getCurrentLanguage;
+window.t = t;
 
 // Dynamically load translations.js and bootstrap i18n
 function bootstrapTranslations() {
