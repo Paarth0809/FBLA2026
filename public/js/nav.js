@@ -76,6 +76,23 @@ function renderNav() {
     }
   }
 
+  // Inject Back to Public Site button in student portal sidebar above logout/auth button
+  const studentSidebar = document.querySelector('.student-sidebar');
+  if (studentSidebar && !document.getElementById('nav-back-container-sidebar')) {
+    const logoutBtn = studentSidebar.querySelector('button[onclick="logout()"], a[href*="logout"], #nav-auth');
+    if (logoutBtn) {
+      const backLink = document.createElement('a');
+      backLink.id = 'nav-back-container-sidebar';
+      backLink.href = '/index.html';
+      backLink.className = 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors mb-2';
+      backLink.innerHTML = `
+        <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+        <span>Back to Public Site</span>
+      `;
+      logoutBtn.parentNode.insertBefore(backLink, logoutBtn);
+    }
+  }
+
   // Clean up floating switcher if a navbar or sidebar is rendered
   if (document.querySelector('#nav-auth, #nav-auth-mobile, [data-nav-auth], .student-sidebar, aside')) {
     const floatingContainer = document.getElementById('lang-switcher-floating-container');
