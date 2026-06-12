@@ -3,6 +3,9 @@
 
 window.APP_TRANSLATIONS = {
   "es": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "Objetos Encontrados",
+    "Preparing campus inventory": "Preparación del inventario del campus",
     "Official Campus Lost & Found": "Objetos Perdidos Oficiales del Campus",
     "Lost Something?<br>We're Here to Help.": "¿Perdiste algo?<br>Estamos aquí para ayudarte.",
     "Lost Something? We're Here to Help.": "¿Perdiste algo? Estamos aquí para ayudarte.",
@@ -87,6 +90,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. Todos los derechos reservados."
   },
   "ar": {
+    "Green Level Lost & Found": "مكتب المفقودات والموجودات في غرين ليفيل",
+    "Found Items": "العناصر الموجودة",
+    "Preparing campus inventory": "إعداد جرد الحرم الجامعي",
     "Official Campus Lost & Found": "مكتب المفقودات والموجودات الرسمي بالحرم الجامعي",
     "Lost Something?<br>We're Here to Help.": "هل فقدت شيئًا؟<br>نحن هنا للمساعدة.",
     "Lost Something? We're Here to Help.": "هل فقدت شيئًا؟ نحن هنا للمساعدة.",
@@ -171,6 +177,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 مكتب المفقودات والموجودات في غرين ليفيل. جميع الحقوق محفوظة."
   },
   "zh": {
+    "Green Level Lost & Found": "Green Level 失物招领",
+    "Found Items": "失物招领",
+    "Preparing campus inventory": "准备校园库存",
     "Official Campus Lost & Found": "校园官方失物招领",
     "Lost Something?<br>We're Here to Help.": "遗失了物品？<br>我们随时为您提供帮助。",
     "Lost Something? We're Here to Help.": "遗失了物品？我们随时为您提供帮助。",
@@ -255,6 +264,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level 失物招领。保留所有权利。"
   },
   "vi": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "Đồ nhặt được",
+    "Preparing campus inventory": "Chuẩn bị kiểm kê khuôn viên trường",
     "Official Campus Lost & Found": "Văn phòng Thất lạc & Tìm thấy Chính thức",
     "Lost Something?<br>We're Here to Help.": "Mất Đồ?<br>Chúng tôi ở đây để giúp.",
     "Lost Something? We're Here to Help.": "Mất Đồ? Chúng tôi ở đây để giúp.",
@@ -339,6 +351,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. Bảo lưu mọi quyền."
   },
   "fr": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "Objets trouvés",
+    "Preparing campus inventory": "Préparation de l'inventaire du campus",
     "Official Campus Lost & Found": "Objets Trouvés Officiels du Campus",
     "Lost Something?<br>We're Here to Help.": "Perdu Quelque Chose ?<br>Nous sommes là pour vous aider.",
     "Lost Something? We're Here to Help.": "Perdu Quelque Chose ? Nous sommes là pour vous aider.",
@@ -423,6 +438,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. Tous droits réservés."
   },
   "ko": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "습득물",
+    "Preparing campus inventory": "캠퍼스 재고 준비",
     "Official Campus Lost & Found": "캠퍼스 공식 분실물 보관소",
     "Lost Something?<br>We're Here to Help.": "물건을 분실하셨나요?<br>도와드리겠습니다.",
     "Lost Something? We're Here to Help.": "물건을 분실하셨나요? 도와드리겠습니다.",
@@ -507,6 +525,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. All rights reserved."
   },
   "hi": {
+    "Green Level Lost & Found": "ग्रीन लेवल लॉस्ट एंड फाउंड",
+    "Found Items": "मिला हुआ सामान",
+    "Preparing campus inventory": "परिसर सूची तैयार करना",
     "Official Campus Lost & Found": "आधिकारिक कैंपस खोया और पाया विभाग",
     "Lost Something?<br>We're Here to Help.": "कुछ खो गया है?<br>हम मदद के लिए यहाँ हैं।",
     "Lost Something? We're Here to Help.": "कुछ खो गया है? हम मदद के लिए यहाँ हैं।",
@@ -591,6 +612,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 ग्रीन लेवल लॉस्ट एंड फाउंड। सर्वाधिकार सुरक्षित।"
   },
   "ur": {
+    "Green Level Lost & Found": "گرین لیول کھویا اور پایا",
+    "Found Items": "گمشدہ اور پائی گئی اشیاء",
+    "Preparing campus inventory": "کیمپس کی انوینٹری تیار کرنا",
     "Official Campus Lost & Found": "آفیشل کیمپس گمشدہ اور پائی جانے والی اشیاء کا شعبہ",
     "Lost Something?<br>We're Here to Help.": "کچھ کھو گیا ہے؟<br>ہم مدد کے لیے حاضر ہیں۔",
     "Lost Something? We're Here to Help.": "کچھ کھو گیا ہے؟ ہم مدد کے لیے حاضر ہیں۔",
@@ -675,6 +699,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 گرین لیول کھویا اور پایا۔ جملہ حقوق محفوظ ہیں۔"
   },
   "te": {
+    "Green Level Lost & Found": "గ్రీన్ లెవెల్ లాస్ట్ & ఫౌండ్",
+    "Found Items": "దొరికిన వస్తువులు",
+    "Preparing campus inventory": "క్యాంపస్ ఇన్వెంటరీని సిద్ధం చేస్తోంది",
     "Official Campus Lost & Found": "అధికారిక క్యాంపస్ పోగొట్టుకున్న & దొరికిన వస్తువుల విభాగం",
     "Lost Something?<br>We're Here to Help.": "ఏదైనా పోగొట్టుకున్నారా?<br>మేము సహాయం చేయడానికి ఇక్కడ ఉన్నాము.",
     "Lost Something? We're Here to Help.": "ఏదైనా పోగొట్టుకున్నారా? మేము సహాయం చేయడానికి ఇక్కడ ఉన్నాము.",
@@ -759,6 +786,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 గ్రీన్ లెవల్ లాస్ట్ & ఫౌండ్. అన్ని హక్కులు ప్రత్యేకించబడినవి."
   },
   "ru": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "Найденные вещи",
+    "Preparing campus inventory": "Подготовка инвентаризации кампуса",
     "Official Campus Lost & Found": "Официальное бюро находок кампуса",
     "Lost Something?<br>We're Here to Help.": "Что-то потеряли?<br>Мы готовы помочь.",
     "Lost Something? We're Here to Help.": "Что-то потеряли? Мы готовы помочь.",
@@ -843,6 +873,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. Все права защищены."
   },
   "ne": {
+    "Green Level Lost & Found": "ग्रीन लेभल हराएको र भेटिएको",
+    "Found Items": "फेला परेको सामान",
+    "Preparing campus inventory": "क्याम्पस सूची तयार गर्दै",
     "Official Campus Lost & Found": "आधिकारिक क्याम्पस हराएको र भेटिएको विभाग",
     "Lost Something?<br>We're Here to Help.": "केही हरायो कि?<br>हामी मद्दत गर्न यहाँ छौं।",
     "Lost Something? We're Here to Help.": "केही हरायो कि? हामी मद्दत गर्न यहाँ छौं।",
@@ -927,6 +960,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© २०२६ ग्रीन लेभल हराएको र भेटिएको। सबै अधिकार सुरक्षित।"
   },
   "gu": {
+    "Green Level Lost & Found": "ગ્રીન લેવલ લોસ્ટ એન્ડ ફાઉન્ડ",
+    "Found Items": "મળેલ વસ્તુઓ",
+    "Preparing campus inventory": "કેમ્પસ ઇન્વેન્ટરી તૈયાર કરી રહ્યા છીએ",
     "Official Campus Lost & Found": "સત્તાવાર કેમ્પસ ખોવાયેલ અને મળેલ વિભાગ",
     "Lost Something?<br>We're Here to Help.": "કંઈક ખોવાઈ ગયું છે?<br>અમે મદદ માટે અહીં છીએ.",
     "Lost Something? We're Here to Help.": "કંઈક ખોવાઈ ગયું છે? અમે મદદ માટે અહીં છીએ.",
@@ -1011,6 +1047,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 ગ્રીન લેવલ લોસ્ટ એન્ડ ફાઉન્ડ. તમામ હકો અબાધિત."
   },
   "ja": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "拾得物",
+    "Preparing campus inventory": "キャンパスの在庫準備",
     "Official Campus Lost & Found": "キャンパス公式遺失物取扱所",
     "Lost Something?<br>We're Here to Help.": "探し物ですか？<br>私たちがお手伝いします。",
     "Lost Something? We're Here to Help.": "探し物ですか？私たちがお手伝いします。",
@@ -1095,6 +1134,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. All rights reserved."
   },
   "ta": {
+    "Green Level Lost & Found": "கிரீன் லெவல் லாஸ்ட் & பவுண்ட்",
+    "Found Items": "கண்டெடுக்கப்பட்ட பொருட்கள்",
+    "Preparing campus inventory": "வளாக இருப்பு தயாரித்தல்",
     "Official Campus Lost & Found": "அதிகாரப்பூர்வ வளாக தொலைந்த & கண்டெடுக்கப்பட்ட பிரிவு",
     "Lost Something?<br>We're Here to Help.": "ஏதேனும் தொலைந்ததா?<br>நாங்கள் உதவ இங்கே இருக்கிறோம்.",
     "Lost Something? We're Here to Help.": "ஏதேனும் தொலைந்ததா? நாங்கள் உதவ இங்கே இருக்கிறோம்.",
@@ -1179,6 +1221,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 கிரீன் லெவல் லாஸ்ட் & பவுண்ட். அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை."
   },
   "de": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "Fundsachen",
+    "Preparing campus inventory": "Vorbereitung des Campus-Inventars",
     "Official Campus Lost & Found": "Offizielles Fundbüro des Campus",
     "Lost Something?<br>We're Here to Help.": "Etwas verloren?<br>Wir sind hier, um zu helfen.",
     "Lost Something? We're Here to Help.": "Etwas verloren? Wir sind hier, um zu helfen.",
@@ -1263,6 +1308,9 @@ window.APP_TRANSLATIONS = {
     "© 2026 Green Level Lost &amp; Found. All rights reserved.": "© 2026 Green Level Lost & Found. Alle Rechte vorbehalten."
   },
   "tl": {
+    "Green Level Lost & Found": "Green Level Lost & Found",
+    "Found Items": "Mga bagay na natagpuan",
+    "Preparing campus inventory": "Paghahanda ng imbentaryo ng campus",
     "Official Campus Lost & Found": "Opisyal na Campus Lost & Found",
     "Lost Something?<br>We're Here to Help.": "May Nawawala Ka Ba?<br>Narito Kami Upang Tumulong.",
     "Lost Something? We're Here to Help.": "May Nawawala Ka Ba? Narito Kami Upang Tumulong.",

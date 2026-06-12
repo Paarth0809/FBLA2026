@@ -706,10 +706,29 @@ function initDomTranslationRegistry() {
   walk(document.body);
 }
 
+function decodeEntities(str) {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 function lookupTranslation(translations, key) {
   if (translations[key]) return translations[key];
+  
   const normalizedKey = key.trim().replace(/\s+/g, ' ');
   if (translations[normalizedKey]) return translations[normalizedKey];
+  
+  const decodedKey = decodeEntities(key);
+  if (translations[decodedKey]) return translations[decodedKey];
+  
+  const normalizedDecodedKey = decodedKey.trim().replace(/\s+/g, ' ');
+  if (translations[normalizedDecodedKey]) return translations[normalizedDecodedKey];
+  
   return null;
 }
 
@@ -801,7 +820,7 @@ function watchTranslations(lang) {
       if (needsTranslate) {
         translationObserver.disconnect();
         initDomTranslationRegistry();
-        translateRegistry(lang);
+        translateRegistry(getCurrentLanguage());
         translationObserver.observe(document.body, { childList: true, subtree: true });
       }
     });
