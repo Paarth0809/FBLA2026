@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "nodemon server/index.js",
+    "dev": "nodemon --ignore data/ server/index.js",
     "build:css": "tailwindcss -c tailwind.config.cjs -i ./public/css/tailwind-source.css -o ./public/css/tailwind-local.css --minify",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
