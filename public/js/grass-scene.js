@@ -517,6 +517,7 @@ async function initGrassHero() {
   let hovered = null;
   let pointerActive = false;
   let pointerDirty = false;
+  let pointerOverInteractiveUi = false;
   let pointerClientX = 0;
   let pointerClientY = 0;
   let masksDirty = true;
@@ -700,6 +701,7 @@ async function initGrassHero() {
   function onPointerMove(e) {
     pointerClientX = e.clientX;
     pointerClientY = e.clientY;
+    pointerOverInteractiveUi = isInteractiveGrassTarget(e.target);
     if (isPointerInsideHero(pointerClientX, pointerClientY)) {
       pointerActive = true;
     } else if (pointerActive) {
@@ -741,6 +743,7 @@ async function initGrassHero() {
   function clearPointer() {
     pointerActive = false;
     pointerDirty = false;
+    pointerOverInteractiveUi = false;
     cursorOnGround = false;
     mouseWorld.value.set(99999, 0, 99999);
     hovered = null;
@@ -749,6 +752,9 @@ async function initGrassHero() {
   }
 
   document.addEventListener('pointermove', onPointerMove, { passive: true, capture: true });
+  if ('onpointerrawupdate' in window) {
+    document.addEventListener('pointerrawupdate', onPointerMove, { passive: true, capture: true });
+  }
   hero.addEventListener('pointerleave', clearPointer, { passive: true });
   window.addEventListener('blur', clearPointer, { passive: true });
   document.addEventListener('visibilitychange', () => {
@@ -759,7 +765,7 @@ async function initGrassHero() {
   });
 
   function updateHover() {
-    if (!pointerActive || hitTargets.length === 0) {
+    if (!pointerActive || pointerOverInteractiveUi || hitTargets.length === 0) {
       hovered = null;
       hero.classList.remove('is-hovering-prop');
       return;
