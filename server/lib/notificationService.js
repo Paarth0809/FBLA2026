@@ -6,7 +6,7 @@ const PREFS_FILE = path.join(__dirname, '../../data/notification-preferences.jso
 const LOGS_FILE = path.join(__dirname, '../../data/notification-logs.json');
 
 let transporter = null;
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   try {
     const nodemailer = require('nodemailer');
     transporter = nodemailer.createTransport({
