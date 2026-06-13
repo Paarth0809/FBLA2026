@@ -261,10 +261,6 @@
                 <span class="font-semibold text-sm flex items-center gap-2">
                   <span class="material-symbols-outlined text-primary" style="font-size:20px">mail</span> Email Alerts
                 </span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="pref-email-enabled" class="sr-only peer" onchange="toggleInputState('pref-email-address', this.checked)">
-                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
               </div>
               <input type="email" id="pref-email-address" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Notification Email">
             </div>
@@ -275,10 +271,6 @@
                 <span class="font-semibold text-sm flex items-center gap-2">
                   <span class="material-symbols-outlined text-primary" style="font-size:20px">sms</span> SMS / Phone Alerts
                 </span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="pref-sms-enabled" class="sr-only peer" onchange="toggleInputState('pref-sms-phone', this.checked)">
-                  <div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                </label>
               </div>
               <input type="tel" id="pref-sms-phone" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Phone Number (e.g. +1 555-0199)">
             </div>
@@ -1134,32 +1126,12 @@
       }
     }
 
-    // ── Notifications Preferences & Live Simulator ────────────────────────────
-    function toggleInputState(inputId, enabled) {
-      const input = document.getElementById(inputId);
-      if (input) {
-        input.disabled = !enabled;
-        if (!enabled) {
-          input.classList.add('bg-surface-container-low');
-          input.classList.remove('bg-surface-container-lowest');
-        } else {
-          input.classList.remove('bg-surface-container-low');
-          input.classList.add('bg-surface-container-lowest');
-        }
-      }
-    }
-
     async function loadNotificationPrefs() {
       try {
         const prefs = await api.get('/notifications/preferences');
         
-        document.getElementById('pref-email-enabled').checked = prefs.emailEnabled;
         document.getElementById('pref-email-address').value = prefs.email || '';
-        toggleInputState('pref-email-address', prefs.emailEnabled);
-
-        document.getElementById('pref-sms-enabled').checked = prefs.smsEnabled;
         document.getElementById('pref-sms-phone').value = prefs.phone || '';
-        toggleInputState('pref-sms-phone', prefs.smsEnabled);
 
         document.getElementById('pref-trigger-matches').checked = prefs.matchAlerts;
         document.getElementById('pref-trigger-status').checked = prefs.statusAlerts;
@@ -1172,22 +1144,14 @@
     async function savePrefsForm(e) {
       e.preventDefault();
       
-      const emailEnabled = document.getElementById('pref-email-enabled').checked;
-      const email = document.getElementById('pref-email-address').value;
-      const smsEnabled = document.getElementById('pref-sms-enabled').checked;
-      const phone = document.getElementById('pref-sms-phone').value;
+      const email = document.getElementById('pref-email-address').value.trim();
+      const phone = document.getElementById('pref-sms-phone').value.trim();
       const matchAlerts = document.getElementById('pref-trigger-matches').checked;
       const statusAlerts = document.getElementById('pref-trigger-status').checked;
       const messageAlerts = document.getElementById('pref-trigger-messages').checked;
 
-      if (smsEnabled && !phone.trim()) {
-        showToast('Please enter a phone number to enable SMS alerts.', 'error');
-        return;
-      }
-      if (emailEnabled && !email.trim()) {
-        showToast('Please enter an email address to enable Email alerts.', 'error');
-        return;
-      }
+      const emailEnabled = email !== '';
+      const smsEnabled = phone !== '';
 
       try {
         const btn = e.target.querySelector('button[type="submit"]');
