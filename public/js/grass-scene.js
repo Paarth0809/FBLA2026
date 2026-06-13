@@ -601,6 +601,9 @@ async function initGrassHero() {
         setClearanceSlot(slot, contact, cfg);
         updateDebugClearance(slot);
       }
+      const contactSize = contact.getSize(new THREE.Vector3());
+      const sharpPadWorld = Math.max(contactSize.x, contactSize.z) * 0.035 + 0.06;
+      const sharpBox = contact.clone().expandByVector(new THREE.Vector3(sharpPadWorld, 0.48, sharpPadWorld));
       wrapper.userData = {
         base: wrapper.position.clone(),
         baseRot: cfg.rot.clone(),
@@ -608,6 +611,7 @@ async function initGrassHero() {
         label: cfg.label,
         labelHeight: cfg.labelHeight,
         sharpPad: cfg.sharpPad,
+        sharpBox,
         slot,
       };
       scene.add(wrapper);
@@ -874,10 +878,8 @@ async function initGrassHero() {
     let shouldUpdateMasks = masksDirty;
     props.forEach(({ wrapper, hit, helper }) => {
       const target = wrapper === hovered ? 1 : 0;
-      const previousHover = wrapper.userData.hover;
       wrapper.userData.hover += (target - wrapper.userData.hover) * 0.12;
       const h = wrapper.userData.hover;
-      if (Math.abs(h - previousHover) > 0.0005) shouldUpdateMasks = true;
       const base = wrapper.userData.base, br = wrapper.userData.baseRot;
       wrapper.position.set(base.x, base.y + 0.32 * h, base.z);
       wrapper.scale.setScalar(1 + 0.05 * h);
@@ -952,15 +954,15 @@ async function initGrassHero() {
     }
   }
 
-  const _maskBox = new THREE.Box3();
   const _maskCorner = new THREE.Vector3();
 
   function updatePropScreenMasks() {
     props.forEach(({ wrapper }) => {
       const slot = wrapper.userData.slot;
       if (slot < 0) return;
-      _maskBox.setFromObject(wrapper);
-      updateScreenSlot(propSharpSlots[slot], _maskBox, wrapper.userData.sharpPad, 1.48);
+      const box = wrapper.userData.sharpBox;
+      if (!box) return;
+      updateScreenSlot(propSharpSlots[slot], box, wrapper.userData.sharpPad, 1.48);
     });
   }
 
