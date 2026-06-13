@@ -1470,33 +1470,6 @@ body.scrolly-nav-visible .home-cinematic-nav {
   box-shadow: 0 14px 46px rgba(0,0,0,0.22);
   margin-top: 1rem;
 }
-.home-step-tile,
-.process-card {
-  background: var(--surface-card);
-  border: 1px solid rgba(0,108,73,0.12);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  transition: transform 190ms var(--ease-out-quart),
-              box-shadow 190ms var(--ease-out-quart),
-              border-color 190ms var(--ease-out-quart);
-}
-.process-card {
-  position: relative;
-  overflow: hidden;
-}
-.process-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 5px;
-  background: var(--primary);
-}
-.home-step-tile:hover,
-.process-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(0,108,73,0.22);
-}
 
 /* Skeleton loading shimmer */
 .skeleton {

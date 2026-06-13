@@ -61,6 +61,7 @@ function initScrollLens() {
   const textTexture = createCanvasTexture(compositor.textCanvas, 'ScrollStoryText');
 
   const glassMaterial = createAppleGlassMaterial(backgroundTexture, textTexture);
+  const handleClipUniforms = [];
   const debugLayer = debugMode ? createDebugLayer(sticky) : null;
 
   scene.environmentRotation.set(0, 1.15, 0);
@@ -116,7 +117,7 @@ function initScrollLens() {
 
       model.traverse((node) => {
         if (!node.isMesh) return;
-        polishLensMaterial(node, glassMaterial);
+        polishLensMaterial(node, glassMaterial, handleClipUniforms);
       });
 
       const bounds = new THREE.Box3().setFromObject(model);
@@ -319,18 +320,28 @@ function initScrollLens() {
     uniforms.uDistortion.value = state.distortion;
     uniforms.uOpacity.value = state.glassOpacity * state.modelOpacity;
     uniforms.uTime.value = performance.now() / 1000;
+
+    updateHandleClipUniforms(handleClipUniforms, drawingBuffer, scaleX, scaleY, optics, state);
   }
 
   function updateOriginalTextMasks(state, optics = fallbackProjectedOptics(state)) {
     const maskScale = Number.isFinite(state.maskScale) ? state.maskScale : 0.92;
     const maskStrength = state.modelOpacity > 0.04 ? optics.maskStrength : 0;
-    const radius = maskStrength > 0.12 ? Math.max(0, optics.maskRadius * maskScale * maskStrength) : 0;
+    const finalTextActive = state.target === 'final' && optics.textStrength > 0.08;
+    const effectiveMaskStrength = finalTextActive ? Math.max(maskStrength, 0.9) : maskStrength;
+    const radiusBoost = finalTextActive ? 1.08 : 1;
+    const radius = effectiveMaskStrength > 0.12
+      ? Math.max(0, optics.maskRadius * maskScale * radiusBoost * effectiveMaskStrength)
+      : 0;
+    const feather = radius > 0
+      ? Math.max(3, state.radius * (finalTextActive ? 0.052 : 0.035) * effectiveMaskStrength)
+      : 0;
     originalLayers.forEach((layer) => {
       const rect = layer.getBoundingClientRect();
       layer.style.setProperty('--lens-hole-x', `${optics.centerX - rect.left}px`);
       layer.style.setProperty('--lens-hole-y', `${optics.centerY - rect.top}px`);
       layer.style.setProperty('--lens-hole-r', `${radius}px`);
-      layer.style.setProperty('--lens-hole-feather', `${radius > 0 ? Math.max(3, state.radius * 0.035 * maskStrength) : 0}px`);
+      layer.style.setProperty('--lens-hole-feather', `${feather}px`);
     });
   }
 
@@ -738,7 +749,7 @@ function drawLayerText(context, layer) {
   const layerOpacity = Number.parseFloat(getComputedStyle(layer).opacity || '0');
   if (layerOpacity <= 0.01) return;
 
-  const elements = Array.from(layer.querySelectorAll('.scroll-story-kicker, h1, h2, p:not(.scroll-story-kicker), .scroll-story-button'));
+  const elements = Array.from(layer.querySelectorAll('h1, h2, p:not(.scroll-story-kicker), .scroll-story-button'));
   elements.forEach((element) => drawTextElement(context, element, layerOpacity));
 }
 
@@ -1031,7 +1042,7 @@ function createAppleGlassMaterial(sceneTexture, textTexture) {
   });
 }
 
-function polishLensMaterial(node, glassMaterial) {
+function polishLensMaterial(node, glassMaterial, handleClipUniforms = []) {
   const source = node.material;
   if (!source) return;
 
@@ -1057,17 +1068,80 @@ function polishLensMaterial(node, glassMaterial) {
   }
 
   if (/black/i.test(name)) {
-    node.material = new THREE.MeshPhysicalMaterial({
-      name: source.name || 'Black',
-      color: source.color?.clone?.() ?? new THREE.Color(0x050505),
-      metalness: 0.08,
-      roughness: 0.18,
-      side: THREE.DoubleSide,
-      envMapIntensity: 1.85,
-      clearcoat: 1,
-      clearcoatRoughness: 0.045
-    });
+    const material = createClippedHandleMaterial(source);
+    handleClipUniforms.push(material.userData.handleClipUniforms);
+    node.material = material;
   }
+}
+
+function createClippedHandleMaterial(source) {
+  const material = new THREE.MeshPhysicalMaterial({
+    name: source.name || 'Black',
+    color: source.color?.clone?.() ?? new THREE.Color(0x050505),
+    metalness: 0.08,
+    roughness: 0.18,
+    side: THREE.DoubleSide,
+    envMapIntensity: 1.85,
+    clearcoat: 1,
+    clearcoatRoughness: 0.045
+  });
+
+  const uniforms = {
+    uHandleClipCenter: { value: new THREE.Vector2() },
+    uHandleClipAxisX: { value: new THREE.Vector2(1, 0) },
+    uHandleClipAxisY: { value: new THREE.Vector2(0, 1) },
+    uHandleClipRadiusX: { value: 1 },
+    uHandleClipRadiusY: { value: 1 },
+    uHandleClipStrength: { value: 0 }
+  };
+
+  material.userData.handleClipUniforms = uniforms;
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.fragmentShader = `
+      uniform vec2 uHandleClipCenter;
+      uniform vec2 uHandleClipAxisX;
+      uniform vec2 uHandleClipAxisY;
+      uniform float uHandleClipRadiusX;
+      uniform float uHandleClipRadiusY;
+      uniform float uHandleClipStrength;
+    ${shader.fragmentShader}`;
+
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <clipping_planes_fragment>',
+      `#include <clipping_planes_fragment>
+
+      vec2 handleClipDelta = gl_FragCoord.xy - uHandleClipCenter;
+      vec2 handleClipLocal = vec2(
+        dot(handleClipDelta, uHandleClipAxisX) / max(uHandleClipRadiusX, 1.0),
+        dot(handleClipDelta, uHandleClipAxisY) / max(uHandleClipRadiusY, 1.0)
+      );
+      float handleClipRadius = length(handleClipLocal);
+      float handleClipMask = (1.0 - smoothstep(0.64, 0.88, handleClipRadius)) * uHandleClipStrength;
+      if (handleClipMask > 0.12) discard;`
+    );
+  };
+
+  return material;
+}
+
+function updateHandleClipUniforms(uniformSets, drawingBuffer, scaleX, scaleY, optics, state) {
+  if (!uniformSets.length) return;
+
+  const scale = (scaleX + scaleY) * 0.5;
+  const axisX = new THREE.Vector2(optics.axisX.x, -optics.axisX.y).normalize();
+  const axisY = new THREE.Vector2(optics.axisY.x, -optics.axisY.y).normalize();
+  const faceOnClip = smoothstep(0.48, 0.76, optics.faceOnStrength);
+  const strength = clamp(state.modelOpacity * state.glassOpacity * faceOnClip);
+
+  uniformSets.forEach((uniforms) => {
+    uniforms.uHandleClipCenter.value.set(optics.centerX * scaleX, drawingBuffer.y - optics.centerY * scaleY);
+    uniforms.uHandleClipAxisX.value.copy(axisX);
+    uniforms.uHandleClipAxisY.value.copy(axisY);
+    uniforms.uHandleClipRadiusX.value = Math.max(1, optics.radiusX * scale * 0.78);
+    uniforms.uHandleClipRadiusY.value = Math.max(1, optics.radiusY * scale * 0.78);
+    uniforms.uHandleClipStrength.value = strength;
+  });
 }
 
 function emptyLensState(width, height) {

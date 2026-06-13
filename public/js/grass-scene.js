@@ -519,7 +519,6 @@ async function initGrassHero() {
   let pointerDirty = false;
   let pointerClientX = 0;
   let pointerClientY = 0;
-  let pointerOverHeroUi = false;
   let masksDirty = true;
 
   const propConfigs = [
@@ -701,7 +700,6 @@ async function initGrassHero() {
   function onPointerMove(e) {
     pointerClientX = e.clientX;
     pointerClientY = e.clientY;
-    pointerOverHeroUi = isHeroUiTarget(e.target);
     if (isPointerInsideHero(pointerClientX, pointerClientY)) {
       pointerActive = true;
     } else if (pointerActive) {
@@ -740,14 +738,9 @@ async function initGrassHero() {
     return Boolean(target?.closest?.('a, button, input, textarea, select, label, summary, [role="button"], [role="link"]'));
   }
 
-  function isHeroUiTarget(target) {
-    return Boolean(target?.closest?.('.grass-hero-content, .grass-prop-label'));
-  }
-
   function clearPointer() {
     pointerActive = false;
     pointerDirty = false;
-    pointerOverHeroUi = false;
     cursorOnGround = false;
     mouseWorld.value.set(99999, 0, 99999);
     hovered = null;
@@ -762,11 +755,11 @@ async function initGrassHero() {
     if (document.hidden) clearPointer();
   });
   hero.addEventListener('click', (event) => {
-    if (hovered && !isInteractiveGrassTarget(event.target) && !isHeroUiTarget(event.target)) window.location.href = '/search.html';
+    if (hovered && !isInteractiveGrassTarget(event.target)) window.location.href = '/search.html';
   });
 
   function updateHover() {
-    if (!pointerActive || pointerOverHeroUi || hitTargets.length === 0) {
+    if (!pointerActive || hitTargets.length === 0) {
       hovered = null;
       hero.classList.remove('is-hovering-prop');
       return;

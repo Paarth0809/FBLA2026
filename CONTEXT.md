@@ -5,6 +5,43 @@
 
 ---
 
+## Latest Update — Lens Handle Dot Regression Fix
+
+Current goal: undo the overbroad magnifying-glass material/depth tweak that made
+the frame look broken, then fix the center dot with a narrower model-specific
+solution.
+
+Completed:
+- Confirmed the broad glass shader/depth changes had been reverted; the glass
+  shader is back to its previous opacity/depth behavior.
+- Inspected `public/models/magnifying-glass.glb` and identified the black handle
+  mesh (`Cylinder_Black_0`) as the likely source of the face-on center dot.
+- Updated `public/js/scroll-lens.js` so only the black handle material receives
+  a projected-lens interior clip. The glass/rim shader, model choreography,
+  motion frames, and depth behavior are unchanged.
+- Excluded `.scroll-story-kicker` text from the magnified text texture so debug
+  or step-kicker specks cannot appear as stray dots inside the lens.
+- Kept the final text mask polish from the previous pass.
+
+Verification:
+- `node --check public/js/scroll-lens.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `node --check public/js/grass-scene.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 93 / 93.
+- Headless browser screenshot at the final lens sweep rendered the frame
+  normally and showed no black center dot. The only console error was the
+  expected logged-out `/api/auth/me` 401.
+
+Known risks / notes:
+- Visual confirmation was done in headless Chromium, not the user's existing
+  Chrome profile. A quick manual refresh in Chrome is still recommended because
+  WebGL rendering can differ between browser/GPU contexts.
+- Current uncommitted files include homepage section removals/copy changes,
+  grass-scene hover polish, this lens fix, and this context update.
+
+---
+
 ## Latest Update — Local PostgreSQL + Prisma Runtime Migration
 
 Current goal: switch the live app to local PostgreSQL + Prisma persistence so the
