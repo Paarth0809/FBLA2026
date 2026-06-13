@@ -7,7 +7,7 @@ const LOGS_FILE = path.join(__dirname, '../../data/notification-logs.json');
 
 // Initialize Nodemailer transporter if config is present
 let transporter = null;
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   try {
     const nodemailer = require('nodemailer');
     transporter = nodemailer.createTransport({
@@ -30,7 +30,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
 
 // Initialize Twilio client if config is present
 let twilioClient = null;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+if (process.env.NODE_ENV !== 'test' && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
   try {
     const twilio = require('twilio');
     twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
