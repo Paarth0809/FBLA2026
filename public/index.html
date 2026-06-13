@@ -61,6 +61,43 @@
     body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
     .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
+    /* Enhance readability of text over the grass background */
+    .grass-hero-copy h1 {
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 2px 5px rgba(0, 0, 0, 0.75) !important;
+    }
+    .grass-hero-copy p {
+      color: #ffffff !important;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.95) !important;
+    }
+    .grass-hero-badge {
+      background: rgba(3, 10, 4, 0.6) !important;
+      border: 1px solid rgba(190, 242, 160, 0.45) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    }
+    .grass-hero-badge .material-symbols-outlined {
+      color: #10b981 !important;
+    }
+    .btn-hero-subtle {
+      background: rgba(3, 10, 4, 0.6) !important;
+      border-color: rgba(255, 255, 255, 0.35) !important;
+      color: #ffffff !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    }
+    .btn-hero-subtle:hover:not(:disabled) {
+      background: rgba(3, 10, 4, 0.85) !important;
+      border-color: rgba(255, 255, 255, 0.6) !important;
+      color: #ffffff !important;
+    }
+    .grass-signin-note {
+      background: rgba(3, 10, 4, 0.75) !important;
+      border: 1px solid rgba(190, 242, 160, 0.35) !important;
+      color: #ffffff !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    }
+    .grass-signin-note a {
+      color: #9ce67b !important;
+    }
   </style>
   <script type="importmap">
     {
@@ -93,6 +130,7 @@
         <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Search Items</a>
         <a href="/search-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
         <a href="/report.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Found</a>
+        <a href="/report-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Missing</a>
       </div>
       <div class="flex items-center gap-1">
         <a href="/search.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
@@ -185,9 +223,9 @@
             <span class="material-symbols-outlined" style="font-size:18px">search</span>
             Search Found Items
           </a>
-          <a href="/report-missing.html" class="btn btn-hero-outline btn-lg">
-            <span class="material-symbols-outlined" style="font-size:18px">warning</span>
-            Report Missing Item
+          <a href="/search-missing.html" class="btn btn-primary btn-lg">
+            <span class="material-symbols-outlined" style="font-size:18px">search</span>
+            Search Missing Items
           </a>
         </div>
 
