@@ -265,15 +265,6 @@
               <input type="email" id="pref-email-address" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Notification Email">
             </div>
 
-            <!-- SMS Configuration -->
-            <div class="flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-sm flex items-center gap-2">
-                  <span class="material-symbols-outlined text-primary" style="font-size:20px">sms</span> SMS / Phone Alerts
-                </span>
-              </div>
-              <input type="tel" id="pref-sms-phone" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Phone Number (e.g. +1 555-0199)">
-            </div>
 
             <div class="border-t border-outline-variant my-1"></div>
 
@@ -1131,7 +1122,6 @@
         const prefs = await api.get('/notifications/preferences');
         
         document.getElementById('pref-email-address').value = prefs.email || '';
-        document.getElementById('pref-sms-phone').value = prefs.phone || '';
 
         document.getElementById('pref-trigger-matches').checked = prefs.matchAlerts;
         document.getElementById('pref-trigger-status').checked = prefs.statusAlerts;
@@ -1145,13 +1135,11 @@
       e.preventDefault();
       
       const email = document.getElementById('pref-email-address').value.trim();
-      const phone = document.getElementById('pref-sms-phone').value.trim();
       const matchAlerts = document.getElementById('pref-trigger-matches').checked;
       const statusAlerts = document.getElementById('pref-trigger-status').checked;
       const messageAlerts = document.getElementById('pref-trigger-messages').checked;
 
       const emailEnabled = email !== '';
-      const smsEnabled = phone !== '';
 
       try {
         const btn = e.target.querySelector('button[type="submit"]');
@@ -1161,8 +1149,8 @@
         await api.post('/notifications/preferences', {
           emailEnabled,
           email,
-          smsEnabled,
-          phone,
+          smsEnabled: false,
+          phone: '',
           matchAlerts,
           statusAlerts,
           messageAlerts
