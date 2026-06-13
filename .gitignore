@@ -7,3 +7,6 @@ test-results/
 .firecrawl/
 data/notification-logs.json
 data/notification-preferences.json
+.claude/
+.planning/
+.vscode/
