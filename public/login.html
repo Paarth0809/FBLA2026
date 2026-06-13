@@ -49,31 +49,31 @@
     <div class="relative z-10">
       <a href="/index.html" class="flex items-center gap-2 text-white font-headline font-bold text-lg hover:text-primary-container transition-colors">
         <span class="material-symbols-outlined filled text-primary-container" style="font-size:22px">search</span>
-        Green Level Lost &amp; Found
+        <span>Green Level Lost & Found</span>
       </a>
     </div>
 
     <div class="relative z-10">
       <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-6">
         <span class="material-symbols-outlined filled text-primary-container" style="font-size:14px">verified</span>
-        Verified Community
+        <span>Main Office</span>
       </div>
       <h2 class="font-headline font-extrabold text-4xl text-white leading-tight tracking-tight mb-4">
-        Welcome<br>back to<br>campus.
+        Welcome back
       </h2>
       <p class="text-white/70 text-sm leading-relaxed auth-visual-copy">
-        Sign in to manage your reports, review claim updates, and message other verified users when a return is ready.
+        Sign in to document a found item, add photo, and coordinate return.
       </p>
     </div>
 
     <div class="relative z-10 auth-visual-facts">
       <div class="auth-visual-fact">
-        <div class="font-headline font-bold text-lg text-white">Student portal</div>
-        <div class="text-white/60 text-xs mt-0.5">Track found items, missing reports, claims, and messages.</div>
+        <div class="font-headline font-bold text-lg text-white">Student Portal</div>
+        <div class="text-white/60 text-xs mt-0.5">Our campus system helps you report found items, search missing belongings, and reunite them with their owners.</div>
       </div>
       <div class="auth-visual-fact">
-        <div class="font-headline font-bold text-lg text-white">Admin review</div>
-        <div class="text-white/60 text-xs mt-0.5">Submissions are reviewed before they appear publicly.</div>
+        <div class="font-headline font-bold text-lg text-white">For Administrators</div>
+        <div class="text-white/60 text-xs mt-0.5">School administrators can access the admin dashboard to approve item submissions, manage claims, and oversee the entire lost and found system.</div>
       </div>
     </div>
   </div>
@@ -82,10 +82,13 @@
   <div class="flex-1 flex flex-col justify-center p-8 md:p-12 overflow-y-auto hero-enter" style="--i:0">
     <div class="max-w-md w-full mx-auto">
 
-      <a href="/index.html" class="flex md:hidden items-center gap-2 font-headline font-bold text-primary mb-8 text-base">
-        <span class="material-symbols-outlined filled text-primary-container" style="font-size:20px">search</span>
-        Green Level Lost &amp; Found
-      </a>
+      <!-- Back to Public Site button -->
+      <div class="mb-6">
+        <a href="/index.html" class="inline-flex items-center gap-2 bg-surface-container hover:bg-surface-container-highest text-on-surface hover:text-primary px-3.5 py-2 rounded-xl text-xs font-semibold border border-outline-variant/30 transition-all">
+          <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+          <span>Back to Public Site</span>
+        </a>
+      </div>
 
       <h2 class="font-headline font-bold text-3xl text-on-surface mb-1">Welcome back</h2>
       <p class="text-on-surface-variant text-sm mb-8">Sign in to report items, manage claims, and view submission updates.</p>
@@ -98,7 +101,7 @@
           <div class="relative auth-field">
             <span class="material-symbols-outlined absolute top-1/2 -translate-y-1/2 text-outline" style="font-size:18px">mail</span>
             <input class="w-full rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
-                   type="email" id="email" placeholder="you@school.edu" required autofocus>
+                   type="email" id="email" placeholder="you@school.edu" required autofocus data-i18n-skip="true">
           </div>
         </div>
         <div>
@@ -113,12 +116,12 @@
                 class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold text-sm hover:bg-primary/90 transition-colors mt-2"
                 style="box-shadow:0 2px 0 #005236">
           <span class="material-symbols-outlined" style="font-size:18px">login</span>
-          Sign In
+          <span>Sign In</span>
         </button>
       </form>
 
       <p class="text-center text-sm text-on-surface-variant mt-6">
-        Don't have an account? <a href="/signup.html" class="text-primary font-semibold hover:underline">Create one</a>
+        <span>Don't have an account?</span> <a href="/signup.html" class="text-primary font-semibold hover:underline">Create Account</a>
       </p>
 
       <div class="mt-8 pt-5 border-t border-outline-variant/50">
@@ -128,17 +131,17 @@
                   class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors text-xs font-medium text-on-surface-variant"
                   aria-label="Fill in admin demo credentials">
             <span class="material-symbols-outlined" style="font-size:20px">manage_accounts</span>
-            Admin
+            <span>Admin</span>
           </button>
           <button onclick="fillDemo('student@school.edu','student123')"
                   class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors text-xs font-medium text-on-surface-variant"
-                  aria-label="Fill in Student 1 demo credentials">
+                  aria-label="Fill in Student 1 demo credentials" data-i18n-skip="true">
             <span class="material-symbols-outlined" style="font-size:20px">person</span>
             Student 1
           </button>
           <button onclick="fillDemo('student2@school.edu','student123')"
                   class="flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border border-outline-variant hover:bg-surface-container-low transition-colors text-xs font-medium text-on-surface-variant"
-                  aria-label="Fill in Student 2 demo credentials">
+                  aria-label="Fill in Student 2 demo credentials" data-i18n-skip="true">
             <span class="material-symbols-outlined" style="font-size:20px">person</span>
             Student 2
           </button>
@@ -148,7 +151,7 @@
   </div>
 
   <script src="/js/api.js"></script>
-  <script src="/js/nav.js"></script>
+  <script src="/js/nav.js?v=1.0.3"></script>
   <script>
     // If the user is already logged in, skip this page and go to the redirect target
     document.addEventListener('userLoaded', function(e) {

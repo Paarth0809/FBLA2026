@@ -109,7 +109,16 @@
       </div>
       <h2 class="font-headline font-bold text-2xl text-on-surface mb-2">Admin Access Required</h2>
       <p class="text-on-surface-variant text-sm mb-6">This page is only accessible to administrators.</p>
-      <a href="/login.html" class="btn btn-primary">Sign In as Admin</a>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href="/login.html?redirect=/admin.html" class="btn btn-primary inline-flex items-center gap-2">
+          <span class="material-symbols-outlined">login</span>
+          <span>Sign In as Admin</span>
+        </a>
+        <a href="/index.html" class="btn btn-outline inline-flex items-center gap-2">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span>Back to Public Site</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -205,7 +214,7 @@
   </div>
 
   <script src="/js/api.js"></script>
-  <script src="/js/nav.js"></script>
+  <script src="/js/nav.js?v=1.0.3"></script>
   <script>
     // ── Auth guard ────────────────────────────────────────────
     document.addEventListener('userLoaded', function(e) {
@@ -328,14 +337,14 @@
     async function foundAction(id, action) {
       try {
         await api.put(`/admin/items/${id}/${action}`);
-        showToast('Updated!', 'success');
+        showToast(window.t('Updated!'), 'success');
         loadFound();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
     async function deleteFound(id) {
-      if (!confirm('Delete this item? This cannot be undone.')) return;
-      try { await api.delete(`/admin/items/${id}`); showToast('Deleted.', 'success'); loadFound(); }
+      if (!confirm(window.t('Delete this item? This cannot be undone.'))) return;
+      try { await api.delete(`/admin/items/${id}`); showToast(window.t('Deleted.'), 'success'); loadFound(); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -403,13 +412,13 @@
     }
 
     async function missingAction(id, action) {
-      try { await api.put(`/admin/missing-items/${id}/${action}`); showToast('Updated!', 'success'); loadMissing(); }
+      try { await api.put(`/admin/missing-items/${id}/${action}`); showToast(window.t('Updated!'), 'success'); loadMissing(); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
     async function deleteMissing(id) {
-      if (!confirm('Delete this item?')) return;
-      try { await api.delete(`/admin/missing-items/${id}`); showToast('Deleted.', 'success'); loadMissing(); }
+      if (!confirm(window.t('Delete this item?'))) return;
+      try { await api.delete(`/admin/missing-items/${id}`); showToast(window.t('Deleted.'), 'success'); loadMissing(); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -475,20 +484,20 @@
     }
 
     async function claimAction(id, action) {
-      try { await api.put(`/admin/claims/${id}/${action}`); showToast('Updated!', 'success'); loadClaims(); loadFound(); loadMissing(); }
+      try { await api.put(`/admin/claims/${id}/${action}`); showToast(window.t('Updated!'), 'success'); loadClaims(); loadFound(); loadMissing(); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
     async function deleteClaim(id) {
-      if (!confirm('Delete this claim?')) return;
-      try { await api.delete(`/admin/claims/${id}`); showToast('Deleted.', 'success'); loadClaims(); }
+      if (!confirm(window.t('Delete this claim?'))) return;
+      try { await api.delete(`/admin/claims/${id}`); showToast(window.t('Deleted.'), 'success'); loadClaims(); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
     function viewClaim(id) {
       api.get('/admin/claims').then(claims => {
         const c = claims.find(x => x.id === id);
-        if (c) alert('Proof of ownership from ' + c.claimerName + ':\n\n"' + c.description + '"');
+        if (c) alert(window.t('Proof of ownership from ') + c.claimerName + ':\n\n"' + c.description + '"');
       });
     }
 

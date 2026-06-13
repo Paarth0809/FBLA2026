@@ -1,7 +1,35 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-11 by Codex
+> Last updated: 2026-06-12 by Codex
+
+---
+
+## Latest Update — Translation Feature and Dictionary Fixes
+
+Current goal: fix the translation feature issues where certain elements, headings, and dynamic strings fail to translate, or translate back to English upon dynamic DOM mutations.
+
+Completed:
+- Fixed HTML entity normalization in `public/js/nav.js`'s `lookupTranslation()` function to decode entity wrappers like `&amp;` to match standard dictionary keys.
+- Resolved MutationObserver stale language closure in `watchTranslations()` by referencing the current language dynamically via `getCurrentLanguage()` instead of the stale closed-over initialization language parameter.
+- Added missing translations for `"Green Level Lost & Found"`, `"Found Items"`, and `"Preparing campus inventory"` across all 16 target languages in `public/js/translations.js`.
+- Added `data-i18n-skip` attribute to number circles and loader progress indicators in `public/index.html` to bypass translation audits.
+- Ran backend test suite (`npm test`) — all 93 / 93 passed.
+- Ran Playwright UI end-to-end test suite (`npm run test:ui`) — all 6 / 6 passed.
+- Pushed changes to feature branch `aau007/language-switcher`.
+
+---
+
+## Historical Context — Dynamic Language Switcher Implementation
+
+Completed:
+- Created translation dictionary file `public/js/translations.js`.
+- Modified `public/js/nav.js` to inject switcher, load translations, cache original DOM text content/inner HTML, translate elements, and watch dynamic changes via a non-self-triggering MutationObserver.
+- Resolved MutationObserver race conditions that cleared the translation registry.
+- Ensured original English keys are preserved while elements are kept in the translation loop, fixing duplication issues.
+- Installed local PostgreSQL, set up the development databases, applied migrations, and verified that 93/93 tests pass successfully.
+- Verified dynamic language switching using automated browser diagnostics.
+- Switched to main, pulled origin main, merged main into our branch, and pushed the feature branch `aau007/language-switcher` to origin.
 
 ---
 
@@ -43,10 +71,6 @@ Known risks / notes:
 ---
 
 ## Latest Update — Local PostgreSQL + Prisma Runtime Migration
-
-Current goal: switch the live app to local PostgreSQL + Prisma persistence so the
-judge demo is database-backed and still works without Wi-Fi when the local DB
-service is running.
 
 Completed:
 - Installed and started Homebrew `postgresql@16` locally.

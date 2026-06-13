@@ -45,6 +45,18 @@
     body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
     .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .match-card-item .uploaded-image-fallback {
+      width: 74px;
+      height: 74px;
+      flex: none;
+      border-radius: var(--radius-md);
+    }
+    @media (max-width: 768px) {
+      .match-card-item .uploaded-image-fallback {
+        width: 100%;
+        height: 150px;
+      }
+    }
   </style>
 </head>
 <body class="bg-surface min-h-screen flex">
@@ -117,7 +129,7 @@
         <div>
           <div class="eyebrow mb-2">Student Portal</div>
           <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Welcome back</h1>
-          <p class="text-on-surface-variant text-sm">Track reports, claims, matches, and messages from one place.</p>
+          <p class="text-on-surface-variant text-sm">Track reports, claims, matches, alerts, and messages from one place.</p>
         </div>
         <div class="flex gap-2 flex-wrap">
           <a href="/report.html" class="btn btn-primary btn-sm flex items-center gap-1.5">
@@ -177,6 +189,7 @@
         <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">pan_tool</span> Claims</button>
         <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn"><span class="material-symbols-outlined">compare_arrows</span> Matches</button>
         <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn"><span class="material-symbols-outlined">mail</span> Messages</button>
+        <button class="tab"        onclick="switchTab('settings', this)" role="tab" aria-selected="false" aria-controls="tab-settings" id="settings-tab-btn"><span class="material-symbols-outlined">notifications</span> Alerts</button>
       </div>
 
       <!-- Tab: Found Items -->
@@ -202,6 +215,52 @@
       <!-- Tab: Messages (Inbox) -->
       <div id="tab-messages" class="tab-panel" role="tabpanel" aria-label="My messages inbox">
         <div id="messages-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading messages"></div></div></div>
+      </div>
+
+      <!-- Tab: Alerts Settings -->
+      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-label="Alert preferences">
+        <div class="max-w-2xl bg-white border border-outline-variant p-6 rounded-2xl shadow-sm flex flex-col gap-6">
+          <div>
+            <h3 class="font-headline font-bold text-lg text-on-surface mb-1">Alert Preferences</h3>
+            <p class="text-xs text-on-surface-variant">Configure how you receive notifications for lost and found activity.</p>
+          </div>
+
+          <form id="prefs-form" class="flex flex-col gap-6" onsubmit="savePrefsForm(event)">
+            <!-- Email Configuration -->
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary" style="font-size:20px">mail</span> Email Alerts
+                </span>
+              </div>
+              <input type="email" id="pref-email-address" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest" placeholder="Notification Email">
+            </div>
+
+
+            <div class="border-t border-outline-variant my-1"></div>
+
+            <!-- Alert Triggers selection -->
+            <div class="flex flex-col gap-3">
+              <h4 class="font-headline font-semibold text-sm text-on-surface">Notify me when:</h4>
+              <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="pref-trigger-matches" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+                <span>A potential match is detected</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="pref-trigger-status" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+                <span>My submission is approved/rejected</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="pref-trigger-messages" class="rounded border-outline-variant text-primary focus:ring-primary/20">
+                <span>I receive a chat message</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full mt-4 flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined" style="font-size:18px">save</span> Save Alert Settings
+            </button>
+          </form>
+        </div>
       </div>
 
       <!-- Danger Zone -->
@@ -267,7 +326,7 @@
   </div>
 
   <script src="/js/api.js"></script>
-  <script src="/js/nav.js"></script>
+  <script src="/js/nav.js?v=1.0.3"></script>
   <script>
     // ── Auth guard ────────────────────────────────────────────────────────────
     document.addEventListener('userLoaded', function(e) {
@@ -281,6 +340,7 @@
       loadMyClaims();
       loadMatches();
       loadMessages();
+      loadNotificationPrefs();
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
@@ -383,10 +443,10 @@
     }
 
     async function clearFoundHistory() {
-      if (!confirm('Remove all claimed and rejected found items from your history? Active submissions will not be affected.')) return;
+      if (!confirm(window.t('Remove all claimed and rejected found items from your history? Active submissions will not be affected.'))) return;
       try {
         await api.delete('/items/mine/resolved');
-        showToast('History cleared.', 'success');
+        showToast(window.t('History cleared.'), 'success');
         loadFound();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -509,10 +569,10 @@
     }
 
     async function clearMissingHistory() {
-      if (!confirm('Remove all found and rejected missing items from your history? Active submissions will not be affected.')) return;
+      if (!confirm(window.t('Remove all found and rejected missing items from your history? Active submissions will not be affected.'))) return;
       try {
         await api.delete('/missing-items/mine/resolved');
-        showToast('History cleared.', 'success');
+        showToast(window.t('History cleared.'), 'success');
         loadMissing();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -537,7 +597,7 @@
 
     // ── Delete account ────────────────────────────────────────────────────────
     async function deleteAccount() {
-      if (!confirm('Are you sure you want to delete your account? This will permanently remove all your items and claims and cannot be undone.')) return;
+      if (!confirm(window.t('Are you sure you want to delete your account? This will permanently remove all your items and claims and cannot be undone.'))) return;
       try {
         await api.delete('/auth/account');
         window.location.href = '/';
@@ -547,10 +607,10 @@
     }
 
     async function markMissingFound(id) {
-      if (!confirm('Mark this item as found? This will remove it from the public missing items board.')) return;
+      if (!confirm(window.t('Mark this item as found? This will remove it from the public missing items board.'))) return;
       try {
         await api.put('/missing-items/' + id + '/mark-found');
-        showToast('Item marked as found!', 'success');
+        showToast(window.t('Item marked as found!'), 'success');
         loadMissing();
       } catch (err) {
         showToast(err.message, 'error');
@@ -602,10 +662,10 @@
     }
 
     async function clearClaimsHistory() {
-      if (!confirm('Remove all approved and rejected claims from your history? Pending claims will not be affected.')) return;
+      if (!confirm(window.t('Remove all approved and rejected claims from your history? Pending claims will not be affected.'))) return;
       try {
         await api.delete('/claims/mine/resolved');
-        showToast('History cleared.', 'success');
+        showToast(window.t('History cleared.'), 'success');
         loadMyClaims();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -673,12 +733,10 @@
         if (!_matchesNotified && withMatches.length > 0) {
           _matchesNotified = true;
           const total = withMatches.reduce((n, g) => n + g.foundMatches.length, 0);
-          showToast(
-            total + ' potential match' + (total !== 1 ? 'es' : '') +
-            ' found for your missing item' + (withMatches.length !== 1 ? 's' : '') +
-            '! Check the Matches tab.',
-            'success'
-          );
+          const toastMsg = total === 1
+            ? window.t("1 potential match found for your missing item! Check the Matches tab.")
+            : window.t("Potential matches found for your missing items! Check the Matches tab.").replace('Potential matches', total + ' potential matches');
+          showToast(toastMsg, 'success');
         }
 
         if (results.length === 0) {
@@ -868,7 +926,7 @@
 
     // ── Delete a message ──────────────────────────────────────────────────────
     async function deleteMessage(id) {
-      if (!confirm('Delete this message? This cannot be undone.')) return;
+      if (!confirm(window.t('Delete this message? This cannot be undone.'))) return;
       try {
         await api.delete('/messages/' + id);
         const card = document.getElementById('msg-card-' + id);
@@ -882,7 +940,7 @@
               <p class="text-muted">Messages from finders and claimers appear here once claims are approved.</p>
             </div>`;
         }
-        showToast('Message deleted.', 'success');
+        showToast(window.t('Message deleted.'), 'success');
         loadMessages();
       } catch (err) {
         showToast(err.message, 'error');
@@ -989,25 +1047,25 @@
       const sendBtn  = document.getElementById('msg-send-btn');
 
       if (!content) {
-        errorEl.textContent = 'Please enter a message before sending.';
+        errorEl.textContent = window.t('Please enter a message before sending.');
         errorEl.classList.remove('hidden');
         return;
       }
 
       if (content.length < 5) {
-        errorEl.textContent = 'Your message is too short — please include at least 5 characters.';
+        errorEl.textContent = window.t('Your message is too short — please include at least 5 characters.');
         errorEl.classList.remove('hidden');
         return;
       }
       if (content.length > 1000) {
-        errorEl.textContent = 'Message exceeds 1000 characters. Please shorten it.';
+        errorEl.textContent = window.t('Message exceeds 1000 characters. Please shorten it.');
         errorEl.classList.remove('hidden');
         return;
       }
 
       errorEl.classList.add('hidden');
       sendBtn.disabled     = true;
-      sendBtn.textContent  = 'Sending…';
+      sendBtn.textContent  = window.t('Sending…');
 
       try {
         await api.post('/messages', {
@@ -1019,15 +1077,62 @@
         });
 
         closeMessageModal();
-        showToast('Message sent!', 'success');
+        showToast(window.t('Message sent!'), 'success');
         loadMessages();
       } catch (err) {
-        errorEl.textContent = err.message || 'Failed to send message. Please try again.';
+        errorEl.textContent = err.message || window.t('Failed to send message. Please try again.');
         errorEl.classList.remove('hidden');
         sendBtn.disabled    = false;
         sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span> Send Message';
       }
     }
+
+    async function loadNotificationPrefs() {
+      try {
+        const prefs = await api.get('/notifications/preferences');
+
+        document.getElementById('pref-email-address').value = prefs.email || '';
+
+        document.getElementById('pref-trigger-matches').checked = prefs.matchAlerts;
+        document.getElementById('pref-trigger-status').checked = prefs.statusAlerts;
+        document.getElementById('pref-trigger-messages').checked = prefs.messageAlerts;
+      } catch (err) {
+        console.error('Failed to load notification preferences:', err);
+      }
+    }
+
+    async function savePrefsForm(e) {
+      e.preventDefault();
+
+      const email = document.getElementById('pref-email-address').value.trim();
+      const matchAlerts = document.getElementById('pref-trigger-matches').checked;
+      const statusAlerts = document.getElementById('pref-trigger-status').checked;
+      const messageAlerts = document.getElementById('pref-trigger-messages').checked;
+
+      const emailEnabled = email !== '';
+
+      try {
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner inline-block w-4 h-4 mr-2"></span> Saving...';
+
+        await api.post('/notifications/preferences', {
+          emailEnabled,
+          email,
+          matchAlerts,
+          statusAlerts,
+          messageAlerts
+        });
+
+        showToast('Notification settings saved successfully!', 'success');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> Save Alert Settings';
+      } catch (err) {
+        showToast(err.message || 'Failed to save settings.', 'error');
+      }
+    }
+
+
 
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeMessageModal();

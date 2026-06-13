@@ -610,6 +610,11 @@ function initScrollLens() {
     ScrollTrigger.refresh();
     requestRender();
   }, { passive: true });
+  document.addEventListener('languageChanged', () => {
+    resize();
+    ScrollTrigger.refresh();
+    requestRender();
+  });
 
   resize();
   requestRender();

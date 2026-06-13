@@ -47,7 +47,7 @@ async function signUp(page, { name, email, password }) {
   await page.fill('#name', name);
   await page.fill('#email', email);
   await page.fill('#password', password);
-  await page.fill('#confirm', password);
+  await page.fill('#confirmPassword', password);
   await page.click('#submit-btn');
   // signup redirects to '/' on success
   await page.waitForLoadState('networkidle');

@@ -5,3 +5,5 @@ uploads/
 .playwright-mcp/
 test-results/
 .firecrawl/
+data/notification-logs.json
+data/notification-preferences.json

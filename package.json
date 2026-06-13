@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "nodemon server/index.js",
+    "dev": "nodemon --ignore data/ server/index.js",
     "build:css": "tailwindcss -c tailwind.config.cjs -i ./public/css/tailwind-source.css -o ./public/css/tailwind-local.css --minify",
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
@@ -34,6 +34,7 @@
     "heic-convert": "^2.1.0",
     "helmet": "^8.2.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.11",
     "pg": "^8.21.0",
     "three": "^0.184.0",
     "uuid": "^11.1.1",
