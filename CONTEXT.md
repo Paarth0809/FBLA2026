@@ -648,3 +648,111 @@ node tests/run.js
 2. Verify each page visually matches Stitch design patterns
 3. Test all interactive flows (login, report, claim, match, message, admin approve/reject)
 4. Confirm mobile layout works (sidebar hidden, top bar visible)
+
+---
+
+## Current Goal
+
+Cinematic grass hero v2.2 on branch `codex/cinematic-grass-hero`: contact-aware
+grass around the prop models, inertial cursor wake, living deep-green bloom
+center, seamless top falloff, denser coverage, more top-down camera.
+
+## Completed (2026-06-12, Claude — v2, v2.1, v2.2 same day)
+
+v2.2 changes (over v2.1, all in the grass hero only):
+- Contact-aware clearings: after each GLB loads, its measured world AABB is
+  written into `uClearance[i]` as an XZ ellipse (cx, cz, rx+0.2, rz+0.2). In
+  the shader, blades under a prop collapse to ~8% stubble; rim blades shorten
+  with height, comb outward (lean overridden toward clearDir), and ignore the
+  wind, so grass tucks around the items instead of slicing their surfaces.
+- Inertial wake: the bloom center is a damped spring (k=70, c=13) chasing the
+  raycast point; the trail texture decays slower (~2.5-3s). Responsive at the
+  cursor, graceful trailing settle behind it.
+- Living bloom color: pressed grass mixes toward deep green
+  (vec3(0.02,0.075,0.012), height-graded) capped at 0.88 instead of
+  multiplying to black; bloom height loss capped 16%; lit rim ring kept. The
+  ground shader also presses toward green, not black.
+- Blur seam fix + perf: removed the top/left/right backdrop-filter bands
+  (rectangular seam + compositor cost); only the bottom tilt-shift blur
+  remains. Side/top falloff is now smooth ::before gradients; hero::after
+  bottom fade reduced (was a 18rem near-black band).
+- Density: near-camera spawn bias (pow 0.82 on z), underlayer 38%, greener
+  ground; light pool extended toward the foreground (0, 3.2, r10, min 0.24).
+- Camera: desktop (0, 4.15, 8.0) -> target (0, -0.85, -0.9), FOV 39 (~27deg
+  pitch); mobile (0, 4.45, 10.6) FOV 43; mobile items re-staged.
+
+### v2.3 (Sonnet implementation, 2026-06-12)
+
+All changes confined to `public/js/grass-scene.js`. No scroll story, auth, server, or DB files touched.
+
+**Palette bands (spec item 1):**
+- Replaced dual tipCool/tipWarm hue-mixed gradient with three distinct linear bands: root vec3(0,0.003,0), body vec3(0.001,0.032,0), tip vec3(1.6,1.35,0.17) in linear space (values >1 needed to survive ACES FilmicToneMapping at exposure 1.34).
+- Per-blade brightness jitter only (bv = 0.8 + hue*0.35); hue attribute now drives brightness variation, not color hue.
+- Removed warm pool tint vec3(pool*0.97,pool,pool*0.7) → neutral `col *= pool`.
+- Reduced backlight additive term to vec3(0.09,0.08,0.02)*pow(t,3.0) (~30% of prior).
+- Measured on-screen: tips ~#a99719 (target #b0a234, within ~15% on R/G channels), body ~#293010 (target #032e00 range), roots near-black green.
+
+**Bloom (spec item 2):**
+- uBloomRadius 3.3 → 2.3.
+- pressMix raised to clamp(max(press*0.75, bloom*0.96), 0, 0.96) for near-black-green core.
+- pressedCol changed to vec3(0,0.008,0.001)*(0.4+0.6*t) — pure dark green.
+- Ring coefficient 0.16 → 0.05 (minimal lit ring).
+
+**Inertia (spec item 3):**
+- Spring stiffness 70 → 38, damping 13 → 9.
+- Trail fade dt*1.4 → dt*1.0 (longer-lasting wake, ~1.5s visible decay).
+
+**Item repositioning + corridor strengthening (spec item 4):**
+- Desktop positions: airpods z 2.3→3.0, iphone z 2.8→3.6, stanley z 2.45→3.2 (all moved toward camera).
+- maxSize: airpods 0.82→0.75, iphone 1.45→1.3, stanley 1.42→1.3 (~10% shrink).
+- Clearance margin 0.2 → 0.38 (wider stubble zone around each prop).
+- Corridor +z shaping factor 0.78 → 0.45.
+- occl smoothstep(0.45,0.95) → smoothstep(0.35,0.9).
+- clearDir push on pos.xz: 1.15*tip → 1.8*tip.
+- Height collapse: clearing*0.52*t → clearing*0.72*t.
+
+**Performance (spec item 5):**
+- DPR cap desktop 1.6 → 1.45.
+- Top grass count 56000 → 46000.
+- Added `trailEnergy` decay counter: skip trail fade + GPU upload when no cursor activity and energy ≤ 0 (saves per-frame DataTexture upload at idle).
+- Reused `_labelAnchor` Vector3 in updateLabel instead of clone().
+
+**QA results:**
+- node --check: PASS.
+- git diff --check: PASS.
+- npm test: 93/93 PASS.
+- Mobile 390x844: overflow=0px, all 3 items visible below copy.
+- Reduced motion: static scene renders correctly.
+- Item clipping: AirPods face clean, iPhone screen clean, Stanley body clean.
+- Bloom: smaller radius (~2.3wu), near-black-green dense center with blades splayed, smooth gradient outward, inertial wake visible ~1.2s after cursor moves away.
+
+## Current State
+
+Changed files (uncommitted): `public/js/grass-scene.js`,
+`public/css/style.css`, `public/index.html`, `PLAN.md`, `CONTEXT.md`.
+
+## Commands Run
+
+```bash
+node --check public/js/grass-scene.js   # OK
+git diff --check                        # OK
+npm test                                # 93 / 93 pass
+```
+
+Playwright QA (1440x1000, 390x844): per-item contact closeups show no blades
+crossing the iPhone/AirPods/Stanley faces; wake sweep + decay verified; top
+falloff continuous; reduced motion OK; overflow 0; 61fps desktop / 49fps
+mobile viewport on M4. Remember: occluded windows throttle rAF — use
+page.bringToFront() before measuring.
+
+## Known Risks
+
+- Pre-existing 401 `/api/auth/me` + THREE.Clock deprecation warnings.
+- Contact ellipses are XZ AABB approximations; extreme prop re-poses would
+  need the padding (0.2) retuned.
+- Ground mesh uses a custom shader (no renderer shadows); contact-shadow
+  planes provide grounding.
+
+## Next Step
+
+User review in real Chrome; commit the branch when approved.

@@ -66,9 +66,16 @@
     {
       "imports": {
         "three": "/vendor/three/build/three.module.js",
+        "three/webgpu": "/vendor/three/build/three.webgpu.js",
+        "three/tsl": "/vendor/three/build/three.tsl.js",
         "three/addons/": "/vendor/three/addons/",
         "gsap": "/vendor/gsap/index.js",
         "gsap/ScrollTrigger": "/vendor/gsap/ScrollTrigger.js"
+      },
+      "scopes": {
+        "/vendor/three-gpu-addons/": {
+          "three": "/vendor/three/build/three.webgpu.js"
+        }
       }
     }
   </script>
@@ -149,83 +156,63 @@
     </div>
   </section>
 
-  <!-- Hero -->
-  <section class="home-hero pt-16 relative overflow-hidden">
-    <div class="max-w-container mx-auto px-6 py-16 md:py-24 relative z-10">
-      <div class="home-hero-grid">
+  <!-- Cinematic lost-items grass hero -->
+  <section class="home-hero grass-hero relative overflow-hidden" data-grass-hero aria-label="Lost items resting in cinematic grass">
+    <canvas class="grass-hero-canvas" data-grass-canvas aria-hidden="true"></canvas>
+    <div class="grass-hero-fallback" data-grass-fallback aria-hidden="true"></div>
+    <div class="grass-hero-vignette" aria-hidden="true"></div>
+    <div class="grass-hero-grain" aria-hidden="true"></div>
+    <div class="grass-hero-tiltshift" aria-hidden="true">
+      <div class="grass-blur grass-blur-bottom"></div>
+    </div>
+    <div class="grass-hero-glow" aria-hidden="true"></div>
+    <div class="grass-prop-label" data-grass-label aria-hidden="true">
+      <span data-grass-label-name>Found item</span>
+      <small>Search found items</small>
+    </div>
 
-        <!-- Left: headline + campus image -->
-        <div class="home-title-column min-w-0">
-          <div class="hero-enter inline-flex items-center gap-2 bg-white/10 text-white border border-white/20 rounded-full px-4 py-1.5 text-sm font-semibold mb-6" style="--i:0">
-            <span class="material-symbols-outlined icon-fill text-primary-container" style="font-size:16px">verified_user</span>
-            Official Campus Lost &amp; Found
-          </div>
-          <h1 class="hero-enter font-headline font-extrabold text-white leading-tight tracking-tight mb-6" style="--i:1;font-size:clamp(3rem,6vw,4.8rem);letter-spacing:-0.025em;text-wrap:balance">
-            Lost Something?<br>We're Here to Help.
-          </h1>
-
-          <figure class="hero-enter home-school-card" style="--i:2">
-            <img src="/images/school.jpg" alt="Green Level High School campus">
-            <figcaption class="home-school-caption">
-              <span class="material-symbols-outlined icon-fill" aria-hidden="true">location_on</span>
-              <span><strong>Main Office</strong><br>Pickup and return desk</span>
-            </figcaption>
-          </figure>
+    <div class="grass-hero-content max-w-container mx-auto px-6">
+      <div class="grass-hero-copy hero-enter" style="--i:0">
+        <div class="grass-hero-badge">
+          <span class="material-symbols-outlined icon-fill" aria-hidden="true">verified_user</span>
+          Official Campus Lost &amp; Found
+        </div>
+        <h1>Lost Something?<br>We're Here to Help.</h1>
+        <p>
+          Search the live campus catalog, report missing belongings, and coordinate verified returns through the school office.
+        </p>
+        <div class="grass-hero-actions">
+          <a href="/search.html" class="btn btn-primary btn-lg">
+            <span class="material-symbols-outlined" style="font-size:18px">search</span>
+            Search Found Items
+          </a>
+          <a href="/report-missing.html" class="btn btn-hero-outline btn-lg">
+            <span class="material-symbols-outlined" style="font-size:18px">warning</span>
+            Report Missing Item
+          </a>
         </div>
 
-        <!-- Right: explanation + 3D search action -->
-        <aside class="hero-enter home-action-column" style="--i:3" aria-label="Lost and found actions">
-          <p class="home-hero-copy">
-            Our campus lost and found system helps students and staff search for found items, report missing belongings, and coordinate verified returns through the school office.
-          </p>
-
-          <a href="/search.html" class="home-model-card" data-model-card aria-label="Search found items">
-            <div class="home-model-copy">
-              <div>
-                <span class="home-model-kicker">Start Here</span>
-                <h2>Search Found Items</h2>
-              </div>
-              <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
-            </div>
-            <div class="home-model-stage">
-              <canvas data-model-canvas aria-hidden="true"></canvas>
-              <div class="home-model-fallback" data-model-fallback>
-                <span class="material-symbols-outlined icon-fill">manage_search</span>
-              </div>
-            </div>
-            <div class="home-model-footer">
-              Browse approved items turned in across campus.
-            </div>
+        <div id="report-actions" class="home-report-row grass-report-row hidden">
+          <a href="/report.html" class="btn btn-hero-subtle">
+            <span class="material-symbols-outlined" style="font-size:18px">add_circle</span>
+            Report Found Item
           </a>
+          <a href="/report-missing.html" class="btn btn-hero-subtle">
+            <span class="material-symbols-outlined" style="font-size:18px">report</span>
+            Report Missing Item
+          </a>
+        </div>
 
-          <div class="home-action-row">
-            <a href="/search-missing.html" class="btn btn-hero-outline btn-lg">
-              <span class="material-symbols-outlined" style="font-size:18px">warning</span>
-              Browse Missing Items
-            </a>
-          </div>
+        <div id="signin-cta" class="grass-signin-note">
+          <span class="material-symbols-outlined" aria-hidden="true">lock_open</span>
+          <span>Sign in to report found or missing items.</span>
+          <a href="/login.html">Sign In</a>
+        </div>
+      </div>
 
-          <div id="report-actions" class="home-report-row hidden">
-            <a href="/report.html" class="btn btn-hero-subtle">
-              <span class="material-symbols-outlined" style="font-size:18px">add_circle</span>
-              Report Found Item
-            </a>
-            <a href="/report-missing.html" class="btn btn-hero-subtle">
-              <span class="material-symbols-outlined" style="font-size:18px">report</span>
-              Report Missing Item
-            </a>
-          </div>
-
-          <div id="signin-cta" class="home-signin-panel p-6">
-            <p class="font-headline font-bold text-white text-base mb-1">Sign in to report items</p>
-            <p class="text-sm mb-4" style="color:rgba(255,255,255,0.65)">Create an account or sign in to report found or missing items.</p>
-            <div class="flex gap-3 flex-wrap">
-              <a href="/login.html" class="btn btn-primary btn-sm">Sign In</a>
-              <a href="/signup.html" class="btn btn-hero-outline btn-sm">Create Account</a>
-            </div>
-          </div>
-        </aside>
-
+      <div class="grass-hero-status hero-enter" style="--i:1" aria-hidden="true">
+        <span class="material-symbols-outlined icon-fill">air</span>
+        <span>Hover the items in the grass</span>
       </div>
     </div>
   </section>
@@ -317,7 +304,7 @@
   <script src="/js/nav.js"></script>
   <script src="/js/scroll-story.js"></script>
   <script type="module" src="/js/scroll-lens.js"></script>
-  <script type="module" src="/js/home-3d.js"></script>
+  <script type="module" src="/js/grass-scene.js"></script>
   <script>
     document.addEventListener('userLoaded', function(e) {
       const user = e.detail;
