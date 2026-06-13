@@ -469,6 +469,10 @@ async function initGrassHero() {
     return smoothstep(float(0.0), float(0.1), uv().y).mul(fadeFactor);
   })();
   grassMat.transparent = true;
+  // Grass blades are flat, double-sided transparent planes. Three normally
+  // draws those in two passes for correct general transparency, but vegetation
+  // is the exact case where a single pass preserves the look and cuts draw work.
+  grassMat.forceSinglePass = true;
 
   const bladeGeo = createBladeGeometry();
   const grass = new THREE.InstancedMesh(bladeGeo, grassMat, BLADE_COUNT);
@@ -512,6 +516,11 @@ async function initGrassHero() {
   let wakePower = 0;
   let hovered = null;
   let pointerActive = false;
+  let pointerDirty = false;
+  let pointerClientX = 0;
+  let pointerClientY = 0;
+  let pointerOverHeroUi = false;
+  let masksDirty = true;
 
   const propConfigs = [
     {
@@ -557,6 +566,7 @@ async function initGrassHero() {
   const debugMeshes = createDebugMeshes();
 
   Promise.allSettled(propConfigs.map((cfg) => loadProp(cfg))).then(() => {
+    masksDirty = true;
     updatePropScreenMasks();
     hero.classList.add('grass-models-ready');
   });
@@ -689,9 +699,25 @@ async function initGrassHero() {
   const hitPoint = new THREE.Vector3();
 
   function onPointerMove(e) {
+    pointerClientX = e.clientX;
+    pointerClientY = e.clientY;
+    pointerOverHeroUi = isHeroUiTarget(e.target);
+    if (isPointerInsideHero(pointerClientX, pointerClientY)) {
+      pointerActive = true;
+    } else if (pointerActive) {
+      clearPointer();
+    }
+    pointerDirty = true;
+  }
+
+  function updatePointerWorld() {
+    if (!pointerActive || !pointerDirty) return;
+    if (!isPointerInsideHero(pointerClientX, pointerClientY)) {
+      clearPointer();
+      return;
+    }
     const r = canvas.getBoundingClientRect();
-    pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-    pointerActive = true;
+    pointer.set(((pointerClientX - r.left) / r.width) * 2 - 1, -((pointerClientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
     if (raycaster.ray.intersectPlane(grassPlane, hitPoint)) {
       cursorOnGround = true;
@@ -702,9 +728,26 @@ async function initGrassHero() {
       cursorOnGround = false;
       mouseWorld.value.set(99999, 0, 99999);
     }
+    pointerDirty = false;
   }
+
+  function isPointerInsideHero(clientX, clientY) {
+    const r = hero.getBoundingClientRect();
+    return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+  }
+
+  function isInteractiveGrassTarget(target) {
+    return Boolean(target?.closest?.('a, button, input, textarea, select, label, summary, [role="button"], [role="link"]'));
+  }
+
+  function isHeroUiTarget(target) {
+    return Boolean(target?.closest?.('.grass-hero-content, .grass-prop-label'));
+  }
+
   function clearPointer() {
     pointerActive = false;
+    pointerDirty = false;
+    pointerOverHeroUi = false;
     cursorOnGround = false;
     mouseWorld.value.set(99999, 0, 99999);
     hovered = null;
@@ -712,12 +755,22 @@ async function initGrassHero() {
     hideLabel();
   }
 
-  hero.addEventListener('pointermove', onPointerMove, { passive: true });
+  document.addEventListener('pointermove', onPointerMove, { passive: true, capture: true });
   hero.addEventListener('pointerleave', clearPointer, { passive: true });
-  hero.addEventListener('click', () => { if (hovered) window.location.href = '/search.html'; });
+  window.addEventListener('blur', clearPointer, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearPointer();
+  });
+  hero.addEventListener('click', (event) => {
+    if (hovered && !isInteractiveGrassTarget(event.target) && !isHeroUiTarget(event.target)) window.location.href = '/search.html';
+  });
 
   function updateHover() {
-    if (!pointerActive || hitTargets.length === 0) { hovered = null; hero.classList.remove('is-hovering-prop'); return; }
+    if (!pointerActive || pointerOverHeroUi || hitTargets.length === 0) {
+      hovered = null;
+      hero.classList.remove('is-hovering-prop');
+      return;
+    }
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(hitTargets, false);
     hovered = hits[0]?.object?.userData?.prop || null;
@@ -804,6 +857,7 @@ async function initGrassHero() {
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(getPixelRatio());
       renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
+      masksDirty = true;
     }, 120);
   }, { passive: true });
 
@@ -815,12 +869,16 @@ async function initGrassHero() {
       autoFocusSmoothed += (mouseFocusDist - autoFocusSmoothed) * 0.06;
       focusDistanceU.value = autoFocusSmoothed;
     }
+    updatePointerWorld();
     updateWake(dt);
     updateHover();
+    let shouldUpdateMasks = masksDirty;
     props.forEach(({ wrapper, hit, helper }) => {
       const target = wrapper === hovered ? 1 : 0;
+      const previousHover = wrapper.userData.hover;
       wrapper.userData.hover += (target - wrapper.userData.hover) * 0.12;
       const h = wrapper.userData.hover;
+      if (Math.abs(h - previousHover) > 0.0005) shouldUpdateMasks = true;
       const base = wrapper.userData.base, br = wrapper.userData.baseRot;
       wrapper.position.set(base.x, base.y + 0.32 * h, base.z);
       wrapper.scale.setScalar(1 + 0.05 * h);
@@ -830,7 +888,10 @@ async function initGrassHero() {
       hit.scale.setScalar(1 + 0.05 * h);
       helper?.update();
     });
-    updatePropScreenMasks();
+    if (shouldUpdateMasks) {
+      updatePropScreenMasks();
+      masksDirty = false;
+    }
     renderer.compute(computeUpdate);
     postProcessing.render();
     updateLabel();

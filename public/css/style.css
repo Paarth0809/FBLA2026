@@ -1302,6 +1302,13 @@ body.scrolly-nav-visible .home-cinematic-nav {
 }
 .grass-hero .btn {
   min-height: 3rem;
+  transform: translateZ(0);
+}
+.grass-hero .btn::before {
+  display: none;
+}
+.grass-hero .btn:hover:not(:disabled) {
+  transform: translateZ(0);
 }
 .grass-hero .btn-primary {
   box-shadow: 0 0 0 1px rgba(190,242,160,0.18), 0 16px 42px rgba(0,108,73,0.28);
