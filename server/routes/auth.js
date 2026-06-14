@@ -158,4 +158,88 @@ router.delete('/account', requireAuth, asyncHandler(async (req, res) => {
   });
 }));
 
+const crypto = require('crypto');
+const { dispatchEmail } = require('../lib/notificationService');
+
+// In-memory token store: token -> { userId, expiresAt }
+const resetTokens = new Map();
+
+// POST /api/auth/forgot-password — generate token and email it to the user
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email address is required.' });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+  // To prevent user enumeration/probing, always return a success message even if the email doesn't exist
+  if (!user) {
+    return res.json({ message: 'If this email is registered, you will receive a password reset link shortly.' });
+  }
+
+  // Generate a cryptographically secure token
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + 3600000; // 1 hour validity
+
+  resetTokens.set(token, { userId: user.id, expiresAt });
+
+  // Send the email
+  const subject = 'Password Reset Request - Green Level Lost & Found';
+  const body = `Hi ${user.name},
+
+We received a request to reset your password for your Green Level Lost & Found account.
+
+Click the link below to reset your password (valid for 1 hour):
+http://localhost:3000/reset-password.html?token=${token}
+
+If you did not request this reset, you can safely ignore this email.
+
+Best regards,
+Green Level Lost & Found`;
+
+  await dispatchEmail(user.id, user.email, subject, body);
+
+  res.json({ message: 'If this email is registered, you will receive a password reset link shortly.' });
+}));
+
+// POST /api/auth/reset-password — validate token and update password
+router.post('/reset-password', asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({ error: 'Token and new password are required.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+
+  const resetData = resetTokens.get(token);
+  if (!resetData || resetData.expiresAt < Date.now()) {
+    // Clean up if expired token is found
+    if (resetData) resetTokens.delete(token);
+    return res.status(400).json({ error: 'Invalid or expired password reset token.' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: resetData.userId } });
+  if (!user) {
+    resetTokens.delete(token);
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  // Hash new password and save it
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash }
+  });
+
+  // Clean up the used token
+  resetTokens.delete(token);
+
+  res.json({ message: 'Password reset successfully!' });
+}));
+
 module.exports = router;

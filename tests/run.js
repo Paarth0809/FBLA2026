@@ -476,6 +476,50 @@ async function runTests() {
     assert(me.status === 401, 'After logout, /auth/me should return 401');
   });
 
+  await test('/auth/forgot-password — missing email → 400', async () => {
+    const r = await req('POST', '/api/auth/forgot-password', {});
+    assert(r.status === 400, `Expected 400, got ${r.status}`);
+  });
+
+  await test('/auth/forgot-password — valid email → 200 + logs reset link', async () => {
+    const fs = require('fs');
+    const r = await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.message.includes('password reset link shortly'));
+    
+    // Read notification logs to extract the token
+    const logsFile = path.join(__dirname, '../data/notification-logs.json');
+    const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
+    const resetLog = logs.find(log => log.subject.includes('Password Reset Request') && log.recipient === 'student@school.edu');
+    assert(resetLog, 'Expected password reset email in notification logs');
+    
+    const tokenMatch = resetLog.body.match(/token=([a-f0-9]+)/);
+    assert(tokenMatch, 'Expected token in reset password email body');
+    const token = tokenMatch[1];
+
+    // Verify reset-password validation errors
+    const rShort = await req('POST', '/api/auth/reset-password', { token, password: '123' });
+    assert(rShort.status === 400, `Expected 400 for short password, got ${rShort.status}`);
+
+    const rInvalid = await req('POST', '/api/auth/reset-password', { token: 'invalidtoken', password: 'newstudentpass123' });
+    assert(rInvalid.status === 400, `Expected 400 for invalid token, got ${rInvalid.status}`);
+
+    // Perform password reset successfully
+    const rReset = await req('POST', '/api/auth/reset-password', { token, password: 'newstudentpass123' });
+    assert(rReset.status === 200, `Expected 200, got ${rReset.status}`);
+
+    // Try to log in with new password
+    const rLoginNew = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'newstudentpass123' });
+    assert(rLoginNew.status === 200, `Expected 200, got ${rLoginNew.status}`);
+
+    // Restore original password for subsequent tests
+    const restoreTokenReq = await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    const logs2 = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
+    const resetLog2 = logs2.find(log => log.subject.includes('Password Reset Request') && log.recipient === 'student@school.edu');
+    const token2 = resetLog2.body.match(/token=([a-f0-9]+)/)[1];
+    await req('POST', '/api/auth/reset-password', { token: token2, password: 'student123' });
+  });
+
   // ══════════════════════════════════════════════════
   //  FOUND ITEMS
   // ══════════════════════════════════════════════════
