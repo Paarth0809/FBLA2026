@@ -6,7 +6,7 @@ if (hero) {
   const loadGrassScene = () => {
     if (requested) return;
     requested = true;
-    import('/js/grass-scene.js?v=1.0.9').catch(() => {
+    import('/js/grass-scene.js?v=1.0.10').catch(() => {
       hero.classList.add('grass-webgl-failed');
     });
   };

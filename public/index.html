@@ -61,6 +61,36 @@
     body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; line-height: 1; display: inline-flex; align-items: center; vertical-align: middle; }
     .icon-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .grass-hero-copy h1 {
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 2px 5px rgba(0, 0, 0, 0.75);
+    }
+    .grass-hero-copy p {
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 1px 3px rgba(0, 0, 0, 0.95);
+    }
+    .grass-hero-badge,
+    .grass-signin-note {
+      background: rgba(3, 10, 4, 0.68);
+      border-color: rgba(190, 242, 160, 0.38);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    .grass-hero-badge .material-symbols-outlined {
+      color: #10b981;
+    }
+    .btn-hero-subtle {
+      background: rgba(3, 10, 4, 0.6);
+      border-color: rgba(255, 255, 255, 0.35);
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    .btn-hero-subtle:hover:not(:disabled) {
+      background: rgba(3, 10, 4, 0.85);
+      border-color: rgba(255, 255, 255, 0.6);
+      color: #fff;
+    }
+    .grass-signin-note a {
+      color: #9ce67b;
+    }
   </style>
   <script type="importmap">
     {
@@ -93,6 +123,7 @@
         <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Search Items</a>
         <a href="/search-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
         <a href="/report.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Found</a>
+        <a href="/report-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Missing</a>
       </div>
       <div class="flex items-center gap-1">
         <a href="/search.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
@@ -232,7 +263,7 @@
   <script src="/js/nav.js?v=1.0.3"></script>
   <script src="/js/scroll-story.js"></script>
   <script type="module" src="/js/scroll-lens.js"></script>
-  <script type="module" src="/js/grass-scene-loader.js?v=1.0.9"></script>
+  <script type="module" src="/js/grass-scene-loader.js?v=1.0.10"></script>
   <script>
     document.addEventListener('userLoaded', function(e) {
       const user = e.detail;
