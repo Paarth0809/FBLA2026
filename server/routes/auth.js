@@ -186,13 +186,15 @@ router.post('/forgot-password', asyncHandler(async (req, res) => {
   resetTokens.set(token, { userId: user.id, expiresAt });
 
   // Send the email
+  const host = req.get('host') || 'localhost:3000';
+  const protocol = req.protocol || 'http';
   const subject = 'Password Reset Request - Green Level Lost & Found';
   const body = `Hi ${user.name},
 
 We received a request to reset your password for your Green Level Lost & Found account.
 
 Click the link below to reset your password (valid for 1 hour):
-http://localhost:3000/reset-password.html?token=${token}
+${protocol}://${host}/reset-password.html?token=${token}
 
 If you did not request this reset, you can safely ignore this email.
 

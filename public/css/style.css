@@ -466,25 +466,33 @@ h1, h2, h3, .headline {
 
 nav.bg-inverse-surface .btn-outline,
 nav.bg-inverse-surface .btn-ghost {
-  border-color: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.14);
 }
 nav.bg-inverse-surface .btn-outline {
-  background: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.94);
   color: var(--primary);
+  border: 1.5px solid transparent;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 nav.bg-inverse-surface .btn-outline:hover:not(:disabled) {
-  background: #fff;
-  border-color: rgba(255,255,255,0.4);
+  background: #ffffff;
+  border-color: transparent;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255,255,255,0.12);
 }
 nav.bg-inverse-surface .btn-ghost {
-  color: rgba(255,255,255,0.72);
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(255,255,255,0.14);
 }
 nav.bg-inverse-surface .btn-ghost:hover:not(:disabled) {
-  background: rgba(255,255,255,0.10);
-  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.30);
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 nav.bg-inverse-surface .nav-user {
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.72);
 }
 
 /* Cards and panels */
@@ -1538,6 +1546,12 @@ select.input-valid {
   min-height: 3.15rem;
   padding-left: 3.25rem !important;
   padding-right: 1rem !important;
+}
+.relative > .material-symbols-outlined + .form-input,
+.relative > .material-symbols-outlined + .form-select,
+.relative > .material-symbols-outlined + input,
+.relative > .material-symbols-outlined + select {
+  padding-left: 2.65rem !important;
 }
 .auth-visual-copy {
   max-width: 30rem;
