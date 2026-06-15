@@ -153,11 +153,9 @@ If you did not request this reset, you can safely ignore this email.
 Best regards,
 Green Level Lost & Found`;
 
-  await dispatchEmail(user.id, user.email, subject, body);
+  const delivery = await dispatchEmail(user.id, user.email, subject, body);
 
-  const shouldExposeLocalResetLink =
-    process.env.NODE_ENV !== 'production' &&
-    !(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const shouldExposeLocalResetLink = process.env.NODE_ENV !== 'production' && !delivery?.sent;
 
   res.json({
     message: responseMessage,
