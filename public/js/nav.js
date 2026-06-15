@@ -130,12 +130,16 @@ function renderLoggedInNav(mode = 'default') {
   }
 
   return `
-    <span class="nav-user hide-mobile">Hi, ${safeText(firstName)}</span>
-    <a href="${portalHref}" class="btn btn-outline btn-sm">
-      <span class="material-symbols-outlined">${portalIcon}</span>${portalLabel}
+    <span class="nav-user hide-mobile text-xs font-semibold text-white/70 mr-1">
+      Hi, <strong class="text-white font-bold">${safeText(firstName)}</strong>
+    </span>
+    <a href="${portalHref}" class="btn btn-outline btn-sm flex items-center gap-1.5 font-semibold text-xs transition-all duration-200">
+      <span class="material-symbols-outlined" style="font-size:16px">${portalIcon}</span>
+      <span>${portalLabel}</span>
     </a>
-    <button onclick="logout()" class="btn btn-ghost btn-sm" type="button">
-      <span class="material-symbols-outlined">logout</span>Sign Out
+    <button onclick="logout()" class="btn btn-ghost btn-sm flex items-center gap-1.5 font-semibold text-xs transition-all duration-200" type="button">
+      <span class="material-symbols-outlined" style="font-size:16px">logout</span>
+      <span>Sign Out</span>
     </button>
   `;
 }
@@ -809,31 +813,33 @@ function injectLanguageSwitcherCSS() {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.9);
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
+      color: rgba(255, 255, 255, 0.85);
+      padding: 0.45rem 0.8rem;
+      min-height: 2.35rem;
+      height: 2.35rem;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .lang-switcher-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: var(--primary-container, #10b981);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.30);
       color: #ffffff;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+      transform: translateY(-1px);
     }
     .lang-switcher-btn .material-symbols-outlined {
       font-size: 16px;
-      color: var(--primary-container, #10b981);
+      color: rgba(255, 255, 255, 0.85);
       line-height: 1;
       display: inline-flex;
       align-items: center;
     }
     .lang-switcher-btn .lang-arrow {
-      font-size: 16px;
+      font-size: 14px;
       color: rgba(255, 255, 255, 0.5);
       transition: transform 0.25s ease;
     }

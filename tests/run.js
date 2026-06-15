@@ -6,6 +6,7 @@
 const http    = require('http');
 const { exec } = require('child_process');
 const path    = require('path');
+const fs      = require('fs');
 const bcrypt  = require('bcryptjs');
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
@@ -41,6 +42,9 @@ function date(value) {
 
 async function resetTestDatabase() {
   await runCommand('npx prisma migrate deploy', { DATABASE_URL: TEST_DATABASE_URL });
+
+  await fs.promises.mkdir(path.join(ROOT, 'data'), { recursive: true });
+  await fs.promises.writeFile(path.join(ROOT, 'data/notification-logs.json'), '[]\n');
 
   await testPrisma.message.deleteMany();
   await testPrisma.claim.deleteMany();
@@ -474,6 +478,59 @@ async function runTests() {
     // Cookie should no longer work
     const me = await req('GET', '/api/auth/me', null, c);
     assert(me.status === 401, 'After logout, /auth/me should return 401');
+  });
+
+  await test('/auth/forgot-password — missing email → 400', async () => {
+    const r = await req('POST', '/api/auth/forgot-password', {});
+    assert(r.status === 400, `Expected 400, got ${r.status}`);
+  });
+
+  await test('/auth/forgot-password — unknown email does not reveal account status', async () => {
+    const r = await req('POST', '/api/auth/forgot-password', { email: 'ghost@school.edu' });
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.message.includes('If this email is registered'), 'Expected account-safe reset message');
+  });
+
+  await test('/auth/forgot-password — valid email → reset link works once', async () => {
+    const fs = require('fs');
+    const logsFile = path.join(__dirname, '../data/notification-logs.json');
+    const latestResetToken = () => {
+      const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
+      const resetLog = logs.find(log =>
+        log.subject.includes('Password Reset Request') &&
+        log.recipient === 'student@school.edu'
+      );
+      assert(resetLog, 'Expected password reset email in notification logs');
+      const tokenMatch = resetLog.body.match(/token=([a-f0-9]+)/);
+      assert(tokenMatch, 'Expected token in reset password email body');
+      return tokenMatch[1];
+    };
+
+    const r = await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.message.includes('password reset link shortly'), 'Expected reset message');
+
+    const token = latestResetToken();
+
+    const shortPassword = await req('POST', '/api/auth/reset-password', { token, password: '123' });
+    assert(shortPassword.status === 400, `Expected 400 for short password, got ${shortPassword.status}`);
+
+    const invalidToken = await req('POST', '/api/auth/reset-password', { token: 'invalidtoken', password: 'newstudentpass123' });
+    assert(invalidToken.status === 400, `Expected 400 for invalid token, got ${invalidToken.status}`);
+
+    const reset = await req('POST', '/api/auth/reset-password', { token, password: 'newstudentpass123' });
+    assert(reset.status === 200, `Expected 200, got ${reset.status}`);
+
+    const reused = await req('POST', '/api/auth/reset-password', { token, password: 'anotherpass123' });
+    assert(reused.status === 400, `Expected 400 for reused token, got ${reused.status}`);
+
+    const loginNew = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'newstudentpass123' });
+    assert(loginNew.status === 200, `Expected 200 with new password, got ${loginNew.status}`);
+
+    await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    const restoreToken = latestResetToken();
+    const restore = await req('POST', '/api/auth/reset-password', { token: restoreToken, password: 'student123' });
+    assert(restore.status === 200, `Expected restore reset to pass, got ${restore.status}`);
   });
 
   // ══════════════════════════════════════════════════

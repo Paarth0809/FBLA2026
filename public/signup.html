@@ -124,6 +124,17 @@
             <input class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all"
                    type="password" id="password" placeholder="At least 6 characters" required>
           </div>
+          <!-- Password Strength Indicator -->
+          <div class="mt-2.5" data-i18n-skip="true">
+            <div class="flex justify-between items-center text-xs mb-1">
+              <span class="text-on-surface-variant font-medium">Password Strength:</span>
+              <span id="strength-label" class="font-bold text-error">Too Short</span>
+            </div>
+            <div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+              <div id="strength-bar" class="h-full bg-error transition-all duration-300" style="width: 5%"></div>
+            </div>
+            <p id="strength-hint" class="text-[11px] text-on-surface-variant/70 mt-1">Must be at least 6 characters.</p>
+          </div>
         </div>
         <div>
           <label class="block text-sm font-semibold text-on-surface mb-1.5" for="confirmPassword">Confirm Password</label>
@@ -155,6 +166,60 @@
     document.addEventListener('userLoaded', function(e) {
       if (e.detail) window.location.href = '/';
     });
+
+    // Password strength evaluator logic
+    const passwordInput = document.getElementById('password');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthLabel = document.getElementById('strength-label');
+    const strengthHint = document.getElementById('strength-hint');
+
+    function evaluatePassword() {
+      const val = passwordInput.value;
+      if (!val) {
+        strengthLabel.textContent = 'Too Short';
+        strengthLabel.className = 'font-bold text-error';
+        strengthBar.style.width = '5%';
+        strengthBar.className = 'h-full bg-error transition-all duration-300';
+        strengthHint.textContent = 'Must be at least 6 characters.';
+        return;
+      }
+
+      if (val.length < 6) {
+        strengthLabel.textContent = 'Too Short';
+        strengthLabel.className = 'font-bold text-error';
+        strengthBar.style.width = '20%';
+        strengthBar.className = 'h-full bg-error transition-all duration-300';
+        strengthHint.textContent = 'Password is too short (must be at least 6 characters).';
+        return;
+      }
+
+      const hasUppercase = /[A-Z]/.test(val);
+      const hasLowercase = /[a-z]/.test(val);
+      const hasNumbers = /[0-9]/.test(val);
+      const hasSpecial = /[^A-Za-z0-9]/.test(val);
+      const categoriesCount = [hasUppercase, hasLowercase, hasNumbers, hasSpecial].filter(Boolean).length;
+
+      if (val.length < 8 || categoriesCount < 3) {
+        strengthLabel.textContent = 'Almost...';
+        strengthLabel.className = 'font-bold text-yellow-600';
+        strengthBar.style.width = '50%';
+        strengthBar.className = 'h-full bg-yellow-600 transition-all duration-300';
+        strengthHint.textContent = 'Acceptable, but mix uppercase, lowercase, numbers, and symbols for a stronger password.';
+        return;
+      }
+
+      strengthLabel.textContent = 'Good!';
+      strengthLabel.className = 'font-bold text-green-600';
+      strengthBar.style.width = '100%';
+      strengthBar.className = 'h-full bg-primary-container transition-all duration-300';
+      strengthHint.textContent = 'Excellent! Your password is secure.';
+    }
+
+    if (passwordInput) {
+      passwordInput.addEventListener('input', evaluatePassword);
+      // Run immediately in case of browser autocomplete or initial page rendering
+      evaluatePassword();
+    }
 
     document.getElementById('signup-form').addEventListener('submit', async function(e) {
       e.preventDefault();

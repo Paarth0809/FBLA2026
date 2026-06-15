@@ -213,5 +213,6 @@ module.exports = {
   getPreferences,
   savePreferences,
   getLogs,
+  dispatchEmail,
   triggerAlert
 };
