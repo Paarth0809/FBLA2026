@@ -155,7 +155,14 @@ Green Level Lost & Found`;
 
   await dispatchEmail(user.id, user.email, subject, body);
 
-  res.json({ message: responseMessage });
+  const shouldExposeLocalResetLink =
+    process.env.NODE_ENV !== 'production' &&
+    !(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
+  res.json({
+    message: responseMessage,
+    ...(shouldExposeLocalResetLink ? { resetUrl } : {})
+  });
 }));
 
 // POST /api/auth/reset-password — validate a reset token and set the new password.
