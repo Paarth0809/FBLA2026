@@ -6,6 +6,7 @@
 const http    = require('http');
 const { exec } = require('child_process');
 const path    = require('path');
+const fs      = require('fs');
 const bcrypt  = require('bcryptjs');
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
@@ -41,6 +42,9 @@ function date(value) {
 
 async function resetTestDatabase() {
   await runCommand('npx prisma migrate deploy', { DATABASE_URL: TEST_DATABASE_URL });
+
+  await fs.promises.mkdir(path.join(ROOT, 'data'), { recursive: true });
+  await fs.promises.writeFile(path.join(ROOT, 'data/notification-logs.json'), '[]\n');
 
   await testPrisma.message.deleteMany();
   await testPrisma.claim.deleteMany();
@@ -481,43 +485,52 @@ async function runTests() {
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
-  await test('/auth/forgot-password — valid email → 200 + logs reset link', async () => {
+  await test('/auth/forgot-password — unknown email does not reveal account status', async () => {
+    const r = await req('POST', '/api/auth/forgot-password', { email: 'ghost@school.edu' });
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.body.message.includes('If this email is registered'), 'Expected account-safe reset message');
+  });
+
+  await test('/auth/forgot-password — valid email → reset link works once', async () => {
     const fs = require('fs');
+    const logsFile = path.join(__dirname, '../data/notification-logs.json');
+    const latestResetToken = () => {
+      const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
+      const resetLog = logs.find(log =>
+        log.subject.includes('Password Reset Request') &&
+        log.recipient === 'student@school.edu'
+      );
+      assert(resetLog, 'Expected password reset email in notification logs');
+      const tokenMatch = resetLog.body.match(/token=([a-f0-9]+)/);
+      assert(tokenMatch, 'Expected token in reset password email body');
+      return tokenMatch[1];
+    };
+
     const r = await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
     assert(r.status === 200, `Expected 200, got ${r.status}`);
-    assert(r.body.message.includes('password reset link shortly'));
-    
-    // Read notification logs to extract the token
-    const logsFile = path.join(__dirname, '../data/notification-logs.json');
-    const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
-    const resetLog = logs.find(log => log.subject.includes('Password Reset Request') && log.recipient === 'student@school.edu');
-    assert(resetLog, 'Expected password reset email in notification logs');
-    
-    const tokenMatch = resetLog.body.match(/token=([a-f0-9]+)/);
-    assert(tokenMatch, 'Expected token in reset password email body');
-    const token = tokenMatch[1];
+    assert(r.body.message.includes('password reset link shortly'), 'Expected reset message');
 
-    // Verify reset-password validation errors
-    const rShort = await req('POST', '/api/auth/reset-password', { token, password: '123' });
-    assert(rShort.status === 400, `Expected 400 for short password, got ${rShort.status}`);
+    const token = latestResetToken();
 
-    const rInvalid = await req('POST', '/api/auth/reset-password', { token: 'invalidtoken', password: 'newstudentpass123' });
-    assert(rInvalid.status === 400, `Expected 400 for invalid token, got ${rInvalid.status}`);
+    const shortPassword = await req('POST', '/api/auth/reset-password', { token, password: '123' });
+    assert(shortPassword.status === 400, `Expected 400 for short password, got ${shortPassword.status}`);
 
-    // Perform password reset successfully
-    const rReset = await req('POST', '/api/auth/reset-password', { token, password: 'newstudentpass123' });
-    assert(rReset.status === 200, `Expected 200, got ${rReset.status}`);
+    const invalidToken = await req('POST', '/api/auth/reset-password', { token: 'invalidtoken', password: 'newstudentpass123' });
+    assert(invalidToken.status === 400, `Expected 400 for invalid token, got ${invalidToken.status}`);
 
-    // Try to log in with new password
-    const rLoginNew = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'newstudentpass123' });
-    assert(rLoginNew.status === 200, `Expected 200, got ${rLoginNew.status}`);
+    const reset = await req('POST', '/api/auth/reset-password', { token, password: 'newstudentpass123' });
+    assert(reset.status === 200, `Expected 200, got ${reset.status}`);
 
-    // Restore original password for subsequent tests
-    const restoreTokenReq = await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
-    const logs2 = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
-    const resetLog2 = logs2.find(log => log.subject.includes('Password Reset Request') && log.recipient === 'student@school.edu');
-    const token2 = resetLog2.body.match(/token=([a-f0-9]+)/)[1];
-    await req('POST', '/api/auth/reset-password', { token: token2, password: 'student123' });
+    const reused = await req('POST', '/api/auth/reset-password', { token, password: 'anotherpass123' });
+    assert(reused.status === 400, `Expected 400 for reused token, got ${reused.status}`);
+
+    const loginNew = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'newstudentpass123' });
+    assert(loginNew.status === 200, `Expected 200 with new password, got ${loginNew.status}`);
+
+    await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    const restoreToken = latestResetToken();
+    const restore = await req('POST', '/api/auth/reset-password', { token: restoreToken, password: 'student123' });
+    assert(restore.status === 200, `Expected restore reset to pass, got ${restore.status}`);
   });
 
   // ══════════════════════════════════════════════════

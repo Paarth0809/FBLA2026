@@ -9,15 +9,24 @@ let transporter = null;
 if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   try {
     const nodemailer = require('nodemailer');
-    transporter = nodemailer.createTransport({
+    const smtpOptions = {
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587', 10),
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
-      }
-    });
+      },
+      connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS || '10000', 10),
+      greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT_MS || '10000', 10),
+      socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS || '15000', 10)
+    };
+
+    if (process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false') {
+      smtpOptions.tls = { rejectUnauthorized: false };
+    }
+
+    transporter = nodemailer.createTransport(smtpOptions);
     console.log('[NotificationService] SMTP transporter initialized.');
   } catch (err) {
     console.error('[NotificationService] Failed to initialize email delivery:', err.message);
@@ -97,7 +106,7 @@ function getLogs(userId) {
 }
 
 async function dispatchEmail(userId, to, subject, body) {
-  addLog({
+  const logEntry = addLog({
     userId,
     type: 'EMAIL',
     recipient: to,
@@ -115,7 +124,7 @@ async function dispatchEmail(userId, to, subject, body) {
 │ ${body.split('\n').join('\n│ ')}
 └───────────────────────────────────────────────────────
 `);
-    return;
+    return { logged: Boolean(logEntry), sent: false, mode: 'local-preview' };
   }
 
   try {
@@ -128,8 +137,10 @@ async function dispatchEmail(userId, to, subject, body) {
       text: body
     });
     console.log(`[NotificationService] Email sent successfully to ${to}`);
+    return { logged: Boolean(logEntry), sent: true, mode: 'smtp' };
   } catch (err) {
     console.error(`[NotificationService] Failed to send email to ${to}:`, err.message);
+    return { logged: Boolean(logEntry), sent: false, mode: 'smtp', error: err.message };
   }
 }
 
@@ -213,6 +224,6 @@ module.exports = {
   getPreferences,
   savePreferences,
   getLogs,
-  triggerAlert,
-  dispatchEmail
+  dispatchEmail,
+  triggerAlert
 };

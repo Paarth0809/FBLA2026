@@ -15,6 +15,7 @@
     "db:prepare": "npm run prisma:validate && npm run prisma:generate && npm run prisma:deploy && npm run data:migrate-json",
     "db:reset:local": "prisma migrate reset --force && npm run data:migrate-json",
     "data:migrate-json": "node scripts/migrate-json-to-postgres.js",
+    "email:check": "node scripts/check-email-config.js",
     "test": "node tests/run.js",
     "test:ui": "npx playwright test"
   },
