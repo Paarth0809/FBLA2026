@@ -120,16 +120,14 @@
         Green Level Lost &amp; Found
       </a>
       <div class="home-nav-center hidden lg:flex items-center gap-1">
-        <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Search Items</a>
+        <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
         <a href="/search-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
         <a href="/map.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Campus Map</a>
-        <a href="/report.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Found</a>
-        <a href="/report-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Missing</a>
       </div>
       <div class="flex items-center gap-1">
-        <a href="/search.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
+        <a href="/search.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found</a>
         <a href="/map.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Map</a>
-        <a href="/search-missing.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
+        <a href="/search-missing.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing</a>
         <div id="nav-auth" class="flex items-center gap-2 ml-2"></div>
       </div>
     </div>
@@ -177,7 +175,7 @@
         <p>Found your listing? Submit proof of ownership. Admins review it and coordinate pickup.</p>
         <div class="scroll-story-actions">
           <a href="/search.html" class="scroll-story-button primary">Search Found Items</a>
-          <a href="/login.html" class="scroll-story-button secondary">Sign In to Report</a>
+          <a href="/login.html" id="scroll-signin-btn" class="scroll-story-button secondary">Sign In to Report</a>
         </div>
       </div>
 
@@ -218,9 +216,9 @@
             <span class="material-symbols-outlined" style="font-size:18px">search</span>
             Search Found Items
           </a>
-          <a href="/report-missing.html" class="btn btn-hero-outline btn-lg">
-            <span class="material-symbols-outlined" style="font-size:18px">warning</span>
-            Report Missing Item
+          <a href="/search-missing.html" class="btn btn-primary btn-lg">
+            <span class="material-symbols-outlined" style="font-size:18px">search</span>
+            Search Missing Items
           </a>
         </div>
 
@@ -272,6 +270,8 @@
       if (user) {
         document.getElementById('report-actions').classList.remove('hidden');
         document.getElementById('signin-cta').classList.add('hidden');
+        const scrollSigninBtn = document.getElementById('scroll-signin-btn');
+        if (scrollSigninBtn) scrollSigninBtn.classList.add('hidden');
         document.getElementById('footer-user').textContent = `Logged in as: ${user.email} (${user.role})`;
       }
     });
