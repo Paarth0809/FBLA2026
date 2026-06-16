@@ -5,6 +5,111 @@
 
 ---
 
+## Latest Update — AutoCAD-Assisted Campus Map Pipeline
+
+Current goal: turn the existing vectorized floor-plan SVGs into a local CAD
+workflow and begin moving the website map away from a pasted/overlay look toward
+real 2.5D geometry.
+
+Completed:
+- Created branch `codex/autocad-campus-map-rebuild`.
+- Added `scripts/generate-campus-cad-workspace.js` and `npm run map:cad`.
+- Generated a local CAD workspace under `cad/campus-map-workspace/`:
+  - AutoCAD-ready DXF reference drawings in `imports/`;
+  - standardized layer setup script in `autocad/setup-campus-map-layers.scr`;
+  - floor manifest in `manifests/workspace-manifest.json`;
+  - workflow README with the AutoCAD cleanup/tracing steps.
+- Generated website geometry JSON under `public/maps/geometry/` from the clean
+  base SVG sources so the map renderer has a repeatable CAD-detail layer.
+- Updated `public/js/campus-map-data.js` so each floor references its generated
+  CAD detail JSON.
+- Updated `public/js/campus-map-world.js` to fetch those detail files and render
+  raised wall/detail geometry from the generated paths.
+- Added tests that require the CAD generator, workspace manifest, DXF files, and
+  generated geometry files to exist.
+
+Verification:
+- `node --check scripts/generate-campus-cad-workspace.js` passed.
+- `node --check public/js/campus-map-data.js` passed.
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `npm run map:cad` generated all five reference drawings and geometry files.
+- `git diff --check` passed.
+- `npm test` passed 102 / 102.
+- Browser smoke test on `http://localhost:3000/map.html?mapDebug=1` loaded the
+  map page with no JavaScript errors. The only warning was the existing Three.js
+  `Clock` deprecation.
+
+Important limitation / next step:
+- This pass does **not** magically create perfect closed room polygons from the
+  noisy scan-derived SVGs. It creates the local AutoCAD pipeline, reference DXFs,
+  generated raised detail geometry, and validation hooks. The real “every room
+  is a physical selectable room object” result still needs the planned AutoCAD
+  tracing pass: import a reference DXF, trace rooms/hallways as closed polylines
+  on the standard layers, export clean DXF, then feed that clean DXF into the
+  website converter.
+
+---
+
+## Latest Update — 2.5D Campus Map World
+
+Current goal: replace the flat SVG campus map viewer with a premium top-down
+indoor map world. The scanned/vector SVG assets remain in `public/maps/` as
+blueprint references, but the runtime surface is now curated Three.js geometry.
+The basement stays separate; only the first-floor main/front-wing sections are
+composited and connected.
+
+Completed:
+- Rebuilt `/map.html` around a canvas-based map viewport with floor tabs,
+  search, zoom/fit controls, pins, raised-wall and blueprint toggles, projected
+  labels, and a details panel.
+- Added `public/js/campus-map-data.js` with clean approximate map data for four
+  floors:
+  - Basement as its own 0-level map;
+  - Floor 1 as a connected main + front-wing layout;
+  - Floor 2 as a standalone academic wing;
+  - Floor 3 as a standalone academic wing.
+- Added `public/js/campus-map-world.js`, a Three.js renderer that builds floor
+  slabs, raised wall geometry, connector strips, projected labels, hover/select
+  states, anchored 3D pins, pan, wheel/double-click zoom, and fit-to-floor.
+- Replaced `public/js/campus-map.js` with a focused controller that binds the
+  page UI to the map-world renderer.
+- Kept the generated map SVGs under `public/maps/` for `?mapDebug=1` /
+  blueprint inspection only.
+- Added/updated polished 2.5D map styling in `public/css/style.css`.
+- Added module-level test coverage so the map data and renderer modules must
+  exist and export the expected interfaces.
+
+Verification:
+- `node --check public/js/campus-map.js` passed.
+- `node --check public/js/campus-map-data.js` passed.
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check tests/run.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 99 / 99.
+- Browser QA on `http://localhost:3000/map.html` confirmed:
+  - desktop map page loads the canvas/geometry world, not the old SVG surface;
+  - Floor 2 switching updates the selected tab, details panel, labels, and
+    rendered geometry;
+  - the blueprint overlay is hidden by default and no longer leaks through the
+    runtime view;
+  - 1440px desktop has no horizontal overflow;
+  - 390px mobile headless QA has no horizontal overflow and keeps the canvas
+    present.
+
+Known risks / next steps:
+- The map geometry is deliberately approximate, designed as a believable
+  explorable indoor world rather than CAD-accurate room tracing.
+- Room-number labels are deferred. Add crisp DOM/SVG labels in the next pass
+  using the original numbered references.
+- Named locations such as cafeteria, gym, library, and office labels are
+  intentionally deferred until the user provides/approves those names.
+- The renderer uses local Three.js WebGL for this first pass because it is
+  stable/offline and adequate for the 2.5D world; a WebGPU-specific renderer can
+  be explored later if the map becomes heavier.
+
+---
+
 ## Latest Update — Translation Feature and Dictionary Fixes
 
 Current goal: fix the translation feature issues where certain elements, headings, and dynamic strings fail to translate, or translate back to English upon dynamic DOM mutations.

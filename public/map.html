@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<!-- map.html - Interactive campus map -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Map - Green Level Lost &amp; Found</title>
+  <link rel="stylesheet" href="/vendor/fonts/fonts.css">
+  <link rel="stylesheet" href="/vendor/material-symbols/material-symbols.css">
+  <link rel="stylesheet" href="/css/tailwind-local.css">
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      theme: { extend: {
+        colors: {
+          "primary": "#006c49", "on-primary": "#ffffff",
+          "primary-container": "#10b981", "on-primary-container": "#00422b",
+          "surface": "#f4fbf4", "surface-bright": "#f4fbf4",
+          "surface-container-lowest": "#ffffff", "surface-container-low": "#eef6ee",
+          "surface-container": "#e8f0e9", "surface-container-high": "#e3eae3",
+          "surface-container-highest": "#dde4dd", "surface-variant": "#dde4dd",
+          "on-surface": "#161d19", "on-surface-variant": "#3c4a42",
+          "outline": "#6c7a71", "outline-variant": "#bbcabf",
+          "inverse-surface": "#2b322d"
+        },
+        fontFamily: { "headline": ["'Plus Jakarta Sans'", "sans-serif"] },
+        maxWidth: { "container": "1280px" }
+      }}
+    }
+  </script>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+    }
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+  <nav class="fixed top-0 w-full z-50 bg-inverse-surface border-b border-white/5" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
+    <div class="max-w-container mx-auto px-4 md:px-6 h-16 flex items-center justify-between gap-4">
+      <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-base text-white hover:text-primary-container transition-colors shrink-0" aria-label="Green Level Lost &amp; Found - go to homepage">
+        <span class="material-symbols-outlined filled text-primary-container" style="font-size:20px">search</span>
+        <span class="hidden md:flex items-baseline gap-1">
+          <span>Green Level</span>
+          <span>Lost &amp; Found</span>
+        </span>
+      </a>
+      <div class="hidden lg:flex items-center gap-1">
+        <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Search Items</a>
+        <a href="/search-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
+        <a href="/map.html" class="text-white bg-white/10 px-3 py-2 rounded-xl text-sm font-semibold transition-colors">Campus Map</a>
+        <a href="/report.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Found</a>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <div id="nav-auth" class="flex items-center gap-2 ml-1"></div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="campus-map-page pt-16">
+    <section class="campus-map-hero">
+      <div class="campus-map-hero-copy">
+        <p class="campus-map-kicker">Campus Map World</p>
+        <h1>Explore the building like a real map.</h1>
+        <p>Switch floors, pan through raised hallway geometry, and preview how found-item location pins will sit inside the school.</p>
+      </div>
+      <div class="campus-map-hero-card" aria-label="Map status">
+        <span class="material-symbols-outlined filled" aria-hidden="true">deployed_code</span>
+        <div>
+          <strong>2.5D indoor map</strong>
+          <span>SVG plans are now blueprint references; the live surface is rendered as geometry.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="campus-map-shell" aria-label="Interactive campus map">
+      <aside class="campus-map-panel">
+        <div class="campus-map-panel-heading">
+          <span class="material-symbols-outlined filled" aria-hidden="true">layers</span>
+          <div>
+            <h2>Floors</h2>
+            <p>Use the switcher to move between levels.</p>
+          </div>
+        </div>
+
+        <div id="floor-tabs" class="campus-floor-tabs" role="tablist" aria-label="Campus floors"></div>
+
+        <label class="campus-map-search">
+          <span class="material-symbols-outlined" aria-hidden="true">search</span>
+          <input id="map-search" type="search" placeholder="Search floor or pin..." autocomplete="off">
+        </label>
+
+        <div class="campus-map-toggles" aria-label="Map layers">
+          <label>
+            <input id="toggle-pins" type="checkbox" checked>
+            <span>Show example pins</span>
+          </label>
+          <label>
+            <input id="toggle-depth" type="checkbox" checked>
+            <span>Raised walls</span>
+          </label>
+          <label>
+            <input id="toggle-blueprint" type="checkbox">
+            <span>Blueprint debug</span>
+          </label>
+        </div>
+
+        <div id="map-details" class="campus-map-details" aria-live="polite">
+          <span class="material-symbols-outlined filled" aria-hidden="true">touch_app</span>
+          <h3>Select a pin</h3>
+          <p>Hover or click a map pin to preview the location card. Live item pins will come after the base map is approved.</p>
+        </div>
+      </aside>
+
+      <div class="campus-map-workspace">
+        <div class="campus-map-toolbar" aria-label="Map controls">
+          <button id="map-zoom-out" class="campus-map-tool" type="button" aria-label="Zoom out">
+            <span class="material-symbols-outlined" aria-hidden="true">remove</span>
+          </button>
+          <button id="map-zoom-in" class="campus-map-tool" type="button" aria-label="Zoom in">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          </button>
+          <button id="map-reset" class="campus-map-tool campus-map-tool-wide" type="button">
+            <span class="material-symbols-outlined" aria-hidden="true">center_focus_strong</span>
+            Fit floor
+          </button>
+          <span id="map-readout" class="campus-map-readout">Interactive map</span>
+        </div>
+
+        <div class="campus-map-viewport" data-depth-enabled="true">
+          <div id="map-loading" class="campus-map-loading">
+            <div class="spinner" role="status" aria-label="Loading campus map"></div>
+            <span>Building 2.5D map world...</span>
+          </div>
+          <canvas id="campus-map-canvas" class="campus-map-canvas" aria-label="Interactive Green Level campus map"></canvas>
+          <div id="campus-map-blueprint-layer" class="campus-map-blueprint-layer" hidden aria-hidden="true"></div>
+          <div id="campus-map-label-layer" class="campus-map-label-layer" aria-hidden="false"></div>
+          <div class="campus-map-hint" aria-hidden="true">
+            <span class="material-symbols-outlined">open_with</span>
+            Drag, zoom, and select zones
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/nav.js?v=1.0.3"></script>
+  <script type="module" src="/js/campus-map.js?v=campus-world-20260616d"></script>
+</body>
+</html>

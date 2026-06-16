@@ -264,6 +264,17 @@ function assert(condition, message) {
   if (!condition) throw new Error(message || 'Assertion failed');
 }
 
+function loadCampusMapDataForTests() {
+  const vm = require('vm');
+  const file = path.join(ROOT, 'public/js/campus-map-data.js');
+  const source = fs.readFileSync(file, 'utf8')
+    .replace('export const CAMPUS_MAP_FLOORS =', 'const CAMPUS_MAP_FLOORS =')
+    .replace(/export function /g, 'function ');
+  const sandbox = {};
+  vm.runInNewContext(`${source}\nglobalThis.__floors = CAMPUS_MAP_FLOORS;`, sandbox, { filename: file });
+  return sandbox.__floors;
+}
+
 // ── Matching unit tests (pure, no server needed) ──────────────
 function runMatcherTests() {
   const { scoreMatch, findMatchesForMissingItems, getObjectFamily } = require('../server/lib/matcher');
@@ -1041,6 +1052,7 @@ async function runTests() {
     '/item.html',
     '/missing-item.html',
     '/claim.html',
+    '/map.html',
     '/admin.html',
     '/my-submissions.html'
   ];
@@ -1066,6 +1078,63 @@ async function runTests() {
   await test('GET /js/nav.js → 200', async () => {
     const r = await getPage('/js/nav.js');
     assert(r.status === 200, `Expected 200, got ${r.status}`);
+  });
+
+  await test('campus map data module exists and exports floors', async () => {
+    const file = path.join(ROOT, 'public/js/campus-map-data.js');
+    assert(fs.existsSync(file), 'Expected public/js/campus-map-data.js to exist');
+    const source = await fs.promises.readFile(file, 'utf8');
+    assert(source.includes('export const CAMPUS_MAP_FLOORS'), 'Expected CAMPUS_MAP_FLOORS export');
+  });
+
+  await test('campus map floors include high-fidelity detail layers', async () => {
+    const floors = loadCampusMapDataForTests();
+    assert(floors.length === 4, `Expected 4 floors, got ${floors.length}`);
+    for (const floor of floors) {
+      assert(Array.isArray(floor.detailLines) && floor.detailLines.length > 0, `${floor.id} needs traced detailLines`);
+      assert(floor.detailLines.some(layer => layer.cadGeometry), `${floor.id} needs generated CAD geometry`);
+      assert(Array.isArray(floor.roomNumberLabels) && floor.roomNumberLabels.length >= 8, `${floor.id} needs room-number labels`);
+      assert(Array.isArray(floor.stairs) && floor.stairs.length > 0, `${floor.id} needs stair geometry`);
+    }
+  });
+
+  await test('campus map CAD workspace generator and outputs exist', async () => {
+    const packageFile = path.join(ROOT, 'package.json');
+    const pkg = JSON.parse(await fs.promises.readFile(packageFile, 'utf8'));
+    assert(pkg.scripts && pkg.scripts['map:cad'], 'Expected map:cad script');
+    assert(pkg.scripts['map:cad'].includes('generate-campus-cad-workspace'), 'map:cad should run the CAD generator');
+
+    const generator = path.join(ROOT, 'scripts/generate-campus-cad-workspace.js');
+    assert(fs.existsSync(generator), 'Expected CAD workspace generator script');
+
+    const manifestFile = path.join(ROOT, 'cad/campus-map-workspace/manifests/workspace-manifest.json');
+    assert(fs.existsSync(manifestFile), 'Expected generated CAD workspace manifest');
+    const manifest = JSON.parse(await fs.promises.readFile(manifestFile, 'utf8'));
+    assert(Array.isArray(manifest.floors) && manifest.floors.length === 5, 'Expected five CAD source drawings including Floor 1 front wing');
+    for (const floor of manifest.floors) {
+      assert(fs.existsSync(path.join(ROOT, 'cad/campus-map-workspace', floor.dxf)), `Missing generated DXF ${floor.dxf}`);
+      assert(fs.existsSync(path.join(ROOT, floor.geometry)), `Missing generated map geometry ${floor.geometry}`);
+      assert(floor.referencePathCount > 100, `${floor.id} should include imported reference paths`);
+      assert(floor.closedBasePathCount > 0, `${floor.id} should include closed CAD-detail paths`);
+    }
+  });
+
+  await test('campus map floor 1 is room-level, not broad placeholder zones', async () => {
+    const floors = loadCampusMapDataForTests();
+    const floor1 = floors.find(floor => floor.id === 'floor-1');
+    assert(floor1, 'Expected floor-1 data');
+    assert(floor1.rooms.length >= 32, `Floor 1 should include room-level geometry, got ${floor1.rooms.length} rooms`);
+    const labels = new Set((floor1.roomNumberLabels || []).map(entry => entry.label));
+    for (const expected of ['1145', '1101', '1209', '1222', '1501', '1601', '1629', '1642']) {
+      assert(labels.has(expected), `Floor 1 missing room label ${expected}`);
+    }
+  });
+
+  await test('campus map world module exists and exports renderer', async () => {
+    const file = path.join(ROOT, 'public/js/campus-map-world.js');
+    assert(fs.existsSync(file), 'Expected public/js/campus-map-world.js to exist');
+    const source = await fs.promises.readFile(file, 'utf8');
+    assert(source.includes('export class CampusMapWorld'), 'Expected CampusMapWorld export');
   });
 
   // ══════════════════════════════════════════════════

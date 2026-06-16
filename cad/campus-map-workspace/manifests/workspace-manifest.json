@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-06-16T18:16:21.758Z",
+  "source": "existing vectorized SVG floor plans",
+  "floors": [
+    {
+      "id": "basement",
+      "label": "Basement",
+      "dxf": "imports/basement-reference.dxf",
+      "geometry": "public/maps/geometry/basement-cad-detail.json",
+      "strokeSvg": "source/page-01-stroke-lines.svg",
+      "baseSvg": "floors/page-01-base-no-labels.svg",
+      "viewBox": {
+        "minX": 0,
+        "minY": 0,
+        "width": 2376,
+        "height": 1434
+      },
+      "referencePathCount": 519,
+      "closedBasePathCount": 23
+    },
+    {
+      "id": "floor-1-main",
+      "label": "Floor 1 main",
+      "dxf": "imports/floor-1-main-reference.dxf",
+      "geometry": "public/maps/geometry/floor-1-main-cad-detail.json",
+      "strokeSvg": "source/page-05-stroke-lines.svg",
+      "baseSvg": "floors/page-05-base-no-labels.svg",
+      "viewBox": {
+        "minX": 0,
+        "minY": 0,
+        "width": 1836,
+        "height": 1854
+      },
+      "referencePathCount": 581,
+      "closedBasePathCount": 59
+    },
+    {
+      "id": "floor-1-front-wing",
+      "label": "Floor 1 front wing",
+      "dxf": "imports/floor-1-front-wing-reference.dxf",
+      "geometry": "public/maps/geometry/floor-1-front-wing-cad-detail.json",
+      "strokeSvg": "source/page-04-stroke-lines.svg",
+      "baseSvg": "floors/page-04-base-no-labels.svg",
+      "viewBox": {
+        "minX": 0,
+        "minY": 0,
+        "width": 2034,
+        "height": 1836
+      },
+      "referencePathCount": 609,
+      "closedBasePathCount": 49
+    },
+    {
+      "id": "floor-2",
+      "label": "Floor 2",
+      "dxf": "imports/floor-2-reference.dxf",
+      "geometry": "public/maps/geometry/floor-2-cad-detail.json",
+      "strokeSvg": "source/page-03-stroke-lines.svg",
+      "baseSvg": "floors/page-03-base-no-labels.svg",
+      "viewBox": {
+        "minX": 0,
+        "minY": 0,
+        "width": 1884,
+        "height": 1836
+      },
+      "referencePathCount": 522,
+      "closedBasePathCount": 32
+    },
+    {
+      "id": "floor-3",
+      "label": "Floor 3",
+      "dxf": "imports/floor-3-reference.dxf",
+      "geometry": "public/maps/geometry/floor-3-cad-detail.json",
+      "strokeSvg": "source/page-02-stroke-lines.svg",
+      "baseSvg": "floors/page-02-base-no-labels.svg",
+      "viewBox": {
+        "minX": 0,
+        "minY": 0,
+        "width": 2376,
+        "height": 1482
+      },
+      "referencePathCount": 558,
+      "closedBasePathCount": 27
+    }
+  ]
+}
