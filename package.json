@@ -16,6 +16,7 @@
     "db:reset:local": "prisma migrate reset --force && npm run data:migrate-json",
     "data:migrate-json": "node scripts/migrate-json-to-postgres.js",
     "map:cad": "node scripts/generate-campus-cad-workspace.js",
+    "map:cad:clean": "node scripts/create-floor1-clean-pilot-dxf.js && node scripts/convert-clean-dxf-to-map.js",
     "email:check": "node scripts/check-email-config.js",
     "test": "node tests/run.js",
     "test:ui": "npx playwright test"

@@ -275,6 +275,16 @@ function loadCampusMapDataForTests() {
   return sandbox.__floors;
 }
 
+function polygonArea(points) {
+  let sum = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    sum += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(sum / 2);
+}
+
 // ── Matching unit tests (pure, no server needed) ──────────────
 function runMatcherTests() {
   const { scoreMatch, findMatchesForMissingItems, getObjectFamily } = require('../server/lib/matcher');
@@ -1117,6 +1127,43 @@ async function runTests() {
       assert(floor.referencePathCount > 100, `${floor.id} should include imported reference paths`);
       assert(floor.closedBasePathCount > 0, `${floor.id} should include closed CAD-detail paths`);
     }
+  });
+
+  await test('campus map clean CAD converter and Floor 1 pilot output exist', async () => {
+    const packageFile = path.join(ROOT, 'package.json');
+    const pkg = JSON.parse(await fs.promises.readFile(packageFile, 'utf8'));
+    assert(pkg.scripts && pkg.scripts['map:cad:clean'], 'Expected map:cad:clean script');
+    assert(pkg.scripts['map:cad:clean'].includes('convert-clean-dxf-to-map'), 'map:cad:clean should run the clean DXF converter');
+
+    const converter = path.join(ROOT, 'scripts/convert-clean-dxf-to-map.js');
+    assert(fs.existsSync(converter), 'Expected clean DXF converter script');
+
+    const cleanDxf = path.join(ROOT, 'cad/campus-map-workspace/clean/floor-1-pilot-clean.dxf');
+    assert(fs.existsSync(cleanDxf), 'Expected Floor 1 pilot clean DXF');
+
+    const cleanJson = path.join(ROOT, 'public/maps/clean/floor-1-clean.json');
+    assert(fs.existsSync(cleanJson), 'Expected Floor 1 clean map JSON');
+    const clean = JSON.parse(await fs.promises.readFile(cleanJson, 'utf8'));
+
+    assert(clean.floorId === 'floor-1', `Expected floor-1 clean geometry, got ${clean.floorId}`);
+    assert(clean.source && clean.source.endsWith('floor-1-pilot-clean.dxf'), 'Clean geometry should record the source DXF');
+    assert(Array.isArray(clean.rooms) && clean.rooms.length >= 60, `Expected at least 60 clean Floor 1 rooms, got ${clean.rooms?.length}`);
+    assert(Array.isArray(clean.hallways) && clean.hallways.length >= 3, `Expected at least 3 clean hallways, got ${clean.hallways?.length}`);
+    assert(Array.isArray(clean.stairs) && clean.stairs.length >= 5, `Expected at least 5 clean stair blocks, got ${clean.stairs?.length}`);
+    assert(Array.isArray(clean.labels) && clean.labels.length >= clean.rooms.length, 'Clean output should include typed labels for room polygons');
+
+    for (const entry of clean.rooms.slice(0, 12)) {
+      assert(entry.id && entry.roomNumber && entry.kind, `Clean room missing id/roomNumber/kind: ${JSON.stringify(entry)}`);
+      assert(Array.isArray(entry.polygon) && entry.polygon.length >= 4, `Clean room ${entry.id} needs a polygon`);
+      assert(polygonArea(entry.polygon) > 100, `Clean room ${entry.id} polygon area is too small`);
+    }
+  });
+
+  await test('campus map Floor 1 references clean selectable CAD geometry', async () => {
+    const floors = loadCampusMapDataForTests();
+    const floor1 = floors.find(floor => floor.id === 'floor-1');
+    assert(floor1, 'Expected floor-1 data');
+    assert(floor1.cleanGeometry === '/maps/clean/floor-1-clean.json', 'Floor 1 should point to clean CAD geometry');
   });
 
   await test('campus map floor 1 is room-level, not broad placeholder zones', async () => {

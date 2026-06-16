@@ -126,16 +126,19 @@ import { CampusMapWorld } from './campus-map-world.js';
     });
   }
 
-  function setFloor(floorId) {
+  async function setFloor(floorId) {
     const floor = getFloor(floorId);
     state.activeFloorId = floor.id;
     state.selectedKey = null;
     setLoading(true);
     updateFloorTabs();
-    world.setFloor(floor);
     updateDefaultDetails(floor);
-    updateReadout('2.5D world');
-    setLoading(false);
+    try {
+      await world.setFloor(floor);
+      updateReadout('2.5D world');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function findMatch(term) {
@@ -180,7 +183,7 @@ import { CampusMapWorld } from './campus-map-world.js';
     return null;
   }
 
-  function handleSearch() {
+  async function handleSearch() {
     const match = findMatch(elements.search.value);
     if (!match) {
       updateDefaultDetails();
@@ -194,8 +197,8 @@ import { CampusMapWorld } from './campus-map-world.js';
     };
 
     if (match.floor.id !== state.activeFloorId) {
-      setFloor(match.floor.id);
-      requestAnimationFrame(selectAfterFloor);
+      await setFloor(match.floor.id);
+      selectAfterFloor();
       return;
     }
 

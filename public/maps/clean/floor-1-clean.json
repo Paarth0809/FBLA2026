@@ -1,0 +1,3182 @@
+{
+  "floorId": "floor-1",
+  "source": "cad/campus-map-workspace/clean/floor-1-pilot-clean.dxf",
+  "generatedBy": "scripts/convert-clean-dxf-to-map.js",
+  "rooms": [
+    {
+      "id": "floor-1-1629",
+      "label": "Room 1629",
+      "kind": "Classroom",
+      "roomNumber": "1629",
+      "plannedRoomNumber": "1629",
+      "polygon": [
+        [
+          -682,
+          -535
+        ],
+        [
+          -596,
+          -535
+        ],
+        [
+          -596,
+          -445
+        ],
+        [
+          -682,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1627",
+      "label": "Room 1627",
+      "kind": "Classroom",
+      "roomNumber": "1627",
+      "plannedRoomNumber": "1627",
+      "polygon": [
+        [
+          -586,
+          -535
+        ],
+        [
+          -502,
+          -535
+        ],
+        [
+          -502,
+          -445
+        ],
+        [
+          -586,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1625",
+      "label": "Room 1625",
+      "kind": "Classroom",
+      "roomNumber": "1625",
+      "plannedRoomNumber": "1625",
+      "polygon": [
+        [
+          -492,
+          -535
+        ],
+        [
+          -408,
+          -535
+        ],
+        [
+          -408,
+          -445
+        ],
+        [
+          -492,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1623",
+      "label": "Room 1623",
+      "kind": "Classroom",
+      "roomNumber": "1623",
+      "plannedRoomNumber": "1623",
+      "polygon": [
+        [
+          -398,
+          -535
+        ],
+        [
+          -276,
+          -535
+        ],
+        [
+          -276,
+          -445
+        ],
+        [
+          -398,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1621",
+      "label": "Room 1621",
+      "kind": "Classroom",
+      "roomNumber": "1621",
+      "plannedRoomNumber": "1621",
+      "polygon": [
+        [
+          -185,
+          -535
+        ],
+        [
+          -10,
+          -535
+        ],
+        [
+          -10,
+          -445
+        ],
+        [
+          -185,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1619",
+      "label": "Room 1619",
+      "kind": "Classroom",
+      "roomNumber": "1619",
+      "plannedRoomNumber": "1619",
+      "polygon": [
+        [
+          100,
+          -535
+        ],
+        [
+          250,
+          -535
+        ],
+        [
+          250,
+          -445
+        ],
+        [
+          100,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1617",
+      "label": "Room 1617",
+      "kind": "Classroom",
+      "roomNumber": "1617",
+      "plannedRoomNumber": "1617",
+      "polygon": [
+        [
+          260,
+          -535
+        ],
+        [
+          450,
+          -535
+        ],
+        [
+          450,
+          -445
+        ],
+        [
+          260,
+          -445
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1634",
+      "label": "Room 1634",
+      "kind": "Classroom",
+      "roomNumber": "1634",
+      "plannedRoomNumber": "1634",
+      "polygon": [
+        [
+          -704,
+          -385
+        ],
+        [
+          -584,
+          -385
+        ],
+        [
+          -584,
+          -317
+        ],
+        [
+          -704,
+          -317
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1640",
+      "label": "Room 1640",
+      "kind": "Classroom",
+      "roomNumber": "1640",
+      "plannedRoomNumber": "1640",
+      "polygon": [
+        [
+          -704,
+          -305
+        ],
+        [
+          -584,
+          -305
+        ],
+        [
+          -584,
+          -235
+        ],
+        [
+          -704,
+          -235
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1626",
+      "label": "Room 1626",
+      "kind": "Classroom",
+      "roomNumber": "1626",
+      "plannedRoomNumber": "1626",
+      "polygon": [
+        [
+          -510,
+          -370
+        ],
+        [
+          -440,
+          -370
+        ],
+        [
+          -440,
+          -312
+        ],
+        [
+          -510,
+          -312
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1628",
+      "label": "Room 1628",
+      "kind": "Classroom",
+      "roomNumber": "1628",
+      "plannedRoomNumber": "1628",
+      "polygon": [
+        [
+          -510,
+          -435
+        ],
+        [
+          -438,
+          -435
+        ],
+        [
+          -438,
+          -385
+        ],
+        [
+          -510,
+          -385
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1642",
+      "label": "1642 Auxiliary Gym",
+      "kind": "Major zone",
+      "roomNumber": "1642",
+      "plannedRoomNumber": "1642",
+      "polygon": [
+        [
+          -700,
+          -225
+        ],
+        [
+          -430,
+          -225
+        ],
+        [
+          -430,
+          75
+        ],
+        [
+          -700,
+          75
+        ]
+      ],
+      "height": 0.14,
+      "selectable": true,
+      "importance": "major"
+    },
+    {
+      "id": "floor-1-1631",
+      "label": "Room 1631",
+      "kind": "Classroom",
+      "roomNumber": "1631",
+      "plannedRoomNumber": "1631",
+      "polygon": [
+        [
+          -305,
+          -365
+        ],
+        [
+          -237,
+          -365
+        ],
+        [
+          -237,
+          -307
+        ],
+        [
+          -305,
+          -307
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1633",
+      "label": "Room 1633",
+      "kind": "Classroom",
+      "roomNumber": "1633",
+      "plannedRoomNumber": "1633",
+      "polygon": [
+        [
+          -305,
+          -300
+        ],
+        [
+          -237,
+          -300
+        ],
+        [
+          -237,
+          -242
+        ],
+        [
+          -305,
+          -242
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1635",
+      "label": "Room 1635",
+      "kind": "Classroom",
+      "roomNumber": "1635",
+      "plannedRoomNumber": "1635",
+      "polygon": [
+        [
+          -305,
+          -232
+        ],
+        [
+          -241,
+          -232
+        ],
+        [
+          -241,
+          -146
+        ],
+        [
+          -305,
+          -146
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1637",
+      "label": "Room 1637",
+      "kind": "Classroom",
+      "roomNumber": "1637",
+      "plannedRoomNumber": "1637",
+      "polygon": [
+        [
+          -305,
+          -140
+        ],
+        [
+          -241,
+          -140
+        ],
+        [
+          -241,
+          -52
+        ],
+        [
+          -305,
+          -52
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1639",
+      "label": "Room 1639",
+      "kind": "Classroom",
+      "roomNumber": "1639",
+      "plannedRoomNumber": "1639",
+      "polygon": [
+        [
+          -252,
+          -10
+        ],
+        [
+          -156,
+          -10
+        ],
+        [
+          -156,
+          38
+        ],
+        [
+          -252,
+          38
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1641",
+      "label": "Room 1641",
+      "kind": "Classroom",
+      "roomNumber": "1641",
+      "plannedRoomNumber": "1641",
+      "polygon": [
+        [
+          -120,
+          -10
+        ],
+        [
+          -22,
+          -10
+        ],
+        [
+          -22,
+          38
+        ],
+        [
+          -120,
+          38
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1601",
+      "label": "1601 Gym",
+      "kind": "Major zone",
+      "roomNumber": "1601",
+      "plannedRoomNumber": "1601",
+      "polygon": [
+        [
+          -210,
+          -405
+        ],
+        [
+          180,
+          -405
+        ],
+        [
+          180,
+          -120
+        ],
+        [
+          -210,
+          -120
+        ]
+      ],
+      "height": 0.15,
+      "selectable": true,
+      "importance": "major"
+    },
+    {
+      "id": "floor-1-1602",
+      "label": "Room 1602",
+      "kind": "Support",
+      "roomNumber": "1602",
+      "plannedRoomNumber": "1602",
+      "polygon": [
+        [
+          -18,
+          -104
+        ],
+        [
+          30,
+          -104
+        ],
+        [
+          30,
+          -62
+        ],
+        [
+          -18,
+          -62
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1601a",
+      "label": "Room 1601A",
+      "kind": "Support",
+      "roomNumber": "1601A",
+      "plannedRoomNumber": "1601A",
+      "polygon": [
+        [
+          130,
+          -100
+        ],
+        [
+          258,
+          -100
+        ],
+        [
+          258,
+          -48
+        ],
+        [
+          130,
+          -48
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1603",
+      "label": "Room 1603",
+      "kind": "Support",
+      "roomNumber": "1603",
+      "plannedRoomNumber": "1603",
+      "polygon": [
+        [
+          280,
+          -104
+        ],
+        [
+          316,
+          -104
+        ],
+        [
+          316,
+          -46
+        ],
+        [
+          280,
+          -46
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1614",
+      "label": "Room 1614",
+      "kind": "Classroom",
+      "roomNumber": "1614",
+      "plannedRoomNumber": "1614",
+      "polygon": [
+        [
+          438,
+          -385
+        ],
+        [
+          548,
+          -385
+        ],
+        [
+          548,
+          -325
+        ],
+        [
+          438,
+          -325
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1616",
+      "label": "Room 1616",
+      "kind": "Support",
+      "roomNumber": "1616",
+      "plannedRoomNumber": "1616",
+      "polygon": [
+        [
+          552,
+          -405
+        ],
+        [
+          596,
+          -405
+        ],
+        [
+          596,
+          -327
+        ],
+        [
+          552,
+          -327
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1608",
+      "label": "Room 1608",
+      "kind": "Classroom",
+      "roomNumber": "1608",
+      "plannedRoomNumber": "1608",
+      "polygon": [
+        [
+          438,
+          -312
+        ],
+        [
+          588,
+          -312
+        ],
+        [
+          588,
+          -238
+        ],
+        [
+          438,
+          -238
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1606",
+      "label": "Room 1606",
+      "kind": "Classroom",
+      "roomNumber": "1606",
+      "plannedRoomNumber": "1606",
+      "polygon": [
+        [
+          438,
+          -225
+        ],
+        [
+          588,
+          -225
+        ],
+        [
+          588,
+          -149
+        ],
+        [
+          438,
+          -149
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1604",
+      "label": "Room 1604",
+      "kind": "Classroom",
+      "roomNumber": "1604",
+      "plannedRoomNumber": "1604",
+      "polygon": [
+        [
+          438,
+          -135
+        ],
+        [
+          588,
+          -135
+        ],
+        [
+          588,
+          -49
+        ],
+        [
+          438,
+          -49
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1408",
+      "label": "Room 1408",
+      "kind": "Support",
+      "roomNumber": "1408",
+      "plannedRoomNumber": "1408",
+      "polygon": [
+        [
+          418,
+          15
+        ],
+        [
+          476,
+          15
+        ],
+        [
+          476,
+          61
+        ],
+        [
+          418,
+          61
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1410a",
+      "label": "Room 1410A",
+      "kind": "Support",
+      "roomNumber": "1410A",
+      "plannedRoomNumber": "1410A",
+      "polygon": [
+        [
+          506,
+          96
+        ],
+        [
+          601,
+          96
+        ],
+        [
+          601,
+          170
+        ],
+        [
+          506,
+          170
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1410d",
+      "label": "Room 1410D",
+      "kind": "Support",
+      "roomNumber": "1410D",
+      "plannedRoomNumber": "1410D",
+      "polygon": [
+        [
+          455,
+          126
+        ],
+        [
+          521,
+          126
+        ],
+        [
+          521,
+          196
+        ],
+        [
+          455,
+          196
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1404",
+      "label": "Room 1404",
+      "kind": "Support",
+      "roomNumber": "1404",
+      "plannedRoomNumber": "1404",
+      "polygon": [
+        [
+          360,
+          98
+        ],
+        [
+          435,
+          98
+        ],
+        [
+          435,
+          141
+        ],
+        [
+          360,
+          141
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1403",
+      "label": "Room 1403",
+      "kind": "Support",
+      "roomNumber": "1403",
+      "plannedRoomNumber": "1403",
+      "polygon": [
+        [
+          310,
+          188
+        ],
+        [
+          368,
+          188
+        ],
+        [
+          368,
+          232
+        ],
+        [
+          310,
+          232
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1405",
+      "label": "Room 1405",
+      "kind": "Support",
+      "roomNumber": "1405",
+      "plannedRoomNumber": "1405",
+      "polygon": [
+        [
+          378,
+          188
+        ],
+        [
+          436,
+          188
+        ],
+        [
+          436,
+          232
+        ],
+        [
+          378,
+          232
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1407",
+      "label": "Room 1407",
+      "kind": "Support",
+      "roomNumber": "1407",
+      "plannedRoomNumber": "1407",
+      "polygon": [
+        [
+          446,
+          188
+        ],
+        [
+          504,
+          188
+        ],
+        [
+          504,
+          232
+        ],
+        [
+          446,
+          232
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1501",
+      "label": "1501 Cafeteria",
+      "kind": "Major zone",
+      "roomNumber": "1501",
+      "plannedRoomNumber": "1501",
+      "polygon": [
+        [
+          -315,
+          92
+        ],
+        [
+          90,
+          92
+        ],
+        [
+          90,
+          377
+        ],
+        [
+          -315,
+          377
+        ]
+      ],
+      "height": 0.14,
+      "selectable": true,
+      "importance": "major"
+    },
+    {
+      "id": "floor-1-1403",
+      "label": "Room 1403",
+      "kind": "Support",
+      "roomNumber": "1403",
+      "plannedRoomNumber": "1403",
+      "polygon": [
+        [
+          235,
+          210
+        ],
+        [
+          535,
+          210
+        ],
+        [
+          535,
+          480
+        ],
+        [
+          235,
+          480
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1201",
+      "label": "Room 1201",
+      "kind": "Support",
+      "roomNumber": "1201",
+      "plannedRoomNumber": "1201",
+      "polygon": [
+        [
+          210,
+          112
+        ],
+        [
+          260,
+          96
+        ],
+        [
+          292,
+          164
+        ],
+        [
+          238,
+          185
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1203",
+      "label": "Room 1203",
+      "kind": "Support",
+      "roomNumber": "1203",
+      "plannedRoomNumber": "1203",
+      "polygon": [
+        [
+          235,
+          450
+        ],
+        [
+          288,
+          432
+        ],
+        [
+          306,
+          488
+        ],
+        [
+          252,
+          508
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1230",
+      "label": "Room 1230",
+      "kind": "Classroom",
+      "roomNumber": "1230",
+      "plannedRoomNumber": "1230",
+      "polygon": [
+        [
+          615,
+          205
+        ],
+        [
+          707,
+          205
+        ],
+        [
+          707,
+          380
+        ],
+        [
+          615,
+          380
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1228",
+      "label": "Room 1228",
+      "kind": "Classroom",
+      "roomNumber": "1228",
+      "plannedRoomNumber": "1228",
+      "polygon": [
+        [
+          615,
+          397
+        ],
+        [
+          707,
+          397
+        ],
+        [
+          707,
+          507
+        ],
+        [
+          615,
+          507
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1222",
+      "label": "Room 1222",
+      "kind": "Classroom",
+      "roomNumber": "1222",
+      "plannedRoomNumber": "1222",
+      "polygon": [
+        [
+          615,
+          530
+        ],
+        [
+          707,
+          530
+        ],
+        [
+          707,
+          628
+        ],
+        [
+          615,
+          628
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1145",
+      "label": "Room 1145",
+      "kind": "Classroom",
+      "roomNumber": "1145",
+      "plannedRoomNumber": "1145",
+      "polygon": [
+        [
+          -430,
+          560
+        ],
+        [
+          -346,
+          560
+        ],
+        [
+          -346,
+          628
+        ],
+        [
+          -430,
+          628
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1147",
+      "label": "Room 1147",
+      "kind": "Classroom",
+      "roomNumber": "1147",
+      "plannedRoomNumber": "1147",
+      "polygon": [
+        [
+          -430,
+          635
+        ],
+        [
+          -346,
+          635
+        ],
+        [
+          -346,
+          703
+        ],
+        [
+          -430,
+          703
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1149",
+      "label": "Room 1149",
+      "kind": "Classroom",
+      "roomNumber": "1149",
+      "plannedRoomNumber": "1149",
+      "polygon": [
+        [
+          -330,
+          635
+        ],
+        [
+          -256,
+          635
+        ],
+        [
+          -256,
+          703
+        ],
+        [
+          -330,
+          703
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1151",
+      "label": "Room 1151",
+      "kind": "Classroom",
+      "roomNumber": "1151",
+      "plannedRoomNumber": "1151",
+      "polygon": [
+        [
+          -170,
+          560
+        ],
+        [
+          -78,
+          560
+        ],
+        [
+          -78,
+          630
+        ],
+        [
+          -170,
+          630
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1153",
+      "label": "Room 1153",
+      "kind": "Classroom",
+      "roomNumber": "1153",
+      "plannedRoomNumber": "1153",
+      "polygon": [
+        [
+          -170,
+          640
+        ],
+        [
+          -78,
+          640
+        ],
+        [
+          -78,
+          710
+        ],
+        [
+          -170,
+          710
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1155",
+      "label": "Room 1155",
+      "kind": "Classroom",
+      "roomNumber": "1155",
+      "plannedRoomNumber": "1155",
+      "polygon": [
+        [
+          -68,
+          640
+        ],
+        [
+          42,
+          640
+        ],
+        [
+          42,
+          710
+        ],
+        [
+          -68,
+          710
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1157",
+      "label": "Room 1157",
+      "kind": "Classroom",
+      "roomNumber": "1157",
+      "plannedRoomNumber": "1157",
+      "polygon": [
+        [
+          52,
+          640
+        ],
+        [
+          174,
+          640
+        ],
+        [
+          174,
+          710
+        ],
+        [
+          52,
+          710
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1159",
+      "label": "Room 1159",
+      "kind": "Classroom",
+      "roomNumber": "1159",
+      "plannedRoomNumber": "1159",
+      "polygon": [
+        [
+          188,
+          640
+        ],
+        [
+          298,
+          640
+        ],
+        [
+          298,
+          710
+        ],
+        [
+          188,
+          710
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1137",
+      "label": "Room 1137",
+      "kind": "Classroom",
+      "roomNumber": "1137",
+      "plannedRoomNumber": "1137",
+      "polygon": [
+        [
+          -430,
+          740
+        ],
+        [
+          -346,
+          740
+        ],
+        [
+          -346,
+          798
+        ],
+        [
+          -430,
+          798
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1135",
+      "label": "Room 1135",
+      "kind": "Classroom",
+      "roomNumber": "1135",
+      "plannedRoomNumber": "1135",
+      "polygon": [
+        [
+          -320,
+          740
+        ],
+        [
+          -224,
+          740
+        ],
+        [
+          -224,
+          828
+        ],
+        [
+          -320,
+          828
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1133",
+      "label": "Room 1133",
+      "kind": "Classroom",
+      "roomNumber": "1133",
+      "plannedRoomNumber": "1133",
+      "polygon": [
+        [
+          -260,
+          860
+        ],
+        [
+          -168,
+          860
+        ],
+        [
+          -168,
+          942
+        ],
+        [
+          -260,
+          942
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1131",
+      "label": "Room 1131",
+      "kind": "Classroom",
+      "roomNumber": "1131",
+      "plannedRoomNumber": "1131",
+      "polygon": [
+        [
+          -430,
+          880
+        ],
+        [
+          -344,
+          880
+        ],
+        [
+          -344,
+          942
+        ],
+        [
+          -430,
+          942
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1129",
+      "label": "Room 1129",
+      "kind": "Classroom",
+      "roomNumber": "1129",
+      "plannedRoomNumber": "1129",
+      "polygon": [
+        [
+          -430,
+          950
+        ],
+        [
+          -344,
+          950
+        ],
+        [
+          -344,
+          1012
+        ],
+        [
+          -430,
+          1012
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1127",
+      "label": "Room 1127",
+      "kind": "Classroom",
+      "roomNumber": "1127",
+      "plannedRoomNumber": "1127",
+      "polygon": [
+        [
+          -430,
+          1020
+        ],
+        [
+          -344,
+          1020
+        ],
+        [
+          -344,
+          1082
+        ],
+        [
+          -430,
+          1082
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1125",
+      "label": "Room 1125",
+      "kind": "Classroom",
+      "roomNumber": "1125",
+      "plannedRoomNumber": "1125",
+      "polygon": [
+        [
+          -430,
+          1090
+        ],
+        [
+          -344,
+          1090
+        ],
+        [
+          -344,
+          1152
+        ],
+        [
+          -430,
+          1152
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1123",
+      "label": "Room 1123",
+      "kind": "Classroom",
+      "roomNumber": "1123",
+      "plannedRoomNumber": "1123",
+      "polygon": [
+        [
+          -430,
+          1160
+        ],
+        [
+          -344,
+          1160
+        ],
+        [
+          -344,
+          1222
+        ],
+        [
+          -430,
+          1222
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1121",
+      "label": "Room 1121",
+      "kind": "Classroom",
+      "roomNumber": "1121",
+      "plannedRoomNumber": "1121",
+      "polygon": [
+        [
+          -220,
+          1168
+        ],
+        [
+          -148,
+          1168
+        ],
+        [
+          -148,
+          1222
+        ],
+        [
+          -220,
+          1222
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1119",
+      "label": "Room 1119",
+      "kind": "Classroom",
+      "roomNumber": "1119",
+      "plannedRoomNumber": "1119",
+      "polygon": [
+        [
+          -138,
+          1168
+        ],
+        [
+          -66,
+          1168
+        ],
+        [
+          -66,
+          1222
+        ],
+        [
+          -138,
+          1222
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1101",
+      "label": "Room 1101",
+      "kind": "Classroom",
+      "roomNumber": "1101",
+      "plannedRoomNumber": "1101",
+      "polygon": [
+        [
+          35,
+          748
+        ],
+        [
+          121,
+          748
+        ],
+        [
+          121,
+          814
+        ],
+        [
+          35,
+          814
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1103",
+      "label": "Room 1103",
+      "kind": "Classroom",
+      "roomNumber": "1103",
+      "plannedRoomNumber": "1103",
+      "polygon": [
+        [
+          -62,
+          748
+        ],
+        [
+          24,
+          748
+        ],
+        [
+          24,
+          814
+        ],
+        [
+          -62,
+          814
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1105",
+      "label": "Room 1105",
+      "kind": "Classroom",
+      "roomNumber": "1105",
+      "plannedRoomNumber": "1105",
+      "polygon": [
+        [
+          -160,
+          748
+        ],
+        [
+          -74,
+          748
+        ],
+        [
+          -74,
+          814
+        ],
+        [
+          -160,
+          814
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1107",
+      "label": "Room 1107",
+      "kind": "Classroom",
+      "roomNumber": "1107",
+      "plannedRoomNumber": "1107",
+      "polygon": [
+        [
+          -245,
+          748
+        ],
+        [
+          -197,
+          748
+        ],
+        [
+          -197,
+          802
+        ],
+        [
+          -245,
+          802
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1135",
+      "label": "Room 1135",
+      "kind": "Classroom",
+      "roomNumber": "1135",
+      "plannedRoomNumber": "1135",
+      "polygon": [
+        [
+          -300,
+          748
+        ],
+        [
+          -252,
+          748
+        ],
+        [
+          -252,
+          802
+        ],
+        [
+          -300,
+          802
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1111",
+      "label": "Room 1111",
+      "kind": "Classroom",
+      "roomNumber": "1111",
+      "plannedRoomNumber": "1111",
+      "polygon": [
+        [
+          -245,
+          820
+        ],
+        [
+          -149,
+          820
+        ],
+        [
+          -149,
+          886
+        ],
+        [
+          -245,
+          886
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1133",
+      "label": "Room 1133",
+      "kind": "Classroom",
+      "roomNumber": "1133",
+      "plannedRoomNumber": "1133",
+      "polygon": [
+        [
+          -245,
+          894
+        ],
+        [
+          -149,
+          894
+        ],
+        [
+          -149,
+          960
+        ],
+        [
+          -245,
+          960
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1115",
+      "label": "Room 1115",
+      "kind": "Classroom",
+      "roomNumber": "1115",
+      "plannedRoomNumber": "1115",
+      "polygon": [
+        [
+          -245,
+          970
+        ],
+        [
+          -149,
+          970
+        ],
+        [
+          -149,
+          1036
+        ],
+        [
+          -245,
+          1036
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1117",
+      "label": "Room 1117",
+      "kind": "Classroom",
+      "roomNumber": "1117",
+      "plannedRoomNumber": "1117",
+      "polygon": [
+        [
+          -245,
+          1046
+        ],
+        [
+          -149,
+          1046
+        ],
+        [
+          -149,
+          1112
+        ],
+        [
+          -245,
+          1112
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1214",
+      "label": "Room 1214",
+      "kind": "Classroom",
+      "roomNumber": "1214",
+      "plannedRoomNumber": "1214",
+      "polygon": [
+        [
+          300,
+          650
+        ],
+        [
+          398,
+          650
+        ],
+        [
+          398,
+          738
+        ],
+        [
+          300,
+          738
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1216",
+      "label": "Room 1216",
+      "kind": "Classroom",
+      "roomNumber": "1216",
+      "plannedRoomNumber": "1216",
+      "polygon": [
+        [
+          300,
+          750
+        ],
+        [
+          398,
+          750
+        ],
+        [
+          398,
+          838
+        ],
+        [
+          300,
+          838
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1218",
+      "label": "Room 1218",
+      "kind": "Classroom",
+      "roomNumber": "1218",
+      "plannedRoomNumber": "1218",
+      "polygon": [
+        [
+          300,
+          850
+        ],
+        [
+          398,
+          850
+        ],
+        [
+          398,
+          938
+        ],
+        [
+          300,
+          938
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-1220",
+      "label": "Room 1220",
+      "kind": "Major zone",
+      "roomNumber": "1220",
+      "plannedRoomNumber": "1220",
+      "polygon": [
+        [
+          430,
+          875
+        ],
+        [
+          598,
+          875
+        ],
+        [
+          598,
+          997
+        ],
+        [
+          430,
+          997
+        ]
+      ],
+      "height": 0.08,
+      "selectable": true,
+      "importance": "major"
+    }
+  ],
+  "hallways": [
+    {
+      "id": "floor-1-hallway-1",
+      "label": "Hallway 1",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          -520,
+          46
+        ],
+        [
+          -70,
+          46
+        ],
+        [
+          -70,
+          -26
+        ],
+        [
+          -520,
+          -26
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-2",
+      "label": "Hallway 2",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          -70,
+          46
+        ],
+        [
+          440,
+          46
+        ],
+        [
+          440,
+          -26
+        ],
+        [
+          -70,
+          -26
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-3",
+      "label": "Hallway 3",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          410.589,
+          30.761
+        ],
+        [
+          530.589,
+          200.761
+        ],
+        [
+          589.411,
+          159.239
+        ],
+        [
+          469.411,
+          -10.761
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-4",
+      "label": "Hallway 4",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          -36,
+          50
+        ],
+        [
+          -36,
+          260
+        ],
+        [
+          36,
+          260
+        ],
+        [
+          36,
+          50
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-5",
+      "label": "Hallway 5",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          -36,
+          260
+        ],
+        [
+          -36,
+          535
+        ],
+        [
+          36,
+          535
+        ],
+        [
+          36,
+          260
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-6",
+      "label": "Hallway 6",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          -360,
+          753
+        ],
+        [
+          -90,
+          753
+        ],
+        [
+          -90,
+          697
+        ],
+        [
+          -360,
+          697
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-7",
+      "label": "Hallway 7",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          -90,
+          753
+        ],
+        [
+          120,
+          753
+        ],
+        [
+          120,
+          697
+        ],
+        [
+          -90,
+          697
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    },
+    {
+      "id": "floor-1-hallway-8",
+      "label": "Hallway 8",
+      "kind": "Hallway",
+      "polygon": [
+        [
+          120,
+          753
+        ],
+        [
+          340,
+          753
+        ],
+        [
+          340,
+          697
+        ],
+        [
+          120,
+          697
+        ]
+      ],
+      "height": 0.035,
+      "selectable": true
+    }
+  ],
+  "walls": [],
+  "stairs": [
+    {
+      "id": "floor-1-stair-1",
+      "label": "Stair 1",
+      "polygon": [
+        [
+          -556,
+          -385
+        ],
+        [
+          -494,
+          -385
+        ],
+        [
+          -494,
+          -265
+        ],
+        [
+          -556,
+          -265
+        ]
+      ],
+      "position": [
+        -525,
+        -325
+      ],
+      "size": [
+        62,
+        120
+      ],
+      "rotation": 0,
+      "treads": 8
+    },
+    {
+      "id": "floor-1-stair-2",
+      "label": "Stair 2",
+      "polygon": [
+        [
+          -24,
+          345
+        ],
+        [
+          -24,
+          463
+        ],
+        [
+          -86,
+          463
+        ],
+        [
+          -86,
+          345
+        ]
+      ],
+      "position": [
+        -55,
+        404
+      ],
+      "size": [
+        62,
+        118
+      ],
+      "rotation": 0,
+      "treads": 8
+    },
+    {
+      "id": "floor-1-stair-3",
+      "label": "Stair 3",
+      "polygon": [
+        [
+          521,
+          528
+        ],
+        [
+          521,
+          640
+        ],
+        [
+          463,
+          640
+        ],
+        [
+          463,
+          528
+        ]
+      ],
+      "position": [
+        492,
+        584
+      ],
+      "size": [
+        58,
+        112
+      ],
+      "rotation": 0,
+      "treads": 8
+    },
+    {
+      "id": "floor-1-stair-4",
+      "label": "Stair 4",
+      "polygon": [
+        [
+          -291,
+          636
+        ],
+        [
+          -291,
+          724
+        ],
+        [
+          -345,
+          724
+        ],
+        [
+          -345,
+          636
+        ]
+      ],
+      "position": [
+        -318,
+        680
+      ],
+      "size": [
+        54,
+        88
+      ],
+      "rotation": 0,
+      "treads": 8
+    },
+    {
+      "id": "floor-1-stair-5",
+      "label": "Stair 5",
+      "polygon": [
+        [
+          257,
+          636
+        ],
+        [
+          257,
+          724
+        ],
+        [
+          203,
+          724
+        ],
+        [
+          203,
+          636
+        ]
+      ],
+      "position": [
+        230,
+        680
+      ],
+      "size": [
+        54,
+        88
+      ],
+      "rotation": 0,
+      "treads": 8
+    }
+  ],
+  "labels": [
+    {
+      "id": "floor-1-label-1629-1",
+      "label": "1629",
+      "roomId": "floor-1-1629",
+      "position": [
+        -639,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1627-2",
+      "label": "1627",
+      "roomId": "floor-1-1627",
+      "position": [
+        -544,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1625-3",
+      "label": "1625",
+      "roomId": "floor-1-1625",
+      "position": [
+        -450,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1623-4",
+      "label": "1623",
+      "roomId": "floor-1-1623",
+      "position": [
+        -337,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1621-5",
+      "label": "1621",
+      "roomId": "floor-1-1621",
+      "position": [
+        -97.5,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1619-6",
+      "label": "1619",
+      "roomId": "floor-1-1619",
+      "position": [
+        175,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1617-7",
+      "label": "1617",
+      "roomId": "floor-1-1617",
+      "position": [
+        355,
+        -490
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1634-8",
+      "label": "1634",
+      "roomId": "floor-1-1634",
+      "position": [
+        -644,
+        -351
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1640-9",
+      "label": "1640",
+      "roomId": "floor-1-1640",
+      "position": [
+        -644,
+        -270
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1626-10",
+      "label": "1626",
+      "roomId": "floor-1-1626",
+      "position": [
+        -475,
+        -341
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1628-11",
+      "label": "1628",
+      "roomId": "floor-1-1628",
+      "position": [
+        -474,
+        -410
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1642-12",
+      "label": "1642",
+      "roomId": "floor-1-1642",
+      "position": [
+        -565,
+        -75
+      ],
+      "minZoom": 0.28,
+      "importance": "major"
+    },
+    {
+      "id": "floor-1-label-1631-13",
+      "label": "1631",
+      "roomId": "floor-1-1631",
+      "position": [
+        -271,
+        -336
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1633-14",
+      "label": "1633",
+      "roomId": "floor-1-1633",
+      "position": [
+        -271,
+        -271
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1635-15",
+      "label": "1635",
+      "roomId": "floor-1-1635",
+      "position": [
+        -273,
+        -189
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1637-16",
+      "label": "1637",
+      "roomId": "floor-1-1637",
+      "position": [
+        -273,
+        -96
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1639-17",
+      "label": "1639",
+      "roomId": "floor-1-1639",
+      "position": [
+        -204,
+        14
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1641-18",
+      "label": "1641",
+      "roomId": "floor-1-1641",
+      "position": [
+        -71,
+        14
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1601-19",
+      "label": "1601",
+      "roomId": "floor-1-1601",
+      "position": [
+        -15,
+        -262.5
+      ],
+      "minZoom": 0.28,
+      "importance": "major"
+    },
+    {
+      "id": "floor-1-label-1602-20",
+      "label": "1602",
+      "roomId": "floor-1-1602",
+      "position": [
+        6,
+        -83
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1601a-21",
+      "label": "1601A",
+      "roomId": "floor-1-1601a",
+      "position": [
+        194,
+        -74
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1603-22",
+      "label": "1603",
+      "roomId": "floor-1-1603",
+      "position": [
+        298,
+        -75
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1614-23",
+      "label": "1614",
+      "roomId": "floor-1-1614",
+      "position": [
+        493,
+        -355
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1616-24",
+      "label": "1616",
+      "roomId": "floor-1-1616",
+      "position": [
+        574,
+        -366
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1608-25",
+      "label": "1608",
+      "roomId": "floor-1-1608",
+      "position": [
+        513,
+        -275
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1606-26",
+      "label": "1606",
+      "roomId": "floor-1-1606",
+      "position": [
+        513,
+        -187
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1604-27",
+      "label": "1604",
+      "roomId": "floor-1-1604",
+      "position": [
+        513,
+        -92
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1408-28",
+      "label": "1408",
+      "roomId": "floor-1-1408",
+      "position": [
+        447,
+        38
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1410a-29",
+      "label": "1410A",
+      "roomId": "floor-1-1410a",
+      "position": [
+        553.5,
+        133
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1410d-30",
+      "label": "1410D",
+      "roomId": "floor-1-1410d",
+      "position": [
+        488,
+        161
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1404-31",
+      "label": "1404",
+      "roomId": "floor-1-1404",
+      "position": [
+        397.5,
+        119.5
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1403-32",
+      "label": "1403",
+      "roomId": "floor-1-1403",
+      "position": [
+        339,
+        210
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1405-33",
+      "label": "1405",
+      "roomId": "floor-1-1405",
+      "position": [
+        407,
+        210
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1407-34",
+      "label": "1407",
+      "roomId": "floor-1-1407",
+      "position": [
+        475,
+        210
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1501-35",
+      "label": "1501",
+      "roomId": "floor-1-1501",
+      "position": [
+        -112.5,
+        234.5
+      ],
+      "minZoom": 0.28,
+      "importance": "major"
+    },
+    {
+      "id": "floor-1-label-1209-36",
+      "label": "1209",
+      "roomId": null,
+      "position": [
+        385,
+        345
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1201-37",
+      "label": "1201",
+      "roomId": "floor-1-1201",
+      "position": [
+        250,
+        139.25
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1203-38",
+      "label": "1203",
+      "roomId": "floor-1-1203",
+      "position": [
+        270.25,
+        469.5
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1230-39",
+      "label": "1230",
+      "roomId": "floor-1-1230",
+      "position": [
+        661,
+        292.5
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1228-40",
+      "label": "1228",
+      "roomId": "floor-1-1228",
+      "position": [
+        661,
+        452
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1222-41",
+      "label": "1222",
+      "roomId": "floor-1-1222",
+      "position": [
+        661,
+        579
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1145-42",
+      "label": "1145",
+      "roomId": "floor-1-1145",
+      "position": [
+        -388,
+        594
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1147-43",
+      "label": "1147",
+      "roomId": "floor-1-1147",
+      "position": [
+        -388,
+        669
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1149-44",
+      "label": "1149",
+      "roomId": "floor-1-1149",
+      "position": [
+        -293,
+        669
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1151-45",
+      "label": "1151",
+      "roomId": "floor-1-1151",
+      "position": [
+        -124,
+        595
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1153-46",
+      "label": "1153",
+      "roomId": "floor-1-1153",
+      "position": [
+        -124,
+        675
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1155-47",
+      "label": "1155",
+      "roomId": "floor-1-1155",
+      "position": [
+        -13,
+        675
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1157-48",
+      "label": "1157",
+      "roomId": "floor-1-1157",
+      "position": [
+        113,
+        675
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1159-49",
+      "label": "1159",
+      "roomId": "floor-1-1159",
+      "position": [
+        243,
+        675
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1137-50",
+      "label": "1137",
+      "roomId": "floor-1-1137",
+      "position": [
+        -388,
+        769
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1135-51",
+      "label": "1135",
+      "roomId": "floor-1-1135",
+      "position": [
+        -272,
+        784
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1133-52",
+      "label": "1133",
+      "roomId": "floor-1-1133",
+      "position": [
+        -214,
+        901
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1131-53",
+      "label": "1131",
+      "roomId": "floor-1-1131",
+      "position": [
+        -387,
+        911
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1129-54",
+      "label": "1129",
+      "roomId": "floor-1-1129",
+      "position": [
+        -387,
+        981
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1127-55",
+      "label": "1127",
+      "roomId": "floor-1-1127",
+      "position": [
+        -387,
+        1051
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1125-56",
+      "label": "1125",
+      "roomId": "floor-1-1125",
+      "position": [
+        -387,
+        1121
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1123-57",
+      "label": "1123",
+      "roomId": "floor-1-1123",
+      "position": [
+        -387,
+        1191
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1121-58",
+      "label": "1121",
+      "roomId": "floor-1-1121",
+      "position": [
+        -184,
+        1195
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1119-59",
+      "label": "1119",
+      "roomId": "floor-1-1119",
+      "position": [
+        -102,
+        1195
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1101-60",
+      "label": "1101",
+      "roomId": "floor-1-1101",
+      "position": [
+        78,
+        781
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1103-61",
+      "label": "1103",
+      "roomId": "floor-1-1103",
+      "position": [
+        -19,
+        781
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1105-62",
+      "label": "1105",
+      "roomId": "floor-1-1105",
+      "position": [
+        -117,
+        781
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1107-63",
+      "label": "1107",
+      "roomId": "floor-1-1107",
+      "position": [
+        -221,
+        775
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1109-64",
+      "label": "1109",
+      "roomId": null,
+      "position": [
+        -276,
+        775
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1111-65",
+      "label": "1111",
+      "roomId": "floor-1-1111",
+      "position": [
+        -197,
+        853
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1113-66",
+      "label": "1113",
+      "roomId": null,
+      "position": [
+        -197,
+        927
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1115-67",
+      "label": "1115",
+      "roomId": "floor-1-1115",
+      "position": [
+        -197,
+        1003
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1117-68",
+      "label": "1117",
+      "roomId": "floor-1-1117",
+      "position": [
+        -197,
+        1079
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1214-69",
+      "label": "1214",
+      "roomId": "floor-1-1214",
+      "position": [
+        349,
+        694
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1216-70",
+      "label": "1216",
+      "roomId": "floor-1-1216",
+      "position": [
+        349,
+        794
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1218-71",
+      "label": "1218",
+      "roomId": "floor-1-1218",
+      "position": [
+        349,
+        894
+      ],
+      "minZoom": 0.54,
+      "importance": "normal"
+    },
+    {
+      "id": "floor-1-label-1220-72",
+      "label": "1220",
+      "roomId": "floor-1-1220",
+      "position": [
+        514,
+        936
+      ],
+      "minZoom": 0.28,
+      "importance": "major"
+    }
+  ]
+}

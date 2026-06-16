@@ -5,6 +5,65 @@
 
 ---
 
+## Latest Update — Clean Floor 1 CAD Pilot Converter
+
+Current goal: make the AutoCAD cleanup loop real instead of theoretical. The
+existing scan/vector underlays are still references; the new work creates a
+layered Floor 1 pilot DXF with closed room/hall/stair geometry and converts that
+clean CAD layer output into website-ready selectable map JSON.
+
+Completed:
+- Checkpointed the previous CAD map pipeline on branch
+  `codex/autocad-campus-map-rebuild` with commit `838f858`.
+- Added `scripts/create-floor1-clean-pilot-dxf.js`, which generates
+  `cad/campus-map-workspace/clean/floor-1-pilot-clean.dxf` with AutoCAD cleanup
+  layers:
+  - `REFERENCE_STROKES`, `REFERENCE_BASE`
+  - `ROOMS`, `HALLWAYS`, `WALLS`, `DOORS`, `STAIRS`
+  - `ROOM_LABELS`, `PLACE_LABELS`, `PINS`
+- Added `scripts/convert-clean-dxf-to-map.js`, which reads layer-based DXF
+  entities and emits `public/maps/clean/floor-1-clean.json`.
+- Added `npm run map:cad:clean` to regenerate the clean pilot DXF and the
+  website JSON in one command.
+- Updated Floor 1 in `public/js/campus-map-data.js` to reference
+  `/maps/clean/floor-1-clean.json`.
+- Updated `public/js/campus-map-world.js` so Floor 1 can load clean CAD
+  geometry asynchronously and render room-level selectable slabs from that data,
+  while preserving the older curated geometry as fallback.
+- Updated `public/js/campus-map.js` to await async floor loading so loading
+  state and search-selection behavior remain stable.
+- Added tests that require the clean converter, Floor 1 clean DXF, clean JSON,
+  room/hall/stair counts, and Floor 1 clean-geometry reference.
+
+Verification:
+- `node --check scripts/create-floor1-clean-pilot-dxf.js` passed.
+- `node --check scripts/convert-clean-dxf-to-map.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node --check public/js/campus-map-data.js` passed.
+- `node --check public/js/campus-map-world.js` passed.
+- `npm run map:cad:clean` regenerated the Floor 1 pilot DXF and JSON.
+- `git diff --check` passed.
+- `npm test` passed 104 / 104.
+- Browser smoke on `http://localhost:3000/map.html?mapDebug=1` confirmed:
+  - `/maps/clean/floor-1-clean.json` loads with HTTP 200;
+  - the canvas map renders;
+  - Floor 2 switching still works after async loading changes;
+  - loading state clears;
+  - desktop view has no horizontal overflow.
+  - Only browser messages were the expected logged-out `/api/auth/me` 401 and
+    the existing Three.js `Clock` deprecation warning.
+
+Important limitation / next step:
+- This is a working clean-CAD pipeline and Floor 1 pilot, not the final
+  hand-traced AutoCAD drawing. The next heavy pass is to open
+  `cad/campus-map-workspace/clean/floor-1-pilot-clean.dxf` in AutoCAD, use the
+  imported references as locked underlays, refine/trace every room and hallway
+  as accurate closed polylines on the standard layers, save/export the cleaned
+  DXF, then rerun `npm run map:cad:clean` so the website consumes the refined
+  geometry.
+
+---
+
 ## Latest Update — AutoCAD-Assisted Campus Map Pipeline
 
 Current goal: turn the existing vectorized floor-plan SVGs into a local CAD

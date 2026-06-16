@@ -306,7 +306,20 @@ export class CampusMapWorld {
     });
   }
 
-  setFloor(floor) {
+  async resolveFloorGeometry(floor, token) {
+    if (!floor.cleanGeometry) return floor;
+
+    try {
+      const clean = await this.getCleanGeometrySource(floor.cleanGeometry);
+      if (token !== this.detailLoadToken || this.activeFloor?.id !== floor.id) return null;
+      return this.normalizeCleanFloor(floor, clean);
+    } catch (error) {
+      if (DEBUG) console.warn(error);
+      return floor;
+    }
+  }
+
+  async setFloor(floor) {
     this.detailLoadToken += 1;
     const detailToken = this.detailLoadToken;
     this.activeFloor = floor;
@@ -328,12 +341,16 @@ export class CampusMapWorld {
     this.activeFloorGroup.name = `floor-${floor.id}`;
     this.scene.add(this.activeFloorGroup);
 
-    this.buildFloor(floor);
-    this.buildBlueprintLayer(floor);
-    this.buildCadDetailGeometry(floor, detailToken);
-    this.buildDetailLines(floor, detailToken);
+    const renderFloor = await this.resolveFloorGeometry(floor, detailToken);
+    if (!renderFloor) return;
+    this.activeFloor = renderFloor;
+
+    this.buildFloor(renderFloor);
+    this.buildBlueprintLayer(renderFloor);
+    this.buildCadDetailGeometry(renderFloor, detailToken);
+    this.buildDetailLines(renderFloor, detailToken);
     this.fitFloor(false);
-    this.onReady({ floor, renderer: 'Three.js WebGL renderer' });
+    this.onReady({ floor: renderFloor, renderer: 'Three.js WebGL renderer' });
   }
 
   buildFloor(floor) {
@@ -488,6 +505,72 @@ export class CampusMapWorld {
     const payload = await response.json();
     this.detailCache.set(src, payload);
     return payload;
+  }
+
+  async getCleanGeometrySource(src) {
+    if (this.detailCache.has(src)) return this.detailCache.get(src);
+    const response = await fetch(src);
+    if (!response.ok) throw new Error(`Could not load clean map geometry: ${src}`);
+    const payload = await response.json();
+    this.detailCache.set(src, payload);
+    return payload;
+  }
+
+  normalizeCleanFloor(floor, clean) {
+    if (!clean || clean.floorId !== floor.id) return floor;
+
+    const hallwayRooms = (clean.hallways || []).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      kind: 'Hallway',
+      polygon: entry.polygon,
+      height: entry.height ?? 0.035,
+      selectable: entry.selectable !== false,
+      plannedRoomNumber: null,
+      importance: 'hallway'
+    }));
+
+    const rooms = (clean.rooms || []).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      kind: entry.kind || 'Classroom',
+      polygon: entry.polygon,
+      height: entry.height ?? 0.08,
+      selectable: entry.selectable !== false,
+      plannedRoomNumber: entry.plannedRoomNumber || entry.roomNumber || null,
+      importance: entry.importance || 'normal'
+    }));
+
+    const stairs = (clean.stairs || []).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      position: entry.position,
+      size: entry.size,
+      rotation: entry.rotation || 0,
+      treads: entry.treads || 8
+    })).filter((entry) => (
+      Array.isArray(entry.position) &&
+      Array.isArray(entry.size) &&
+      entry.position.length === 2 &&
+      entry.size.length === 2
+    ));
+
+    const labels = (clean.labels || []).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      roomId: entry.roomId,
+      position: entry.position,
+      minZoom: entry.minZoom ?? 0.54,
+      importance: entry.importance || 'normal'
+    }));
+
+    return {
+      ...floor,
+      rooms: [...hallwayRooms, ...rooms],
+      stairs: stairs.length ? stairs : floor.stairs,
+      roomNumberLabels: labels.length ? labels : floor.roomNumberLabels,
+      cleanSource: clean.source || floor.cleanGeometry
+    };
   }
 
   addCadPolylineWalls(group, polygon, layer, viewBox) {

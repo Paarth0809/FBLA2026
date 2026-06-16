@@ -310,6 +310,7 @@ export const CAMPUS_MAP_FLOORS = [
       width: 1836,
       height: 1854
     },
+    cleanGeometry: '/maps/clean/floor-1-clean.json',
     detailLines: [
       detailLayer('f1-main-no-label-linework', '/maps/floors/page-05-base-no-labels.svg', { x: -720, z: -575, width: 1450, depth: 1050 }, {
         cadGeometry: '/maps/geometry/floor-1-main-cad-detail.json',
