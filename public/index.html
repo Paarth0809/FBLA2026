@@ -119,15 +119,7 @@
         <span class="material-symbols-outlined icon-fill text-primary-container" style="font-size:22px">search</span>
         Green Level Lost &amp; Found
       </a>
-      <div class="home-nav-center hidden lg:flex items-center gap-1">
-        <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found Items</a>
-        <a href="/search-missing.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing Items</a>
-        <a href="/map.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Campus Map</a>
-      </div>
       <div class="flex items-center gap-1">
-        <a href="/search.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Found</a>
-        <a href="/map.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Map</a>
-        <a href="/search-missing.html" class="hidden md:block lg:hidden text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Missing</a>
         <div id="nav-auth" class="flex items-center gap-2 ml-2"></div>
       </div>
     </div>
@@ -171,12 +163,8 @@
 
       <div class="scroll-story-copy story-copy-final" data-story-layer="final">
         <p class="scroll-story-kicker">Step 3</p>
-        <h2>Submit a Claim</h2>
-        <p>Found your listing? Submit proof of ownership. Admins review it and coordinate pickup.</p>
-        <div class="scroll-story-actions">
-          <a href="/search.html" class="scroll-story-button primary">Search Found Items</a>
-          <a href="/login.html" id="scroll-signin-btn" class="scroll-story-button secondary">Sign In to Report</a>
-        </div>
+        <h2>Report Found &amp; Missing Items</h2>
+        <p>Sign in to report an item you found or to log something you've lost. Admins review and coordinate verified pickups.</p>
       </div>
 
       <div class="scroll-lens-refract" data-lens-refract aria-hidden="true">
@@ -214,11 +202,11 @@
         <div class="grass-hero-actions">
           <a href="/search.html" class="btn btn-primary btn-lg">
             <span class="material-symbols-outlined" style="font-size:18px">search</span>
-            Search Found Items
+            Search Items
           </a>
-          <a href="/search-missing.html" class="btn btn-primary btn-lg">
-            <span class="material-symbols-outlined" style="font-size:18px">search</span>
-            Search Missing Items
+          <a href="/map.html" class="btn btn-hero-outline btn-lg">
+            <span class="material-symbols-outlined" style="font-size:18px">map</span>
+            Campus Map
           </a>
         </div>
 
@@ -270,8 +258,6 @@
       if (user) {
         document.getElementById('report-actions').classList.remove('hidden');
         document.getElementById('signin-cta').classList.add('hidden');
-        const scrollSigninBtn = document.getElementById('scroll-signin-btn');
-        if (scrollSigninBtn) scrollSigninBtn.classList.add('hidden');
         document.getElementById('footer-user').textContent = `Logged in as: ${user.email} (${user.role})`;
       }
     });
