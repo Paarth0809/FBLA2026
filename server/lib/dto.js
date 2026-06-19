@@ -15,6 +15,11 @@ function publicFoundItem(item) {
     photo: item.photo || null,
     status: item.status,
     submitterName: item.submitterName || 'Unknown',
+    mapFloorId: item.mapFloorId || null,
+    mapRoomId: item.mapRoomId || null,
+    mapRoomNumber: item.mapRoomNumber || null,
+    mapPinX: item.mapPinX ?? null,
+    mapPinZ: item.mapPinZ ?? null,
     createdAt: item.createdAt
   };
 }

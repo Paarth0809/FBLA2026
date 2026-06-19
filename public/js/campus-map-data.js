@@ -270,6 +270,7 @@ export const CAMPUS_MAP_FLOORS = [
       width: 2376,
       height: 1434
     },
+    cleanGeometry: '/maps/clean/basement-clean.json',
     detailLines: [
       detailLayer('b-no-label-linework', '/maps/floors/page-01-base-no-labels.svg', { x: -690, z: -330, width: 1380, depth: 660 }, {
         cadGeometry: '/maps/geometry/basement-cad-detail.json',
@@ -370,6 +371,7 @@ export const CAMPUS_MAP_FLOORS = [
       width: 1884,
       height: 1836
     },
+    cleanGeometry: '/maps/clean/floor-2-clean.json',
     detailLines: [
       detailLayer('f2-no-label-linework', '/maps/floors/page-03-base-no-labels.svg', { x: -760, z: -440, width: 1520, depth: 1010 }, {
         cadGeometry: '/maps/geometry/floor-2-cad-detail.json',
@@ -411,6 +413,7 @@ export const CAMPUS_MAP_FLOORS = [
       width: 2376,
       height: 1482
     },
+    cleanGeometry: '/maps/clean/floor-3-clean.json',
     detailLines: [
       detailLayer('f3-no-label-linework', '/maps/floors/page-02-base-no-labels.svg', { x: -535, z: -600, width: 1050, depth: 945 }, {
         cadGeometry: '/maps/geometry/floor-3-cad-detail.json',

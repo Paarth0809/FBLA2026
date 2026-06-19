@@ -125,6 +125,7 @@ app.use('/api/admin',         require('./routes/admin'));        // admin-only a
 app.use('/api/messages',      require('./routes/messages'));     // in-app messaging between finders and claimers
 app.use('/api/matches',       require('./routes/matches'));      // potential item matches
 app.use('/api/notifications', require('./routes/notifications')); // notification preferences & logs
+app.use('/api/gatorbot',      require('./routes/gatorbot'));      // website assistant
 
 app.use('/api', (err, req, res, next) => {
   console.error(err);

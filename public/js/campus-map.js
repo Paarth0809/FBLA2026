@@ -1,5 +1,5 @@
-import { CAMPUS_MAP_FLOORS, getCampusFloor } from './campus-map-data.js';
-import { CampusMapWorld } from './campus-map-world.js';
+import { CAMPUS_MAP_FLOORS, getCampusFloor } from './campus-map-data.js?v=explore-world-20260617';
+import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
 
 (function () {
   'use strict';
@@ -17,6 +17,9 @@ import { CampusMapWorld } from './campus-map-world.js';
     zoomIn: document.getElementById('map-zoom-in'),
     zoomOut: document.getElementById('map-zoom-out'),
     reset: document.getElementById('map-reset'),
+    focusBack: document.getElementById('map-focus-back'),
+    viewCube: document.getElementById('campus-view-cube'),
+    viewCubeCore: document.getElementById('campus-view-cube-core'),
     togglePins: document.getElementById('toggle-pins'),
     toggleDepth: document.getElementById('toggle-depth'),
     toggleBlueprint: document.getElementById('toggle-blueprint')
@@ -26,8 +29,97 @@ import { CampusMapWorld } from './campus-map-world.js';
 
   const state = {
     activeFloorId: 'floor-1',
-    selectedKey: null
+    selectedKey: null,
+    focusedRoomId: null,
+    mapPins: [],
+    mapPinsByRoom: new Map()
   };
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function groupPinsByRoom(items) {
+    const grouped = new Map();
+    items.forEach((item) => {
+      if (!item.mapRoomId) return;
+      if (!grouped.has(item.mapRoomId)) grouped.set(item.mapRoomId, []);
+      grouped.get(item.mapRoomId).push(item);
+    });
+    state.mapPinsByRoom = grouped;
+  }
+
+  function itemsForRoom(roomId) {
+    return state.mapPinsByRoom.get(roomId) || [];
+  }
+
+  function itemCardHtml(item) {
+    const title = escapeHtml(item.itemName || 'Found item');
+    const description = escapeHtml(item.description || 'No description provided.');
+    const category = escapeHtml(item.category || 'Found item');
+    const room = item.mapRoomNumber ? `Room ${escapeHtml(item.mapRoomNumber)}` : 'Pinned location';
+    const claimUrl = escapeHtml(item.claimUrl || `/claim.html?id=${encodeURIComponent(item.id)}&type=found`);
+    const detailUrl = escapeHtml(item.detailUrl || `/item.html?id=${encodeURIComponent(item.id)}`);
+    const photo = item.photo ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="${title} photo">` : `
+      <div class="campus-map-item-photo-placeholder">
+        <span class="material-symbols-outlined" aria-hidden="true">inventory_2</span>
+      </div>
+    `;
+
+    return `
+      <article class="campus-map-item-card">
+        <div class="campus-map-item-photo">${photo}</div>
+        <div class="campus-map-item-body">
+          <strong>${title}</strong>
+          <span>${category} · ${room}</span>
+          <p>${description}</p>
+          <div class="campus-map-item-actions">
+            <a href="${detailUrl}">View Item</a>
+            <a href="${claimUrl}">Claim</a>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function roomItemSection(room) {
+    const items = itemsForRoom(room.id);
+    if (!items.length) {
+      return `
+        <div class="campus-map-room-items empty">
+          <span class="material-symbols-outlined" aria-hidden="true">location_off</span>
+          <p>No approved found items are pinned in this room yet.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="campus-map-room-items">
+        <h4>Approved found items here</h4>
+        ${items.map(itemCardHtml).join('')}
+      </div>
+    `;
+  }
+
+  async function loadMapPins() {
+    try {
+      const response = await fetch('/api/items/map-pins', { credentials: 'include' });
+      if (!response.ok) throw new Error(`Map pins failed: ${response.status}`);
+      const items = await response.json();
+      state.mapPins = Array.isArray(items) ? items : [];
+      groupPinsByRoom(state.mapPins);
+      world?.setLivePins(state.mapPins);
+    } catch (error) {
+      console.warn('[campus-map] Could not load approved found-item pins', error);
+      state.mapPins = [];
+      groupPinsByRoom([]);
+    }
+  }
 
   function getFloor(id = state.activeFloorId) {
     return getCampusFloor(id);
@@ -39,7 +131,7 @@ import { CampusMapWorld } from './campus-map-world.js';
 
   function iconForEntity(entity) {
     if (!entity) return 'explore';
-    if (entity.type === 'pin') return entity.pin.status === 'connector' ? 'conversion_path' : 'location_on';
+    if (entity.type === 'pin') return entity.pin.live ? 'inventory_2' : entity.pin.status === 'connector' ? 'conversion_path' : 'location_on';
     if (entity.type === 'stair') return 'stairs';
     if (entity.room.kind === 'Hallway') return 'route';
     if (entity.room.kind === 'Major zone') return 'domain';
@@ -48,7 +140,7 @@ import { CampusMapWorld } from './campus-map-world.js';
 
   function updateReadout(extra = '') {
     if (!elements.readout) return;
-    elements.readout.replaceChildren(document.createTextNode(extra || 'Interactive map'));
+    elements.readout.replaceChildren(document.createTextNode(extra || 'Explore Mode'));
   }
 
   function updateDefaultDetails(floor = getFloor()) {
@@ -63,7 +155,7 @@ import { CampusMapWorld } from './campus-map-world.js';
         <span>Tap a pin or zone</span>
       </div>
     `;
-    updateReadout(world?.renderer ? '2.5D world' : '');
+    updateReadout(world?.rendererLabel || 'Explore Mode');
   }
 
   function updateDetails(entity, preview = false) {
@@ -74,6 +166,23 @@ import { CampusMapWorld } from './campus-map-world.js';
     }
 
     if (entity.type === 'pin') {
+      if (entity.pin.live && entity.pin.item) {
+        const item = entity.pin.item;
+        const roomCopy = item.mapRoomNumber ? `Room ${escapeHtml(item.mapRoomNumber)}, ${escapeHtml(entity.floor.label)}` : escapeHtml(entity.floor.label);
+        elements.details.innerHTML = `
+          <span class="material-symbols-outlined filled" aria-hidden="true">inventory_2</span>
+          <h3>${escapeHtml(item.itemName)}</h3>
+          <p>${escapeHtml(item.description || 'Approved found item pinned to this map location.')}</p>
+          <div class="campus-map-detail-meta">
+            <span>${preview ? 'Previewing' : 'Selected'}</span>
+            <span>${roomCopy}</span>
+          </div>
+          <div class="campus-map-room-items">
+            ${itemCardHtml(item)}
+          </div>
+        `;
+        return;
+      }
       elements.details.innerHTML = `
         <span class="material-symbols-outlined filled" aria-hidden="true">${iconForEntity(entity)}</span>
         <h3>${entity.pin.label}</h3>
@@ -100,14 +209,16 @@ import { CampusMapWorld } from './campus-map-world.js';
     }
 
     const roomNumber = entity.room.plannedRoomNumber ? ` Room ${entity.room.plannedRoomNumber}.` : '';
+    const focusCopy = state.focusedRoomId === entity.room.id ? 'Focused room view' : preview ? 'Hovering' : 'Selected';
     elements.details.innerHTML = `
       <span class="material-symbols-outlined filled" aria-hidden="true">${iconForEntity(entity)}</span>
-      <h3>${entity.room.label}</h3>
-      <p>${entity.room.kind} on ${entity.floor.label}.${roomNumber} Crisp room-number labels are rendered as map UI, not traced scan text.</p>
+      <h3>${escapeHtml(entity.room.label)}</h3>
+      <p>${escapeHtml(entity.room.kind)} on ${escapeHtml(entity.floor.label)}.${escapeHtml(roomNumber)} Click a room to enter top-down focus mode and inspect pinned item locations inside it.</p>
       <div class="campus-map-detail-meta">
-        <span>${preview ? 'Hovering' : 'Selected'}</span>
+        <span>${focusCopy}</span>
         <span>${entity.room.selectable ? 'Selectable zone' : 'Reference zone'}</span>
       </div>
+      ${roomItemSection(entity.room)}
     `;
   }
 
@@ -135,10 +246,25 @@ import { CampusMapWorld } from './campus-map-world.js';
     updateDefaultDetails(floor);
     try {
       await world.setFloor(floor);
-      updateReadout('2.5D world');
+      world.setLivePins(state.mapPins);
+      updateReadout(world.rendererLabel || 'Explore Mode');
     } finally {
       setLoading(false);
     }
+  }
+
+  function searchableRoomsForFloor(floor) {
+    if (world?.activeFloor?.id === floor.id && Array.isArray(world.activeFloor.rooms)) {
+      return world.activeFloor.rooms;
+    }
+    return floor.rooms || [];
+  }
+
+  function searchableLabelsForFloor(floor) {
+    if (world?.activeFloor?.id === floor.id && Array.isArray(world.activeFloor.roomNumberLabels)) {
+      return world.activeFloor.roomNumberLabels;
+    }
+    return floor.roomNumberLabels || [];
   }
 
   function findMatch(term) {
@@ -160,16 +286,17 @@ import { CampusMapWorld } from './campus-map-world.js';
       ));
       if (pin) return { floor, pin };
 
-      const room = floor.rooms.find((entry) => (
+      const rooms = searchableRoomsForFloor(floor);
+      const room = rooms.find((entry) => (
         entry.label.toLowerCase().includes(normalized) ||
         entry.kind.toLowerCase().includes(normalized) ||
         String(entry.plannedRoomNumber || '').toLowerCase().includes(normalized)
       ));
       if (room) return { floor, room };
 
-      const numberLabel = floor.roomNumberLabels?.find((entry) => entry.label.toLowerCase().includes(normalized));
+      const numberLabel = searchableLabelsForFloor(floor).find((entry) => entry.label.toLowerCase().includes(normalized));
       if (numberLabel) {
-        const labeledRoom = floor.rooms.find((entry) => entry.id === numberLabel.roomId);
+        const labeledRoom = rooms.find((entry) => entry.id === numberLabel.roomId);
         if (labeledRoom) return { floor, room: labeledRoom };
       }
 
@@ -209,21 +336,48 @@ import { CampusMapWorld } from './campus-map-world.js';
     canvas: elements.canvas,
     labelLayer: elements.labelLayer,
     blueprintLayer: elements.blueprintLayer,
-    onReady: () => updateReadout('2.5D world'),
+    viewCube: elements.viewCube,
+    viewCubeCore: elements.viewCubeCore,
+    onReady: ({ renderer } = {}) => updateReadout(renderer || '2.5D world'),
     onHover: (entity) => {
       if (!state.selectedKey) updateDetails(entity, true);
     },
     onSelect: (entity) => {
       state.selectedKey = entity ? `${entity.type}:${entity.type === 'pin' ? entity.pin.id : entity.type === 'stair' ? entity.stair.id : entity.room.id}` : null;
       updateDetails(entity);
+    },
+    onFocusChange: ({ active, room }) => {
+      state.focusedRoomId = active && room ? room.id : null;
+      elements.focusBack?.classList.toggle('hidden', !active);
+      if (active && room && world?.activeFloor) {
+        const group = world.roomGroups?.get(room.id);
+        updateDetails({ type: 'room', room, floor: world.activeFloor, group });
+      }
+      if (!active && !state.selectedKey) updateDefaultDetails();
     }
   });
 
   elements.zoomIn?.addEventListener('click', () => world.zoomBy(1.16));
   elements.zoomOut?.addEventListener('click', () => world.zoomBy(1 / 1.16));
   elements.reset?.addEventListener('click', () => {
+    world.exitRoomFocus({ restore: false });
+    world.setCameraPreset('iso', { keepZoom: true, duration: 0.42 });
     world.fitFloor();
+    state.focusedRoomId = null;
+    state.selectedKey = null;
     updateDefaultDetails();
+  });
+  elements.focusBack?.addEventListener('click', () => {
+    world.exitRoomFocus();
+    state.focusedRoomId = null;
+    state.selectedKey = null;
+    updateDefaultDetails();
+  });
+  elements.viewCube?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-view]');
+    if (!button) return;
+    if (button.dataset.view !== 'top') world.exitRoomFocus({ restore: false });
+    world.setCameraPreset(button.dataset.view, { keepZoom: true });
   });
   elements.search?.addEventListener('input', handleSearch);
   elements.togglePins?.addEventListener('change', () => world.setPinsVisible(elements.togglePins.checked));
@@ -235,5 +389,5 @@ import { CampusMapWorld } from './campus-map-world.js';
   elements.toggleBlueprint?.addEventListener('change', () => world.setBlueprintVisible(elements.toggleBlueprint.checked));
 
   updateFloorTabs();
-  setFloor(state.activeFloorId);
+  loadMapPins().finally(() => setFloor(state.activeFloorId));
 })();

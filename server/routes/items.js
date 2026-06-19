@@ -11,6 +11,48 @@ const { foundItemToApi, itemIncludes, parseDateOnly } = require('../lib/modelMap
 
 const router = express.Router();
 
+function cleanOptional(value) {
+  const text = String(value || '').trim();
+  return text || null;
+}
+
+function parseOptionalNumber(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function mapLocationData(body) {
+  return {
+    mapFloorId: cleanOptional(body.mapFloorId),
+    mapRoomId: cleanOptional(body.mapRoomId),
+    mapRoomNumber: cleanOptional(body.mapRoomNumber),
+    mapPinX: parseOptionalNumber(body.mapPinX),
+    mapPinZ: parseOptionalNumber(body.mapPinZ)
+  };
+}
+
+function foundItemToMapPin(item) {
+  return {
+    id: item.id,
+    itemName: item.itemName,
+    category: item.category,
+    description: item.description,
+    locationFound: item.locationFound,
+    dateFound: item.dateFound,
+    photo: item.photo || null,
+    status: item.status,
+    submitterName: item.submitterName || 'Unknown',
+    mapFloorId: item.mapFloorId || null,
+    mapRoomId: item.mapRoomId || null,
+    mapRoomNumber: item.mapRoomNumber || null,
+    mapPinX: item.mapPinX ?? null,
+    mapPinZ: item.mapPinZ ?? null,
+    detailUrl: `/item.html?id=${item.id}`,
+    claimUrl: `/claim.html?id=${item.id}&type=found`
+  };
+}
+
 router.get('/', asyncHandler(async (req, res) => {
   const { keyword, category } = req.query;
   const where = { status: 'APPROVED' };
@@ -66,6 +108,21 @@ router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
   res.json(records.map(foundItemToApi));
 }));
 
+router.get('/map-pins', asyncHandler(async (req, res) => {
+  const records = await prisma.foundItem.findMany({
+    where: {
+      status: 'APPROVED',
+      mapFloorId: { not: null },
+      mapRoomId: { not: null }
+    },
+    include: itemIncludes,
+    orderBy: { createdAt: 'desc' },
+    take: 250
+  });
+
+  res.json(records.map(foundItemToApi).map(foundItemToMapPin));
+}));
+
 router.get('/:id', asyncHandler(async (req, res) => {
   const currentUser = await getSessionUser(req);
   const record = await prisma.foundItem.findUnique({
@@ -95,6 +152,7 @@ router.post('/', requireAuth, upload.single('photo'), asyncHandler(async (req, r
 
   const user = req.user || await getSessionUser(req);
   const assetData = await uploadedAssetData(req.file, req.session.userId, 'FOUND_ITEM_PHOTO');
+  const mapFields = mapLocationData(req.body);
 
   const record = await prisma.$transaction(async (tx) => {
     let asset = null;
@@ -113,7 +171,8 @@ router.post('/', requireAuth, upload.single('photo'), asyncHandler(async (req, r
         status: 'PENDING',
         submitterName: user ? user.name : 'Unknown',
         submittedById: req.session.userId,
-        photoAssetId: asset ? asset.id : null
+        photoAssetId: asset ? asset.id : null,
+        ...mapFields
       },
       include: itemIncludes
     });

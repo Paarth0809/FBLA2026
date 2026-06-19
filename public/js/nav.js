@@ -40,6 +40,7 @@ async function loadUser() {
     // 401 is expected for logged-out visitors — just set currentUser to null
     currentUser = null;
   }
+  window.__gatorBotCurrentUser = currentUser;
   renderNav();
   // Dispatch a custom DOM event so any page-specific code can react to the
   // auth state without needing to call the API again.
@@ -1359,7 +1360,16 @@ function bootstrapTranslations() {
   }
 }
 
+function loadGatorBotScript() {
+  if (window.__gatorBotLoaded || document.querySelector('script[data-gatorbot]')) return;
+  const script = document.createElement('script');
+  script.src = '/js/gatorbot.js?v=1.0.1';
+  script.defer = true;
+  script.dataset.gatorbot = 'true';
+  document.body.appendChild(script);
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 initMotion();
-loadUser();
+loadUser().finally(loadGatorBotScript);
 bootstrapTranslations();

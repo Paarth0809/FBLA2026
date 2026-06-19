@@ -491,6 +491,79 @@ async function runTests() {
     assert(!r.body.passwordHash,                'passwordHash must NOT be in response');
   });
 
+  await test('/gatorbot/chat — unrelated questions stay website-scoped', async () => {
+    const r = await req('POST', '/api/gatorbot/chat', {
+      message: 'Who won the Super Bowl?',
+      pagePath: '/index.html',
+      pageTitle: 'Home'
+    });
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(r.body.usedFallback === true, 'Test mode should use deterministic fallback');
+    assert(/only help with Green Level Lost & Found/i.test(r.body.reply), `Unexpected reply: ${r.body.reply}`);
+    assert(!JSON.stringify(r.body).includes('admin@school.edu'), 'GatorBot must not leak emails');
+  });
+
+  await test('/gatorbot/chat — supported languages are website knowledge, not refused', async () => {
+    const r = await req('POST', '/api/gatorbot/chat', {
+      message: 'What languages are included in this website?',
+      pagePath: '/index.html',
+      pageTitle: 'Home'
+    });
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(r.body.usedFallback === true, 'Test mode should use deterministic fallback');
+    assert(!/only help with Green Level Lost & Found/i.test(r.body.reply), `Language question should not be refused: ${r.body.reply}`);
+    assert(/English/i.test(r.body.reply), `Expected English in supported language reply: ${r.body.reply}`);
+    assert(/Spanish/i.test(r.body.reply), `Expected Spanish in supported language reply: ${r.body.reply}`);
+    assert(/Gujarati/i.test(r.body.reply), `Expected Gujarati in supported language reply: ${r.body.reply}`);
+    assert(/Greek/i.test(r.body.reply), `Expected Greek in supported language reply: ${r.body.reply}`);
+    assert(!JSON.stringify(r.body).includes('@school.edu'), 'Language answer must not expose private emails');
+  });
+
+  await test('/gatorbot/chat — anonymous report question points to auth actions', async () => {
+    const r = await req('POST', '/api/gatorbot/chat', {
+      message: 'How do I report a found item?',
+      pagePath: '/index.html',
+      pageTitle: 'Home'
+    });
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(/sign in/i.test(r.body.reply), `Anonymous report flow should explain sign-in: ${r.body.reply}`);
+    const hrefs = (r.body.actions || []).map(action => action.href);
+    assert(hrefs.includes('/login.html'), 'Expected Sign In action');
+    assert(hrefs.includes('/signup.html'), 'Expected Create Account action');
+    assert(!hrefs.includes('/admin.html'), 'Anonymous users must not get admin actions');
+  });
+
+  await test('/gatorbot/chat — student dashboard summary is own-data only', async () => {
+    const r = await req('POST', '/api/gatorbot/chat', {
+      message: 'Can you summarize my submissions?',
+      pagePath: '/my-submissions.html',
+      pageTitle: 'My Submissions'
+    }, user001Cookie);
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(/your/i.test(r.body.reply), `Expected own dashboard language: ${r.body.reply}`);
+    assert(/found|missing|claim|message/i.test(r.body.reply), `Expected dashboard counts in reply: ${r.body.reply}`);
+    assert(!JSON.stringify(r.body).includes('@school.edu'), 'Student summary must not expose private emails');
+    assert(!(r.body.actions || []).some(action => action.href === '/admin.html'), 'Student must not receive admin action');
+  });
+
+  await test('/gatorbot/chat — admin guidance requires admin session', async () => {
+    const student = await req('POST', '/api/gatorbot/chat', {
+      message: 'How do I approve items as an admin?',
+      pagePath: '/index.html',
+      pageTitle: 'Home'
+    }, user001Cookie);
+    assert(student.status === 200, `Expected 200, got ${student.status}`);
+    assert(!(student.body.actions || []).some(action => action.href === '/admin.html'), 'Student must not receive admin dashboard link');
+
+    const admin = await req('POST', '/api/gatorbot/chat', {
+      message: 'How do I approve items as an admin?',
+      pagePath: '/admin.html',
+      pageTitle: 'Admin'
+    }, adminCookie);
+    assert(admin.status === 200, `Expected 200, got ${admin.status}: ${JSON.stringify(admin.body)}`);
+    assert((admin.body.actions || []).some(action => action.href === '/admin.html'), 'Admin should receive admin dashboard action');
+  });
+
   await test('/auth/logout — valid session → 200, session destroyed', async () => {
     const login = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'student123' });
     const c = login.cookie;
@@ -650,13 +723,35 @@ async function runTests() {
       description:   'Brown leather wallet found near the main entrance doors.',
       locationFound: 'Main Entrance',
       dateFound:     '2026-03-01',
-      contactEmail:  'student@school.edu'
+      contactEmail:  'student@school.edu',
+      mapFloorId:    'floor-1',
+      mapRoomId:     'room-1133',
+      mapRoomNumber: '1133',
+      mapPinX:       '128.5',
+      mapPinZ:       '-42.25'
     }, userCookie);
     assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
     assert(r.body.item,                         'Expected item in response');
     assert(r.body.item.status === 'pending',    'Expected status=pending');
     assert(r.body.item.itemName === 'Test Wallet', 'Expected correct itemName');
+    assert(r.body.item.mapFloorId === 'floor-1', 'Expected map floor metadata to persist');
+    assert(r.body.item.mapRoomId === 'room-1133', 'Expected map room metadata to persist');
+    assert(r.body.item.mapRoomNumber === '1133', 'Expected map room number metadata to persist');
+    assert(r.body.item.mapPinX === 128.5, 'Expected numeric map pin X metadata');
+    assert(r.body.item.mapPinZ === -42.25, 'Expected numeric map pin Z metadata');
     newItemId = r.body.item.id;
+  });
+
+  await test('GET /items/map-pins — pending mapped items stay hidden from public map', async () => {
+    const r = await req('GET', '/api/items/map-pins');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(Array.isArray(r.body), 'Expected array');
+    assert(!r.body.some(pin => pin.id === newItemId), 'Pending found item must not appear as public map pin');
+    for (const pin of r.body) {
+      assert(!('contactEmail' in pin), 'Public map pin must not include contactEmail');
+      assert(!('submittedBy' in pin), 'Public map pin must not include submittedBy');
+      assert(!('aiProfile' in pin), 'Public map pin must not include aiProfile');
+    }
   });
 
   // ══════════════════════════════════════════════════
@@ -918,6 +1013,24 @@ async function runTests() {
     assert(r.body.status === 'approved', `Expected status=approved, got ${r.body.status}`);
   });
 
+  await test('GET /items/map-pins — approved mapped found items appear with safe fields', async () => {
+    assert(newItemId, 'Need newItemId from earlier test');
+    const r = await req('GET', '/api/items/map-pins');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(Array.isArray(r.body), 'Expected array');
+    const pin = r.body.find(entry => entry.id === newItemId);
+    assert(pin, 'Approved mapped found item should appear as public map pin');
+    assert(pin.mapFloorId === 'floor-1', 'Expected pin floor id');
+    assert(pin.mapRoomId === 'room-1133', 'Expected pin room id');
+    assert(pin.mapRoomNumber === '1133', 'Expected pin room number');
+    assert(pin.mapPinX === 128.5, 'Expected pin X coordinate');
+    assert(pin.mapPinZ === -42.25, 'Expected pin Z coordinate');
+    assert(pin.claimUrl === `/claim.html?id=${newItemId}&type=found`, 'Expected claim URL');
+    assert(!('contactEmail' in pin), 'Public map pin must not include contactEmail');
+    assert(!('submittedBy' in pin), 'Public map pin must not include submittedBy');
+    assert(!('aiProfile' in pin), 'Public map pin must not include aiProfile');
+  });
+
   await test('PUT /admin/items/:id/reject — rejects item', async () => {
     assert(newItemId, 'Need newItemId from earlier test');
     const r = await req('PUT', `/api/admin/items/${newItemId}/reject`, null, adminCookie);
@@ -1090,6 +1203,16 @@ async function runTests() {
     assert(r.status === 200, `Expected 200, got ${r.status}`);
   });
 
+  await test('GET /js/gatorbot.js → 200', async () => {
+    const r = await getPage('/js/gatorbot.js');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+  });
+
+  await test('GET /images/gatorbot.jpeg → 200', async () => {
+    const r = await getPage('/images/gatorbot.jpeg');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+  });
+
   await test('campus map data module exists and exports floors', async () => {
     const file = path.join(ROOT, 'public/js/campus-map-data.js');
     assert(fs.existsSync(file), 'Expected public/js/campus-map-data.js to exist');
@@ -1129,7 +1252,7 @@ async function runTests() {
     }
   });
 
-  await test('campus map clean CAD converter and Floor 1 pilot output exist', async () => {
+  await test('campus map clean CAD converter and Floor 1 academic output exist', async () => {
     const packageFile = path.join(ROOT, 'package.json');
     const pkg = JSON.parse(await fs.promises.readFile(packageFile, 'utf8'));
     assert(pkg.scripts && pkg.scripts['map:cad:clean'], 'Expected map:cad:clean script');
@@ -1138,19 +1261,20 @@ async function runTests() {
     const converter = path.join(ROOT, 'scripts/convert-clean-dxf-to-map.js');
     assert(fs.existsSync(converter), 'Expected clean DXF converter script');
 
-    const cleanDxf = path.join(ROOT, 'cad/campus-map-workspace/clean/floor-1-pilot-clean.dxf');
-    assert(fs.existsSync(cleanDxf), 'Expected Floor 1 pilot clean DXF');
+    const cleanDxf = path.join(ROOT, 'cad/campus-map-workspace/sources/gatorfloor1academic.dxf');
+    assert(fs.existsSync(cleanDxf), 'Expected Floor 1 academic clean DXF');
 
     const cleanJson = path.join(ROOT, 'public/maps/clean/floor-1-clean.json');
     assert(fs.existsSync(cleanJson), 'Expected Floor 1 clean map JSON');
     const clean = JSON.parse(await fs.promises.readFile(cleanJson, 'utf8'));
 
     assert(clean.floorId === 'floor-1', `Expected floor-1 clean geometry, got ${clean.floorId}`);
-    assert(clean.source && clean.source.endsWith('floor-1-pilot-clean.dxf'), 'Clean geometry should record the source DXF');
+    assert(clean.source && clean.source.endsWith('gatorfloor1academic.dxf'), 'Clean geometry should record the source DXF');
     assert(Array.isArray(clean.rooms) && clean.rooms.length >= 60, `Expected at least 60 clean Floor 1 rooms, got ${clean.rooms?.length}`);
     assert(Array.isArray(clean.hallways) && clean.hallways.length >= 3, `Expected at least 3 clean hallways, got ${clean.hallways?.length}`);
     assert(Array.isArray(clean.stairs) && clean.stairs.length >= 5, `Expected at least 5 clean stair blocks, got ${clean.stairs?.length}`);
-    assert(Array.isArray(clean.labels) && clean.labels.length >= clean.rooms.length, 'Clean output should include typed labels for room polygons');
+    assert(Array.isArray(clean.labels) && clean.labels.length >= 50, 'Clean output should include typed room-number labels from CAD');
+    assert(clean.labels.every((entry) => entry.roomId), 'Clean room labels should be matched to room polygons');
 
     for (const entry of clean.rooms.slice(0, 12)) {
       assert(entry.id && entry.roomNumber && entry.kind, `Clean room missing id/roomNumber/kind: ${JSON.stringify(entry)}`);
@@ -1182,6 +1306,22 @@ async function runTests() {
     assert(fs.existsSync(file), 'Expected public/js/campus-map-world.js to exist');
     const source = await fs.promises.readFile(file, 'utf8');
     assert(source.includes('export class CampusMapWorld'), 'Expected CampusMapWorld export');
+  });
+
+  await test('campus map Explore Mode keeps premium 3D controls and stable zoom', async () => {
+    await runCommand('node tests/map-world-source.test.js');
+  });
+
+  await test('campus map clean DXF converter supports all floors', async () => {
+    await runCommand('node tests/map-converter.test.js');
+  });
+
+  await test('report found map picker supports all clean floors', async () => {
+    await runCommand('node tests/report-map-picker-source.test.js');
+  });
+
+  await test('OpenAI provider adapter handles website and image JSON safely', async () => {
+    await runCommand('node tests/ai-provider.test.js');
   });
 
   // ══════════════════════════════════════════════════

@@ -68,15 +68,15 @@
   <main class="campus-map-page pt-16">
     <section class="campus-map-hero">
       <div class="campus-map-hero-copy">
-        <p class="campus-map-kicker">Campus Map World</p>
-        <h1>Explore the building like a real map.</h1>
-        <p>Switch floors, pan through raised hallway geometry, and preview how found-item location pins will sit inside the school.</p>
+        <p class="campus-map-kicker">Explore Mode</p>
+        <h1>Explore the building like a miniature world.</h1>
+        <p>Switch floors, glide through raised room tiles, and preview how found-item location pins will sit inside the school.</p>
       </div>
       <div class="campus-map-hero-card" aria-label="Map status">
         <span class="material-symbols-outlined filled" aria-hidden="true">deployed_code</span>
         <div>
-          <strong>2.5D indoor map</strong>
-          <span>SVG plans are now blueprint references; the live surface is rendered as geometry.</span>
+          <strong>Light-blue 3D map</strong>
+          <span>Clean CAD geometry becomes an interactive architectural model.</span>
         </div>
       </div>
     </section>
@@ -105,7 +105,7 @@
           </label>
           <label>
             <input id="toggle-depth" type="checkbox" checked>
-            <span>Raised walls</span>
+            <span>Explore depth</span>
           </label>
           <label>
             <input id="toggle-blueprint" type="checkbox">
@@ -132,17 +132,39 @@
             <span class="material-symbols-outlined" aria-hidden="true">center_focus_strong</span>
             Fit floor
           </button>
-          <span id="map-readout" class="campus-map-readout">Interactive map</span>
+          <span id="map-readout" class="campus-map-readout">Explore Mode</span>
         </div>
 
         <div class="campus-map-viewport" data-depth-enabled="true">
           <div id="map-loading" class="campus-map-loading">
             <div class="spinner" role="status" aria-label="Loading campus map"></div>
-            <span>Building 2.5D map world...</span>
+            <span>Building Explore Mode...</span>
           </div>
+          <button id="map-focus-back" class="campus-map-focus-back hidden" type="button">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Full floor
+          </button>
           <canvas id="campus-map-canvas" class="campus-map-canvas" aria-label="Interactive Green Level campus map"></canvas>
           <div id="campus-map-blueprint-layer" class="campus-map-blueprint-layer" hidden aria-hidden="true"></div>
           <div id="campus-map-label-layer" class="campus-map-label-layer" aria-hidden="false"></div>
+          <div id="campus-view-cube" class="campus-view-cube" data-view="iso" aria-label="Map view controls">
+            <div class="campus-view-cube-ring" aria-label="Compass view presets">
+              <button class="north" type="button" data-view="back" aria-label="Back view">N</button>
+              <button class="east" type="button" data-view="right" aria-label="Right view">E</button>
+              <button class="south" type="button" data-view="front" aria-label="Front view">S</button>
+              <button class="west" type="button" data-view="left" aria-label="Left view">W</button>
+            </div>
+            <div class="campus-view-cube-stage">
+              <div id="campus-view-cube-core" class="campus-view-cube-core">
+                <button class="campus-view-cube-face cube-face-top" type="button" data-view="top" aria-label="Top view">Top</button>
+                <button class="campus-view-cube-face cube-face-front" type="button" data-view="front" aria-label="Front view">Front</button>
+                <button class="campus-view-cube-face cube-face-back" type="button" data-view="back" aria-label="Back view">Back</button>
+                <button class="campus-view-cube-face cube-face-left" type="button" data-view="left" aria-label="Left view">Left</button>
+                <button class="campus-view-cube-face cube-face-right" type="button" data-view="right" aria-label="Right view">Right</button>
+              </div>
+            </div>
+            <button class="campus-view-cube-home" type="button" data-view="iso" aria-label="Return to angled explore view">Iso</button>
+          </div>
           <div class="campus-map-hint" aria-hidden="true">
             <span class="material-symbols-outlined">open_with</span>
             Drag, zoom, and select zones
@@ -154,6 +176,6 @@
 
   <script src="/js/api.js"></script>
   <script src="/js/nav.js?v=1.0.3"></script>
-  <script type="module" src="/js/campus-map.js?v=campus-world-20260616d"></script>
+  <script type="module" src="/js/campus-map.js?v=explore-world-20260617"></script>
 </body>
 </html>

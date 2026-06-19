@@ -3,8 +3,9 @@
 /**
  * Converts clean, layer-based campus map DXF files into website geometry JSON.
  *
- * The converter intentionally reads only the semantic CAD layers produced by
- * the cleanup workflow. Noisy reference underlays are ignored.
+ * The cleaned CAD drawing is the semantic source of truth. Reference underlays
+ * remain available for debugging in AutoCAD, but are intentionally excluded
+ * from the runtime map payload.
  */
 
 const fs = require('fs');
@@ -12,16 +13,44 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
-const CLEAN_ROOT = path.join(ROOT, 'cad', 'campus-map-workspace', 'clean');
+const SOURCE_ROOT = path.join(ROOT, 'cad', 'campus-map-workspace', 'sources');
 const OUT_ROOT = path.join(ROOT, 'public', 'maps', 'clean');
 
 const FLOOR_INPUTS = [
   {
+    floorId: 'basement',
+    source: path.join(SOURCE_ROOT, 'basement-clean.dxf'),
+    output: path.join(OUT_ROOT, 'basement-clean.json'),
+    targetMaxDimension: 1450
+  },
+  {
     floorId: 'floor-1',
-    source: path.join(CLEAN_ROOT, 'floor-1-pilot-clean.dxf'),
-    output: path.join(OUT_ROOT, 'floor-1-clean.json')
+    source: path.join(SOURCE_ROOT, 'gatorfloor1academic.dxf'),
+    output: path.join(OUT_ROOT, 'floor-1-clean.json'),
+    targetMaxDimension: 1450
+  },
+  {
+    floorId: 'floor-2',
+    source: path.join(SOURCE_ROOT, 'floor-2-clean.dxf'),
+    output: path.join(OUT_ROOT, 'floor-2-clean.json'),
+    targetMaxDimension: 1450
+  },
+  {
+    floorId: 'floor-3',
+    source: path.join(SOURCE_ROOT, 'floor-3-clean.dxf'),
+    output: path.join(OUT_ROOT, 'floor-3-clean.json'),
+    targetMaxDimension: 1450
   }
 ];
+
+const LAYER_ALIASES = {
+  rooms: new Set(['rooms']),
+  labels: new Set(['labels room numbers', 'room labels', 'labels room', 'label text']),
+  hallways: new Set(['hallways']),
+  stairs: new Set(['stairs']),
+  walls: new Set(['walls']),
+  reference: new Set(['reference underlay', 'reference strokes', 'reference base'])
+};
 
 function loadCampusMapData() {
   const file = path.join(ROOT, 'public', 'js', 'campus-map-data.js');
@@ -38,6 +67,32 @@ function slug(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'entry';
+}
+
+function normalizeLayerName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function layerKind(layer) {
+  const normalized = normalizeLayerName(layer);
+  return Object.entries(LAYER_ALIASES).find(([, aliases]) => aliases.has(normalized))?.[0] || null;
+}
+
+function isLayer(entry, kind) {
+  return layerKind(entry.layer) === kind;
+}
+
+function cleanText(value) {
+  return String(value || '')
+    .replace(/\^J/g, ' ')
+    .replace(/\\P/g, ' ')
+    .replace(/[{}]/g, '')
+    .replace(/\\[A-Za-z0-9.;|~]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function groupPairs(text) {
@@ -98,20 +153,38 @@ function parseEntities(text) {
           lastX = null;
         }
       });
-      entities.push({ type, layer, closed, points, meta: pendingMeta || {} });
+      entities.push({ type, layer, closed, points: simplifyPoints(points), meta: pendingMeta || {} });
+      pendingMeta = null;
+      continue;
+    }
+
+    if (type === 'LINE') {
+      const layer = group.find((entry) => entry.code === '8')?.value || '0';
+      const x1 = Number(group.find((entry) => entry.code === '10')?.value);
+      const y1 = Number(group.find((entry) => entry.code === '20')?.value);
+      const x2 = Number(group.find((entry) => entry.code === '11')?.value);
+      const y2 = Number(group.find((entry) => entry.code === '21')?.value);
+      const points = [
+        [x1, y1],
+        [x2, y2]
+      ].filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]));
+      entities.push({ type, layer, closed: false, points, meta: pendingMeta || {} });
       pendingMeta = null;
       continue;
     }
 
     if (type === 'TEXT' || type === 'MTEXT') {
       const layer = group.find((entry) => entry.code === '8')?.value || '0';
-      const textValue = group.find((entry) => entry.code === '1')?.value || '';
+      const textValue = group
+        .filter((entry) => entry.code === '1' || entry.code === '3')
+        .map((entry) => entry.value)
+        .join('');
       const x = Number(group.find((entry) => entry.code === '10')?.value);
       const y = Number(group.find((entry) => entry.code === '20')?.value);
       entities.push({
         type,
         layer,
-        text: textValue.trim(),
+        text: cleanText(textValue),
         position: [Number.isFinite(x) ? x : 0, Number.isFinite(y) ? y : 0],
         meta: pendingMeta || {}
       });
@@ -120,6 +193,24 @@ function parseEntities(text) {
   }
 
   return entities;
+}
+
+function simplifyPoints(points) {
+  const result = [];
+  points.forEach((point) => {
+    const previous = result[result.length - 1];
+    if (!previous || Math.hypot(previous[0] - point[0], previous[1] - point[1]) > 1e-7) {
+      result.push(point);
+    }
+  });
+
+  if (result.length > 2) {
+    const first = result[0];
+    const last = result[result.length - 1];
+    if (Math.hypot(first[0] - last[0], first[1] - last[1]) <= 1e-7) result.pop();
+  }
+
+  return result;
 }
 
 function polygonCenter(points) {
@@ -153,6 +244,20 @@ function boundsFor(points) {
   };
 }
 
+function mergeBounds(bounds) {
+  return bounds.reduce((acc, entry) => ({
+    minX: Math.min(acc.minX, entry.minX),
+    minY: Math.min(acc.minY, entry.minY),
+    maxX: Math.max(acc.maxX, entry.maxX),
+    maxY: Math.max(acc.maxY, entry.maxY)
+  }), {
+    minX: Infinity,
+    minY: Infinity,
+    maxX: -Infinity,
+    maxY: -Infinity
+  });
+}
+
 function pointInPolygon(point, polygon) {
   const [x, y] = point;
   let inside = false;
@@ -167,20 +272,110 @@ function pointInPolygon(point, polygon) {
   return inside;
 }
 
-function closestLabel(polyline, labels) {
-  const center = polygonCenter(polyline.points);
-  const inside = labels.find((label) => pointInPolygon(label.position, polyline.points));
-  if (inside) return inside;
-  return labels
-    .map((label) => ({ label, distance: Math.hypot(label.position[0] - center[0], label.position[1] - center[1]) }))
-    .sort((a, b) => a.distance - b.distance)[0]?.label || null;
+function createTransform(rawBounds, targetMaxDimension = 1450) {
+  const width = Math.max(1, rawBounds.maxX - rawBounds.minX);
+  const height = Math.max(1, rawBounds.maxY - rawBounds.minY);
+  const scale = targetMaxDimension / Math.max(width, height);
+  const centerX = (rawBounds.minX + rawBounds.maxX) / 2;
+  const centerY = (rawBounds.minY + rawBounds.maxY) / 2;
+  return {
+    scale,
+    center: [centerX, centerY],
+    point(point) {
+      return [
+        Number(((point[0] - centerX) * scale).toFixed(3)),
+        Number(((centerY - point[1]) * scale).toFixed(3))
+      ];
+    }
+  };
 }
 
-function convertFloor(config, sourceFloor) {
+function classifyRoom(labelText) {
+  const value = labelText.toLowerCase();
+  if (value.includes('office')) return 'Office';
+  if (value.includes('gym') || value.includes('auditorium') || value.includes('cafeteria')) return 'Major zone';
+  if (/[a-z]/i.test(labelText) && !/^\d/.test(labelText)) return 'Named space';
+  return 'Classroom';
+}
+
+function roomDisplayLabel(roomNumber, kind) {
+  if (!roomNumber) return 'Campus space';
+  if (kind === 'Named space' || kind === 'Office' || kind === 'Major zone') return roomNumber;
+  return `Room ${roomNumber}`;
+}
+
+function labelsInside(polyline, labels) {
+  return labels.filter((label) => pointInPolygon(label.position, polyline.points));
+}
+
+function closestPolylineForLabel(label, polylines) {
+  const inside = polylines.find((entry) => pointInPolygon(label.position, entry.points));
+  if (inside) return inside;
+  return polylines
+    .map((entry) => {
+      const center = polygonCenter(entry.points);
+      return { entry, distance: Math.hypot(label.position[0] - center[0], label.position[1] - center[1]) };
+    })
+    .sort((a, b) => a.distance - b.distance)[0]?.entry || null;
+}
+
+function toRenderablePolyline(entry, transform) {
+  return {
+    ...entry,
+    rawPoints: entry.points,
+    polygon: entry.points.map((point) => transform.point(point)),
+    area: polygonArea(entry.points)
+  };
+}
+
+function prepareSemanticPolyline(entry, kind, warnings) {
+  if (!entry.points || entry.points.length < 3) {
+    warnings.push({
+      type: 'skipped-open-line',
+      layer: entry.layer,
+      kind,
+      entityType: entry.type,
+      pointCount: entry.points?.length || 0
+    });
+    return null;
+  }
+
+  if (entry.closed) return entry;
+
+  if (entry.type === 'LWPOLYLINE') {
+    warnings.push({
+      type: 'auto-closed-polyline',
+      layer: entry.layer,
+      kind,
+      entityType: entry.type,
+      pointCount: entry.points.length
+    });
+    return { ...entry, closed: true, autoClosed: true };
+  }
+
+  warnings.push({
+    type: 'skipped-open-line',
+    layer: entry.layer,
+    kind,
+    entityType: entry.type,
+    pointCount: entry.points.length
+  });
+  return null;
+}
+
+function semanticPolylinesFor(entities, kind, warnings) {
+  return entities
+    .filter((entry) => isLayer(entry, kind))
+    .map((entry) => prepareSemanticPolyline(entry, kind, warnings))
+    .filter(Boolean);
+}
+
+function convertDxfToFloor(config) {
   if (!fs.existsSync(config.source)) {
     throw new Error(`Missing clean DXF: ${path.relative(ROOT, config.source)}`);
   }
 
+  const sourceFloor = config.sourceFloor || null;
   const sourceRoomsByNumber = new Map(
     (sourceFloor?.rooms || [])
       .filter((entry) => entry.plannedRoomNumber)
@@ -188,84 +383,178 @@ function convertFloor(config, sourceFloor) {
   );
 
   const entities = parseEntities(fs.readFileSync(config.source, 'utf8'));
-  const roomLabels = entities.filter((entry) => entry.layer === 'ROOM_LABELS' && entry.text);
+  const warnings = [];
 
-  const roomPolylines = entities
-    .filter((entry) => entry.layer === 'ROOMS' && entry.closed && entry.points.length >= 3)
-    .filter((entry) => polygonArea(entry.points) > 100);
+  const roomLabels = entities
+    .filter((entry) => isLayer(entry, 'labels') && entry.text)
+    .map((entry, index) => ({ ...entry, sortIndex: index }));
 
-  const rooms = roomPolylines.map((entry, index) => {
-    const label = closestLabel(entry, roomLabels);
-    const roomNumber = entry.meta.roomNumber || label?.text || `clean-${index + 1}`;
+  const roomEntries = semanticPolylinesFor(entities, 'rooms', warnings);
+  const hallwayEntries = semanticPolylinesFor(entities, 'hallways', warnings);
+  const stairEntries = semanticPolylinesFor(entities, 'stairs', warnings);
+  const outerOutlineEntries = semanticPolylinesFor(entities, 'walls', warnings);
+
+  const semanticPolylines = [
+    ...roomEntries,
+    ...hallwayEntries,
+    ...stairEntries,
+    ...outerOutlineEntries
+  ];
+
+  const rawBounds = mergeBounds(semanticPolylines.map((entry) => boundsFor(entry.points)));
+  const transform = createTransform(rawBounds, config.targetMaxDimension);
+
+  const roomPolylines = roomEntries
+    .map((entry, index) => ({ ...entry, cadIndex: index, area: polygonArea(entry.points) }));
+
+  const renderableRoomPolylines = roomPolylines.filter((entry) => {
+    const labels = labelsInside(entry, roomLabels);
+    if (entry.area < 0.5) {
+      warnings.push({
+        type: 'small-room-artifact',
+        layer: entry.layer,
+        area: Number(entry.area.toFixed(4)),
+        cadIndex: entry.cadIndex,
+        labels: labels.map((label) => label.text)
+      });
+    }
+    return entry.area > 0.05 || labels.length > 0;
+  });
+
+  const rooms = renderableRoomPolylines.map((entry, index) => {
+    const labels = labelsInside(entry, roomLabels);
+    const primaryLabel = labels[0] || null;
+    const roomNumber = cleanText(entry.meta.roomNumber || primaryLabel?.text || `space-${index + 1}`);
     const source = sourceRoomsByNumber.get(roomNumber);
+    const kind = entry.meta.kind || source?.kind || classifyRoom(roomNumber);
+    const id = entry.meta.id || `${config.floorId}-${slug(roomNumber)}-${index + 1}`;
     return {
-      id: entry.meta.id || `${config.floorId}-${slug(roomNumber)}`,
-      label: entry.meta.label || source?.label || `Room ${roomNumber}`,
-      kind: entry.meta.kind || source?.kind || 'Classroom',
+      id,
+      label: entry.meta.label || source?.label || roomDisplayLabel(roomNumber, kind),
+      kind,
       roomNumber,
       plannedRoomNumber: roomNumber,
-      polygon: entry.points,
-      height: source?.height ?? 0.08,
+      polygon: entry.points.map((point) => transform.point(point)),
+      rawPolygon: entry.points,
+      area: Number(entry.area.toFixed(4)),
+      worldArea: Number(polygonArea(entry.points.map((point) => transform.point(point))).toFixed(2)),
+      layer: entry.layer,
+      autoClosed: Boolean(entry.autoClosed),
+      height: source?.height ?? (kind === 'Major zone' ? 0.14 : 0.09),
       selectable: true,
-      importance: entry.meta.importance || source?.importance || 'normal'
+      importance: entry.meta.importance || source?.importance || (kind === 'Major zone' ? 'major' : 'normal')
     };
   });
 
-  const hallways = entities
-    .filter((entry) => entry.layer === 'HALLWAYS' && entry.closed && entry.points.length >= 3)
+  const roomByRawPolyline = new Map();
+  renderableRoomPolylines.forEach((entry, index) => {
+    roomByRawPolyline.set(entry, rooms[index]);
+  });
+
+  const hallways = hallwayEntries
+    .map((entry, index) => ({ ...entry, cadIndex: index, area: polygonArea(entry.points) }))
+    .filter((entry) => {
+      if (entry.area <= 0.05) {
+        warnings.push({ type: 'small-hallway-artifact', layer: entry.layer, area: Number(entry.area.toFixed(4)), cadIndex: entry.cadIndex });
+        return false;
+      }
+      return true;
+    })
     .map((entry, index) => ({
       id: entry.meta.id || `${config.floorId}-hallway-${index + 1}`,
       label: entry.meta.label || `Hallway ${index + 1}`,
       kind: 'Hallway',
-      polygon: entry.points,
-      height: 0.035,
-      selectable: true
+      polygon: entry.points.map((point) => transform.point(point)),
+      rawPolygon: entry.points,
+      area: Number(entry.area.toFixed(4)),
+      height: 0.045,
+      selectable: true,
+      autoClosed: Boolean(entry.autoClosed)
     }));
 
-  const stairs = entities
-    .filter((entry) => entry.layer === 'STAIRS' && entry.closed && entry.points.length >= 3)
+  const stairs = stairEntries
     .map((entry, index) => {
-      const bounds = boundsFor(entry.points);
+      const polygon = entry.points.map((point) => transform.point(point));
+      const bounds = boundsFor(polygon);
       return {
         id: entry.meta.id || `${config.floorId}-stair-${index + 1}`,
         label: entry.meta.label || `Stair ${index + 1}`,
-        polygon: entry.points,
-        position: polygonCenter(entry.points),
+        polygon,
+        rawPolygon: entry.points,
+        position: polygonCenter(polygon),
         size: [bounds.maxX - bounds.minX, bounds.maxY - bounds.minY],
         rotation: 0,
-        treads: entry.meta.treads || 8
+        treads: entry.meta.treads || 8,
+        autoClosed: Boolean(entry.autoClosed)
       };
     });
 
+  const outerOutlines = outerOutlineEntries
+    .map((entry, index) => ({
+      id: entry.meta.id || `${config.floorId}-outer-outline-${index + 1}`,
+      polygon: entry.points.map((point) => transform.point(point)),
+      rawPolygon: entry.points,
+      closed: true,
+      sourceLayer: entry.layer,
+      renderAs: 'outline',
+      thickness: 0,
+      height: 0,
+      area: Number(polygonArea(entry.points).toFixed(4)),
+      autoClosed: Boolean(entry.autoClosed)
+    }));
+
   const labels = roomLabels.map((entry, index) => {
-    const room = rooms.find((candidate) => candidate.roomNumber === entry.text);
+    const polyline = closestPolylineForLabel(entry, renderableRoomPolylines);
+    const room = polyline ? roomByRawPolyline.get(polyline) : null;
     return {
       id: entry.meta.id || `${config.floorId}-label-${slug(entry.text)}-${index + 1}`,
       label: entry.text,
       roomId: entry.meta.roomId || room?.id || null,
-      position: entry.position,
-      minZoom: room?.importance === 'major' ? 0.28 : 0.54,
+      position: transform.point(entry.position),
+      rawPosition: entry.position,
+      minZoom: room?.importance === 'major' ? 0.28 : 0.64,
       importance: room?.importance || 'normal'
     };
   });
+
+  const transformedPoints = [
+    ...rooms.flatMap((entry) => entry.polygon),
+    ...hallways.flatMap((entry) => entry.polygon),
+    ...stairs.flatMap((entry) => entry.polygon),
+    ...outerOutlines.flatMap((entry) => entry.polygon)
+  ];
+  const worldBounds = mergeBounds([boundsFor(transformedPoints)]);
+  const padding = 90;
+  const fallbackFloorShape = [
+    [worldBounds.minX - padding, worldBounds.minY - padding],
+    [worldBounds.maxX + padding, worldBounds.minY - padding],
+    [worldBounds.maxX + padding, worldBounds.maxY + padding],
+    [worldBounds.minX - padding, worldBounds.maxY + padding]
+  ];
 
   return {
     floorId: config.floorId,
     source: path.relative(ROOT, config.source),
     generatedBy: 'scripts/convert-clean-dxf-to-map.js',
+    coordinateSystem: {
+      rawBounds,
+      worldBounds,
+      scale: transform.scale,
+      center: transform.center,
+      yAxis: 'cad-y-inverted-to-world-z'
+    },
+    floorShapes: outerOutlines.length ? outerOutlines.map((entry, index) => ({
+      id: `${config.floorId}-cad-plate-${index + 1}`,
+      label: index === 0 ? 'Academic floor plate' : `Floor plate ${index + 1}`,
+      polygon: entry.polygon
+    })) : [{ id: `${config.floorId}-cad-plate`, label: 'Academic floor plate', polygon: fallbackFloorShape }],
     rooms,
     hallways,
-    walls: entities
-      .filter((entry) => entry.layer === 'WALLS' && entry.points.length >= 2)
-      .map((entry, index) => ({
-        id: entry.meta.id || `${config.floorId}-wall-${index + 1}`,
-        points: entry.points,
-        closed: entry.closed,
-        thickness: 8,
-        height: 18
-      })),
+    outerOutlines,
+    walls: [],
     stairs,
-    labels
+    labels,
+    warnings
   };
 }
 
@@ -275,10 +564,20 @@ function main() {
 
   FLOOR_INPUTS.forEach((config) => {
     const floor = floors.find((entry) => entry.id === config.floorId);
-    const payload = convertFloor(config, floor);
+    const payload = convertDxfToFloor({ ...config, sourceFloor: floor });
     fs.writeFileSync(config.output, `${JSON.stringify(payload, null, 2)}\n`);
     console.log(`Converted ${path.relative(ROOT, config.source)} -> ${path.relative(ROOT, config.output)}`);
+    console.log(`  rooms=${payload.rooms.length} hallways=${payload.hallways.length} stairs=${payload.stairs.length} labels=${payload.labels.length} warnings=${payload.warnings.length}`);
   });
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  convertDxfToFloor,
+  parseEntities,
+  pointInPolygon,
+  polygonArea
+};

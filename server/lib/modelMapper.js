@@ -49,6 +49,11 @@ function foundItemToApi(item) {
     status: lowerEnum(item.status),
     submittedBy: item.submittedById,
     submitterName: item.submitterName || item.submittedBy?.name || 'Unknown',
+    mapFloorId: item.mapFloorId || null,
+    mapRoomId: item.mapRoomId || null,
+    mapRoomNumber: item.mapRoomNumber || null,
+    mapPinX: item.mapPinX ?? null,
+    mapPinZ: item.mapPinZ ?? null,
     aiProfile: item.aiProfile || null,
     createdAt: iso(item.createdAt),
     updatedAt: iso(item.updatedAt)

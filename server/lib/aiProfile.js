@@ -7,37 +7,25 @@
 // If the feature flag is off or the key is missing, everything degrades
 // gracefully — items save normally, matching falls back to keywords.
 
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const { prisma } = require('./prisma');
 const { foundItemToApi, missingItemToApi, itemIncludes } = require('./modelMapper');
-
-let geminiModel = null;
-
-function getModel() {
-  if (geminiModel) return geminiModel;
-  const { GoogleGenerativeAI } = require('@google/generative-ai');
-  const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  geminiModel = genai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-  return geminiModel;
-}
+const {
+  generateImageProfileJson,
+  isProviderConfigured,
+  providerConfig
+} = require('./aiProvider');
 
 function isEnabled() {
-  return process.env.AI_MATCHING_ENABLED === 'true' && !!process.env.GEMINI_API_KEY;
+  return process.env.AI_MATCHING_ENABLED === 'true' &&
+    isProviderConfigured(providerConfig('profile'));
 }
 
 // Generate a structured photo profile from an item's image.
 // Returns the profile object or null on failure.
 async function generateProfile(item, photoPath) {
   if (!fs.existsSync(photoPath)) return null;
-
-  const imageData = fs.readFileSync(photoPath);
-  const base64 = imageData.toString('base64');
-  const ext = path.extname(photoPath).slice(1).toLowerCase();
-  const mimeType = ext === 'png' ? 'image/png'
-    : ext === 'gif' ? 'image/gif'
-    : ext === 'webp' ? 'image/webp'
-    : 'image/jpeg';
 
   const prompt = `You are a lost-and-found item analyzer. Analyze this item photo and return ONLY a valid JSON object with these fields:
 - "keywords": array of 5-10 descriptive keywords (lowercase)
@@ -51,16 +39,7 @@ Context — Item name: "${item.itemName}", Category: "${item.category}", User de
 
 Respond with ONLY the JSON object, no markdown, no explanation.`;
 
-  const model = getModel();
-  const result = await model.generateContent([
-    prompt,
-    { inlineData: { data: base64, mimeType } }
-  ]);
-
-  const text = result.response.text().trim();
-  // Strip markdown code fences if the provider wraps the JSON
-  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  return JSON.parse(clean);
+  return generateImageProfileJson({ prompt, imagePath: photoPath });
 }
 
 // Fire-and-forget: generate a photo profile and save it to the item's JSON record.
@@ -94,4 +73,4 @@ function generateAndSave(itemId, itemType) {
   })();
 }
 
-module.exports = { generateAndSave, isEnabled };
+module.exports = { generateAndSave, generateProfile, isEnabled };

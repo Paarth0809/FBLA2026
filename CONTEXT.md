@@ -1,7 +1,308 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-12 by Codex
+> Last updated: 2026-06-17 by Codex
+
+---
+
+## Latest Update — Campus Map Wall Shading, Stable Zoom, And Real ViewCube
+
+Current goal: polish the open-room Explore Mode campus map so it reads as a
+clean architectural miniature instead of pale stacked boxes. This pass preserved
+DXF-derived room geometry, live item pins, report mini-picker fields, backend
+map-pin behavior, and room-focus flow while tightening visual depth and camera
+controls.
+
+Completed:
+- Reworked room and hallway wall rendering in
+  `public/js/campus-map-world.js`:
+  - reduced wall thickness and heavy top-brim feel;
+  - added direction-based wall shading with light/mid/shadow side materials;
+  - added darker inner wall materials;
+  - added vertical wall edge lines at room corners and segment breaks;
+  - added thinner top outlines plus floor-level inset outlines for top/room
+    focus readability.
+- Improved room-focus/top-view readability:
+  - added a slight `roomFocus` inspection tilt instead of a perfectly vertical
+    camera;
+  - suppresses duplicate room-number labels while the hover/selected
+    `Room ####` pill is visible.
+- Fixed trackpad/mouse zoom anchoring:
+  - normalized wheel deltas with a bounded exponential factor;
+  - zoom now compares pointer world position before and after zoom;
+  - manual wheel/pinch input cancels active GSAP camera tweens.
+- Cleaned normal Explore Mode baseplate rendering:
+  - keeps one subtle world plinth;
+  - stops rendering large `floorShapes` raised plates in normal mode;
+  - leaves those underlay-like shapes for debug-only alignment.
+- Replaced the flat view-control pad with a real CSS 3D ViewCube:
+  - adapted the local `three-viewcube-main.zip` matrix/orientation idea without
+    adding a dependency;
+  - cube syncs from the camera rig yaw/pitch;
+  - cube faces and compass ring trigger Top/Front/Back/Left/Right presets;
+  - Iso/Home restores the angled Explore Mode view;
+  - N/E/S/W ring controls are clickable and keyboard-accessible.
+- Added `tests/map-world-source.test.js` and wired it into `tests/run.js` so
+  source-level regressions are caught for wall shading, zoom anchoring, and the
+  real ViewCube structure.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node tests/map-world-source.test.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 107 / 107.
+- Browser QA on `http://localhost:3000/map.html?mapDepthDebug=1` confirmed:
+  - map canvas renders;
+  - ViewCube syncs with camera transforms;
+  - compass ring controls settle to the expected view presets;
+  - Iso restores the angled Explore Mode view;
+  - zoom over the map no longer teleports in the tested wheel sequence;
+  - duplicate hover room-number labels are suppressed.
+
+Known risks / next steps:
+- Browser screenshot capture timed out once against the heavy WebGPU canvas, so
+  the browser check used DOM/camera state and live interactions instead of a
+  saved screenshot.
+- The map still depends on Floor 1 clean DXF geometry for high fidelity. Other
+  floors need clean DXF exports before they can match this visual quality.
+- If collaborators touch the same map files, coordinate carefully:
+  `public/js/campus-map-world.js`, `public/js/campus-map.js`,
+  `public/map.html`, and `public/css/style.css`.
+
+---
+
+## Latest Update — Open-Room Campus Map + Live Found-Item Pins
+
+Current goal: convert the Explore Mode campus map from capped room slabs into
+an open-roof school model and connect approved found-item reports to live map
+pins. This pass keeps the clean DXF-derived Floor 1 geometry, floor switcher,
+search, GSAP camera motion, and WebGPU/WebGL fallback intact while adding room
+focus and optional report-location metadata.
+
+Completed:
+- Rebuilt `public/js/campus-map-world.js` room rendering so rooms/hallways use
+  visible floor polygons plus perimeter wall meshes instead of tall capped
+  blocks. Interiors remain open from above so stairs, pins, and room floors stay
+  visible.
+- Added stronger room boundary language:
+  - low floor slabs;
+  - perimeter walls;
+  - wall-top and floor rim lines;
+  - separate dim/selected/focused materials for room floors and walls.
+- Added view navigation:
+  - orientation cube overlay with Top, Iso, Left, Right, Front, and Back presets;
+  - GSAP camera transitions through the existing custom camera rig;
+  - room-focus mode that animates to a top-down selected-room view;
+  - back button to restore the full-floor Explore Mode.
+- Added live approved-found-item pins:
+  - optional FoundItem map metadata in Prisma (`mapFloorId`, `mapRoomId`,
+    `mapRoomNumber`, `mapPinX`, `mapPinZ`);
+  - migration `20260617212000_found_item_map_location`;
+  - `/api/items/map-pins` endpoint returning approved found items only, with
+    safe public fields and no contact email;
+  - map sidebar item cards with photo, description, room number, and
+    `View / Claim Item` links.
+- Added optional report-location capture in `public/report.html`:
+  - hidden map metadata fields;
+  - `public/js/report-map-picker.js` lightweight Floor 1 SVG mini picker;
+  - room search/select, draggable pin, clear selection;
+  - helpful location autofill such as `Room 1133, Floor 1` while preserving
+    manually edited location text.
+- Updated backend DTO/model mapping so map metadata is preserved on found-item
+  submission and returned safely where appropriate.
+- Added tests for found-item submission with map metadata, pending-pin privacy,
+  and approved-pin visibility.
+
+Current state:
+- Uncommitted implementation files include map renderer/UI, report picker,
+  backend item DTO/routes, Prisma schema/migration, tests, and regenerated clean
+  Floor 1 map JSON.
+- Existing CAD/source workspace files remain untracked and should be reviewed
+  before any commit.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node --check public/js/report-map-picker.js` passed.
+- `node --check server/routes/items.js` passed.
+- `npx prisma validate` passed.
+- `git diff --check` passed.
+- `npm test` passed 106 / 106.
+
+Known risks / next steps:
+- Existing local dev databases need the new Prisma migration applied before
+  using map metadata against a persistent Postgres database.
+- Browser visual QA has not yet been rerun after this pass; the static/backend
+  verification is clean, but the open-room walls, view cube, room focus, and
+  mini picker should be inspected in Chrome before committing.
+- The report mini map currently supports Floor 1, because Floor 1 is the only
+  floor with clean DXF-derived room geometry at this fidelity.
+- Other floors can keep fallback map data until clean DXF exports are produced.
+
+---
+
+## Latest Update — Campus Map Robust 3D Depth Pass
+
+Current goal: make Explore Mode read as a physical miniature map instead of a
+pale flat sheet. This pass kept the DXF-derived room geometry, labels, search,
+floor switcher, GSAP interactions, and WebGPU/WebGL fallback intact, while
+dramatically increasing perceived depth.
+
+Completed:
+- Tuned `public/js/campus-map-world.js` depth constants so rooms, major zones,
+  hallways, walls, and stairs have clearer height hierarchy.
+- Added raised perimeter rails around room/hall polygons so room-to-room
+  boundaries remain readable even when zoomed out.
+- Added layered baked contact shadows below rooms and hallways, with
+  renderer-native shadow support enabled where stable.
+- Rebalanced Explore Mode lighting/materials:
+  - darker blue-gray side faces;
+  - clearer side/top material contrast;
+  - cooler world/floor plane;
+  - less flattening white haze;
+  - lower angled camera so side faces are visible at default zoom.
+- Lifted label anchors to match the taller room slabs.
+- Added `?mapDepthDebug=1` diagnostics for depth/camera tuning.
+- Adjusted the map viewport CSS overlay so the scene keeps the soft
+  light-blue/VECTR direction without washing out the geometry.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 104 / 104.
+- Browser QA on `http://localhost:3000/map.html?mapDepthDebug=1` confirmed the
+  depth debug overlay and WebGPU renderer load without map errors.
+- Browser QA on `http://localhost:3000/map.html` confirmed the normal view has
+  stronger raised room slabs, visible room rails, clearer side faces, and no
+  debug grid. The only console issue observed was the expected logged-out
+  `/api/auth/me` 401.
+
+---
+
+## Latest Update — GatorBot Website Assistant
+
+Current goal: add a polished bottom-right GatorBot assistant that answers only
+questions about Green Level Lost & Found, uses the local gator avatar, respects
+auth/admin state, and falls back cleanly when Gemini is unavailable.
+
+Completed:
+- Added `server/routes/gatorbot.js` and `server/lib/gatorbot.js`.
+- Registered `POST /api/gatorbot/chat` in `server/index.js`.
+- Added deterministic website-only fallback answers for searching, reports,
+  claims, submissions, messages, map pins, uploads, password reset, privacy,
+  and admin guidance.
+- Added optional Gemini support behind server-side guardrails; tests and
+  missing-key/demo conditions use deterministic fallback.
+- Added privacy-safe user context from Prisma:
+  - logged-out users get no personal data;
+  - students get only their own counts/summaries;
+  - admin actions are only returned for actual admin sessions.
+- Added `public/js/gatorbot.js` and lazy-loaded it from `public/js/nav.js` so
+  the widget appears on shared pages after auth state loads.
+- Added optimized local avatar asset at `public/images/gatorbot.jpeg`.
+- Added GatorBot styles to `public/css/style.css`, including mobile layout,
+  keyboard focus, action buttons, quick replies, typing state, and reduced
+  motion handling.
+- Added backend tests for website-only refusal, anonymous report actions,
+  student own-data summaries, and admin-only guidance.
+
+Verification:
+- `node --check server/lib/gatorbot.js` passed.
+- `node --check server/routes/gatorbot.js` passed.
+- `node --check server/index.js` passed.
+- `node --check public/js/gatorbot.js` passed.
+- `node --check public/js/nav.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 113 / 113.
+
+Known risks / next steps:
+- Browser visual QA for the widget has not yet been rerun in Chrome after this
+  pass.
+- Gemini answers are sanitized and action-gated, but the deterministic fallback
+  is the judge-safe/offline path.
+- Existing unrelated map/report/database work remains dirty in the worktree;
+  do not assume the full diff belongs to the GatorBot task.
+
+Known risks / next steps:
+- This pass improves depth language but still uses the clean Floor 1 academic
+  DXF only. Basement/Floor 2/Floor 3 need matching clean DXFs before they can
+  reach the same fidelity.
+- If the map ever feels slow on lower-end machines, the new perimeter rail mesh
+  count is the first place to profile before adding `three-mesh-bvh`.
+
+---
+
+## Latest Update — Premium 3D Campus Map From Clean Academic DXF
+
+Current goal: replace the Floor 1 placeholder/pilot map rendering with a real
+DXF-derived miniature map world. The clean AutoCAD export
+`gatorfloor1academic.dxf` is now the Floor 1 source of truth for rooms,
+hallways, stairs, wall plates, and typed room-number labels.
+
+Completed:
+- Moved the clean Floor 1 academic DXF into
+  `cad/campus-map-workspace/sources/gatorfloor1academic.dxf`.
+- Rebuilt `scripts/convert-clean-dxf-to-map.js` so it parses the real CAD
+  layers:
+  - `ROOMS`
+  - `LABELS_ROOM_NUMBERS`
+  - `HALLWAYS`
+  - `STAIRS`
+  - `WALLS`
+  - ignores reference layers in normal runtime output.
+- Regenerated `public/maps/clean/floor-1-clean.json` from the clean DXF:
+  - 64 room polygons
+  - 28 hallway polygons
+  - 11 stair footprints
+  - 55 typed labels
+  - 3 tiny room-artifact warnings retained for review.
+- Added `tests/map-converter.test.js` for focused converter coverage.
+- Updated `tests/run.js` so the full suite validates the new academic DXF
+  source and typed label matching, instead of the older pilot DXF assumptions.
+- Upgraded `public/js/campus-map-world.js` into a more premium miniature-world
+  renderer:
+  - uses local Three.js `WebGPURenderer` with WebGL fallback behavior;
+  - pale blue-white VECTR-inspired materials;
+  - generated studio environment reflections;
+  - raised selectable room slabs and lower hallway surfaces;
+  - taller perimeter/wall edge geometry;
+  - stepped stair blocks;
+  - GSAP camera fit/fly-to transitions;
+  - selected/hovered rooms lift and glow;
+  - future-ready route ribbon support.
+- Updated `public/js/campus-map.js` so search uses the generated active-floor
+  room geometry, making room-number searches select the actual CAD-derived mesh.
+- Bumped the `/map.html` module cache key so browsers load the new map world
+  renderer instead of stale prior modules.
+
+Verification:
+- `node --check scripts/convert-clean-dxf-to-map.js` passed.
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node --check public/js/campus-map-data.js` passed.
+- `node --check tests/run.js` passed.
+- `node tests/map-converter.test.js` passed.
+- `node scripts/convert-clean-dxf-to-map.js` regenerated the clean JSON:
+  `rooms=64 hallways=28 stairs=11 labels=55 warnings=3`.
+- `git diff --check` passed.
+- `npm test` passed 104 / 104.
+- Browser QA on `http://localhost:3000/map.html` confirmed:
+  - `/maps/clean/floor-1-clean.json` loads;
+  - the map builds 162 projected labels;
+  - searching `1133` selects the generated `Room 1133` mesh/card;
+  - desktop and 390px mobile have no horizontal overflow;
+  - console is clean except the expected logged-out `/api/auth/me` 401.
+
+Known risks / next steps:
+- Floor 1 is now driven by the clean academic DXF. Basement, Floor 2, and Floor
+  3 still need equivalent clean DXF exports before they can match this fidelity.
+- The clean DXF includes 55 typed labels for 64 room polygons; this is expected
+  because some small/secondary CAD polygons do not have unique labels.
+- The current renderer is a premium 2.5D/miniature map world, not a fully
+  physically modeled building. More VECTR-like props, route animations, and
+  label staging can be layered on once the remaining floors are converted.
 
 ---
 
