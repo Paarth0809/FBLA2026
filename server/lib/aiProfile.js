@@ -7,10 +7,9 @@
 // If the feature flag is off or the key is missing, everything degrades
 // gracefully — items save normally, matching falls back to keywords.
 
-const fs = require('fs');
-const path = require('path');
 const { prisma } = require('./prisma');
 const { foundItemToApi, missingItemToApi, itemIncludes } = require('./modelMapper');
+const { getImageBuffer } = require('./storageProvider');
 const {
   generateImageProfileJson,
   isProviderConfigured,
@@ -24,9 +23,7 @@ function isEnabled() {
 
 // Generate a structured photo profile from an item's image.
 // Returns the profile object or null on failure.
-async function generateProfile(item, photoPath) {
-  if (!fs.existsSync(photoPath)) return null;
-
+async function generateProfile(item, photoAsset) {
   const prompt = `You are a lost-and-found item analyzer. Analyze this item photo and return ONLY a valid JSON object with these fields:
 - "keywords": array of 5-10 descriptive keywords (lowercase)
 - "color": primary color(s) as a string
@@ -39,7 +36,14 @@ Context — Item name: "${item.itemName}", Category: "${item.category}", User de
 
 Respond with ONLY the JSON object, no markdown, no explanation.`;
 
-  return generateImageProfileJson({ prompt, imagePath: photoPath });
+  const imageBuffer = await getImageBuffer(photoAsset || item.photo);
+  if (!imageBuffer) return null;
+
+  return generateImageProfileJson({
+    prompt,
+    imageBuffer,
+    mimeType: photoAsset?.contentType || photoAsset?.mimeType || 'image/jpeg'
+  });
 }
 
 // Fire-and-forget: generate a photo profile and save it to the item's JSON record.
@@ -57,8 +61,7 @@ function generateAndSave(itemId, itemType) {
       if (!item || !item.photo) return;
       if (item.aiProfile) return; // already generated
 
-      const photoPath = path.join(__dirname, '../../uploads', item.photo);
-      const profile = await generateProfile(item, photoPath);
+      const profile = await generateProfile(item, record.photoAsset);
       if (!profile) return;
 
       if (itemType === 'found') {

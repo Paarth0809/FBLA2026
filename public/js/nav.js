@@ -18,6 +18,7 @@ const SCHOOL_NAME = 'Green Level Lost & Found';
 // currentUser holds the logged-in user object (or null if not logged in).
 // It's populated by loadUser() below and used by requireAuth() / requireAdmin().
 let currentUser = null;
+let accountSettingsLoaded = false;
 
 function safeText(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -40,6 +41,7 @@ async function loadUser() {
     // 401 is expected for logged-out visitors — just set currentUser to null
     currentUser = null;
   }
+  await loadAccountSettings();
   window.__gatorBotCurrentUser = currentUser;
   renderNav();
   // Dispatch a custom DOM event so any page-specific code can react to the
@@ -56,26 +58,7 @@ function renderNav() {
     const mode = el.dataset.navAuth ||
       (el.id === 'nav-auth-mobile' ? 'compact' : (el.classList.contains('w-full') ? 'sidebar' : 'default'));
     el.innerHTML = currentUser ? renderLoggedInNav(mode) : renderLoggedOutNav(mode);
-
-    // Inject language switcher sibling next to nav-auth (exclude mobile compact icon slot)
-    if (el.id === 'nav-auth' || el.hasAttribute('data-nav-auth')) {
-      injectLanguageSwitcher(el, mode);
-    }
   });
-
-  // Fallback for sidebars that don't have dynamic auth slots (e.g. claim.html)
-  const sidebar = document.querySelector('.student-sidebar, aside');
-  if (sidebar && !document.getElementById('nav-lang-container-sidebar')) {
-    const logoutBtn = sidebar.querySelector('button[onclick="logout()"], a[href*="logout"]');
-    if (logoutBtn) {
-      const langContainer = document.createElement('div');
-      langContainer.id = 'nav-lang-container-sidebar';
-      langContainer.className = 'relative w-full mb-3 mt-auto';
-      langContainer.setAttribute('data-i18n-skip', 'true');
-      logoutBtn.parentNode.insertBefore(langContainer, logoutBtn);
-      renderLanguageDropdownInside(langContainer, getCurrentLanguage());
-    }
-  }
 
   // Inject Back to Public Site button in student portal sidebar above logout/auth button
   const studentSidebar = document.querySelector('.student-sidebar');
@@ -109,11 +92,15 @@ function renderLoggedInNav(mode = 'default') {
   const portalHref = isAdmin ? '/admin.html' : '/my-submissions.html';
   const portalLabel = isAdmin ? 'GLHS Portal' : 'Student Portal';
   const portalIcon = isAdmin ? 'admin_panel_settings' : 'space_dashboard';
+  const settingsHref = '/my-submissions.html?tab=settings';
 
   if (mode === 'sidebar') {
     return `
       <div class="auth-panel">
         <div class="auth-user">Signed in as ${safeText(firstName)}</div>
+        <a href="${settingsHref}" class="btn btn-outline btn-sm w-full">
+          <span class="material-symbols-outlined">settings</span>Settings
+        </a>
         <button onclick="logout()" class="btn btn-ghost btn-sm w-full" type="button">
           <span class="material-symbols-outlined">logout</span>Sign Out
         </button>
@@ -123,6 +110,9 @@ function renderLoggedInNav(mode = 'default') {
 
   if (mode === 'compact') {
     return `
+      <a href="${settingsHref}" class="btn btn-ghost btn-sm" aria-label="Settings" title="Settings">
+        <span class="material-symbols-outlined">settings</span>
+      </a>
       <a href="${portalHref}" class="btn btn-outline btn-sm">
         <span class="material-symbols-outlined">${portalIcon}</span>
         <span class="hide-mobile">${portalLabel}</span>
@@ -131,6 +121,10 @@ function renderLoggedInNav(mode = 'default') {
   }
 
   return `
+    <a href="${settingsHref}" class="btn btn-ghost btn-sm nav-settings-link flex items-center gap-1.5 font-semibold text-xs transition-all duration-200" aria-label="Account settings" title="Account settings">
+      <span class="material-symbols-outlined" style="font-size:16px">settings</span>
+      <span class="hide-mobile">Settings</span>
+    </a>
     <span class="nav-user hide-mobile text-xs font-semibold text-white/70 mr-1">
       Hi, <strong class="text-white font-bold">${safeText(firstName)}</strong>
     </span>
@@ -1094,6 +1088,146 @@ function changeLanguage(langCode) {
   ensureFloatingSwitcher(langCode);
 }
 
+function normalizeClientLanguage(langCode) {
+  return languageNames.en[langCode] ? langCode : 'en';
+}
+
+function applyAccountSettings(settings = {}) {
+  const preferredLanguage = normalizeClientLanguage(settings.preferredLanguage || getCurrentLanguage());
+  try {
+    localStorage.setItem('preferred-language', preferredLanguage);
+  } catch {
+    // Ignore local storage failures; the page still updates for this visit.
+  }
+  applyTranslations(preferredLanguage);
+  ensureFloatingSwitcher(preferredLanguage);
+
+  if (typeof settings.dyslexicFontEnabled === 'boolean') {
+    setDyslexicFontEnabled(settings.dyslexicFontEnabled);
+  } else {
+    applyDyslexicFontPreference();
+  }
+}
+
+async function loadAccountSettings() {
+  if (!currentUser) {
+    accountSettingsLoaded = true;
+    applyDyslexicFontPreference();
+    return null;
+  }
+
+  try {
+    const settings = await api.get('/auth/settings');
+    accountSettingsLoaded = true;
+    applyAccountSettings(settings);
+    return settings;
+  } catch (err) {
+    accountSettingsLoaded = true;
+    console.warn('Failed to load account settings; using local preferences.', err);
+    applyAccountSettings({
+      preferredLanguage: getCurrentLanguage(),
+      dyslexicFontEnabled: isDyslexicFontEnabled()
+    });
+    return null;
+  }
+}
+
+async function saveAccountSettings(settings = {}) {
+  const payload = {
+    preferredLanguage: normalizeClientLanguage(settings.preferredLanguage || getCurrentLanguage()),
+    dyslexicFontEnabled: Boolean(settings.dyslexicFontEnabled)
+  };
+
+  if (!currentUser) {
+    applyAccountSettings(payload);
+    return payload;
+  }
+
+  const saved = await api.post('/auth/settings', payload);
+  applyAccountSettings(saved);
+  return saved;
+}
+
+const DYSLEXIC_FONT_STORAGE_KEY = 'gl-dyslexic-font-enabled';
+
+function isDyslexicFontEnabled() {
+  try {
+    return localStorage.getItem(DYSLEXIC_FONT_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function setDyslexicFontEnabled(enabled) {
+  try {
+    localStorage.setItem(DYSLEXIC_FONT_STORAGE_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // Ignore storage failures; the in-page class still updates for this visit.
+  }
+  applyDyslexicFontPreference(enabled);
+}
+
+function applyDyslexicFontPreference(forcedValue) {
+  const enabled = typeof forcedValue === 'boolean' ? forcedValue : isDyslexicFontEnabled();
+  document.documentElement.classList.toggle('font-dyslexic', enabled);
+  document.querySelectorAll('[data-dyslexic-toggle]').forEach((button) => {
+    button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    button.setAttribute('aria-label', enabled ? 'Turn off dyslexia-friendly font' : 'Turn on dyslexia-friendly font');
+    const state = button.querySelector('[data-dyslexic-toggle-state]');
+    if (state) state.textContent = enabled ? 'On' : 'Off';
+  });
+}
+
+function toggleDyslexicFont(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const enabled = !isDyslexicFontEnabled();
+  setDyslexicFontEnabled(enabled);
+  if (typeof showToast === 'function') {
+    showToast(enabled ? 'Dyslexia-friendly font enabled.' : 'Dyslexia-friendly font disabled.', 'success');
+  }
+}
+
+function injectDyslexicToggle(navAuthEl, mode) {
+  let container = document.getElementById('nav-dyslexic-container-' + mode);
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'nav-dyslexic-container-' + mode;
+    container.setAttribute('data-i18n-skip', 'true');
+
+    if (mode === 'sidebar') {
+      container.className = 'relative w-full mb-3';
+      navAuthEl.parentNode.insertBefore(container, navAuthEl);
+    } else {
+      container.className = 'relative flex items-center mr-2';
+      navAuthEl.parentNode.insertBefore(container, navAuthEl);
+    }
+  }
+
+  renderDyslexicToggleInside(container, mode);
+}
+
+function renderDyslexicToggleInside(container, mode = 'default') {
+  const enabled = isDyslexicFontEnabled();
+  const sidebarClass = mode === 'sidebar' ? ' is-sidebar' : '';
+  container.innerHTML = `
+    <button class="dyslexic-toggle${sidebarClass}"
+            type="button"
+            data-dyslexic-toggle
+            aria-pressed="${enabled ? 'true' : 'false'}"
+            aria-label="${enabled ? 'Turn off dyslexia-friendly font' : 'Turn on dyslexia-friendly font'}"
+            title="Toggle dyslexia-friendly OpenDyslexic font"
+            onclick="toggleDyslexicFont(event)">
+      <span class="material-symbols-outlined" aria-hidden="true">text_fields</span>
+      <span class="dyslexic-toggle-label">Dyslexia Font</span>
+      <span class="dyslexic-toggle-label-short">Font</span>
+      <span class="dyslexic-toggle-state" data-dyslexic-toggle-state>${enabled ? 'On' : 'Off'}</span>
+    </button>
+  `;
+}
+
 // Close language dropdown when clicking outside
 document.addEventListener('click', () => {
   document.querySelectorAll('.lang-switcher-dropdown').forEach(d => d.classList.remove('is-open'));
@@ -1338,6 +1472,14 @@ window.toggleLangDropdown = toggleLangDropdown;
 window.applyTranslations = applyTranslations;
 window.getCurrentLanguage = getCurrentLanguage;
 window.t = t;
+window.toggleDyslexicFont = toggleDyslexicFont;
+window.applyDyslexicFontPreference = applyDyslexicFontPreference;
+window.isDyslexicFontEnabled = isDyslexicFontEnabled;
+window.setDyslexicFontEnabled = setDyslexicFontEnabled;
+window.applyAccountSettings = applyAccountSettings;
+window.saveAccountSettings = saveAccountSettings;
+window.loadAccountSettings = loadAccountSettings;
+window.getSupportedLanguages = () => ({ ...languageNames.en });
 
 // Dynamically load translations.js and bootstrap i18n
 function bootstrapTranslations() {
@@ -1370,6 +1512,7 @@ function loadGatorBotScript() {
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
+applyDyslexicFontPreference();
 initMotion();
 loadUser().finally(loadGatorBotScript);
 bootstrapTranslations();

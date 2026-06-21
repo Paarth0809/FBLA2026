@@ -3,6 +3,7 @@
   window.__gatorBotLoaded = true;
 
   const STORAGE_KEY = 'gatorbotPrefill';
+  const SEEN_KEY = 'gatorbotSeen';
   const state = {
     open: false,
     busy: false,
@@ -45,10 +46,18 @@
     const root = document.createElement('div');
     root.className = 'gatorbot-root';
     root.innerHTML = `
+      <div class="gatorbot-nudge" aria-hidden="true">
+        <span class="material-symbols-outlined" aria-hidden="true">support_agent</span>
+        <span>Need help?</span>
+      </div>
       <button class="gatorbot-launcher" type="button" aria-label="Open GatorBot assistant">
         <span class="gatorbot-launcher-ring" aria-hidden="true"></span>
         <img src="/images/gatorbot.jpeg" alt="" aria-hidden="true">
       </button>
+      <div class="gatorbot-launcher-badge" aria-hidden="true">
+        <span class="gatorbot-status-dot"></span>
+        <span>Ask GatorBot</span>
+      </div>
       <section class="gatorbot-panel" role="dialog" aria-modal="false" aria-labelledby="gatorbot-title" hidden>
         <header class="gatorbot-header">
           <div class="gatorbot-avatar"><img src="/images/gatorbot.jpeg" alt="" aria-hidden="true"></div>
@@ -82,6 +91,12 @@
   const form = root.querySelector('.gatorbot-composer');
   const input = root.querySelector('#gatorbot-input');
 
+  try {
+    if (localStorage.getItem(SEEN_KEY) === 'true') root.classList.add('gatorbot-seen');
+  } catch {
+    // Private browsing or blocked storage should not affect the assistant.
+  }
+
   function scrollMessages() {
     messages.scrollTop = messages.scrollHeight;
   }
@@ -96,7 +111,10 @@
   function addMessage(role, text, actions) {
     const row = document.createElement('div');
     row.className = `gatorbot-message gatorbot-message-${role}`;
-    row.innerHTML = `<div class="gatorbot-bubble">${escapeHtml(text)}</div>`;
+    const bubble = document.createElement('div');
+    bubble.className = 'gatorbot-bubble';
+    bubble.textContent = text;
+    row.appendChild(bubble);
 
     if (role === 'bot' && Array.isArray(actions) && actions.length) {
       const actionWrap = document.createElement('div');
@@ -137,6 +155,12 @@
     launcher.setAttribute('aria-label', open ? 'Close GatorBot assistant' : 'Open GatorBot assistant');
 
     if (open) {
+      root.classList.add('gatorbot-seen');
+      try {
+        localStorage.setItem(SEEN_KEY, 'true');
+      } catch {
+        // Storage is optional; the nudge can simply return next page load.
+      }
       state.lastFocus = document.activeElement;
       requestAnimationFrame(() => input.focus());
     } else if (state.lastFocus && typeof state.lastFocus.focus === 'function') {

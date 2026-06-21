@@ -1,86 +1,77 @@
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const convertHeic = require('heic-convert');
-const { v4: uuidv4 } = require('uuid');
+const { putImage } = require('./storageProvider');
 
-const uploadsDir = path.join(__dirname, '../../uploads');
 const HEIC_EXTENSIONS = new Set(['.heic', '.heif']);
-const HEIC_MIME_TYPES = new Set(['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence']);
 
 function isHeicFile(file) {
   if (!file) return false;
   const ext = path.extname(file.originalname || file.filename || '').toLowerCase();
-  const mimetype = String(file.mimetype || '').toLowerCase();
-  return HEIC_EXTENSIONS.has(ext) || HEIC_MIME_TYPES.has(mimetype);
+  return HEIC_EXTENSIONS.has(ext) ||
+    /image\/hei(c|f)/i.test(file.mimetype || '') ||
+    /heic|heif/i.test(file.mimetype || '');
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => cb(null, `${uuidv4()}${path.extname(file.originalname)}`)
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const mimetype = String(file.mimetype || '').toLowerCase();
-    if (mimetype.startsWith('image/') || HEIC_EXTENSIONS.has(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed.'));
-    }
+    if (file.mimetype?.startsWith('image/') || isHeicFile(file)) return cb(null, true);
+    cb(new Error('Only image files are allowed. JPG, PNG, WEBP, GIF, and HEIC are supported.'));
   }
 });
 
 async function normalizeUploadedPhoto(file) {
-  if (!file || !isHeicFile(file)) return file;
+  if (!file) return file;
+  if (!file.buffer) throw new Error('Upload buffer was not available.');
+  if (!isHeicFile(file)) return file;
 
-  const inputPath = file.path;
-  const outputPath = path.join(path.dirname(inputPath), `${path.basename(inputPath, path.extname(inputPath))}.jpg`);
   try {
-    const inputBuffer = await fs.promises.readFile(inputPath);
     const outputBuffer = await convertHeic({
-      buffer: inputBuffer,
+      buffer: file.buffer,
       format: 'JPEG',
-      quality: 0.92
+      quality: 0.9
     });
-
-    await fs.promises.writeFile(outputPath, Buffer.from(outputBuffer));
-    await fs.promises.unlink(inputPath).catch(() => {});
-
-    file.path = outputPath;
-    file.filename = path.basename(outputPath);
+    file.buffer = Buffer.from(outputBuffer);
     file.mimetype = 'image/jpeg';
-    file.originalname = file.originalname.replace(/\.(heic|heif)$/i, '.jpg');
-    file.size = outputBuffer.length;
+    file.originalname = `${path.basename(file.originalname || 'upload', path.extname(file.originalname || ''))}.jpg`;
+    file.size = file.buffer.length;
     return file;
   } catch (err) {
-    await fs.promises.unlink(inputPath).catch(() => {});
-    throw new Error('That HEIC photo could not be converted. Try exporting it as JPG or PNG and upload it again.');
+    throw new Error('HEIC conversion failed. Please try a JPEG or PNG photo.');
   }
 }
 
 async function uploadedAssetData(file, ownerId, purpose) {
   if (!file) return null;
-  let sha256 = null;
-  try {
-    const buffer = await fs.promises.readFile(file.path);
-    sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
-  } catch {
-    sha256 = null;
-  }
+  if (!file.buffer) throw new Error('Upload buffer was not available.');
+
+  const sha256 = crypto.createHash('sha256').update(file.buffer).digest('hex');
+  const stored = await putImage({
+    buffer: file.buffer,
+    originalName: file.originalname,
+    contentType: file.mimetype || 'image/jpeg'
+  });
+
+  file.filename = stored.filename;
+  file.storageProvider = stored.provider;
+  file.storageKey = stored.storageKey;
+  file.publicUrl = stored.publicUrl;
 
   return {
     ownerId,
-    originalName: file.originalname || file.filename,
-    storedName: file.filename,
-    mimeType: file.mimetype || 'application/octet-stream',
-    sizeBytes: Number(file.size) || 0,
+    originalName: file.originalname || stored.filename,
+    storedName: stored.filename,
+    mimeType: file.mimetype || 'image/jpeg',
+    contentType: file.mimetype || 'image/jpeg',
+    sizeBytes: file.size || file.buffer.length,
     sha256,
-    purpose
+    purpose,
+    storageProvider: stored.provider,
+    storageKey: stored.storageKey,
+    publicUrl: stored.publicUrl
   };
 }
 

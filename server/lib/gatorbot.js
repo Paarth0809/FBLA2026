@@ -144,6 +144,8 @@ function intent(message) {
     isPassword: /\b(password|reset|forgot|sign in|login|log in)\b/.test(text),
     isAccount: /\b(account|delete my account|privacy|email|contact)\b/.test(text),
     isLanguage: /\b(language|languages|translate|translation|multilingual|english|spanish|chinese|french|german|vietnamese|arabic|korean|hindi|gujarati|tagalog|filipino|russian|japanese|telugu|tamil|urdu|nepali|marathi|greek)\b/.test(text),
+    isAccessibility: /\b(accessibility|accessible|a11y|readability|reduced motion|keyboard support|screen reader|focus state|focus states)\b/.test(text),
+    isDyslexicFont: /\b(dyslexic|dyslexia|opendyslexic|open dyslexic|font toggle|dyslexic toggle|reading font|readable font|accessibility font)\b/.test(text),
     isNavigation: /\b(page|pages|route|routes|navigation|nav|link|button|where can i|where do i|how can i get|take me|open|go to)\b/.test(text),
     isAiMatching: /\b(ai|matching|match|matches|recognition|image recognition|photo profile|compare|suggested match|potential match)\b/.test(text),
     isDemo: /\b(judge|judges|fbla|demo|presentation|offline|wifi|wi-fi|local|feature|features|technology|tech stack|built with)\b/.test(text),
@@ -155,7 +157,7 @@ function isWebsiteIntent(flags) {
   return flags.isGreeting || flags.isReport || flags.isSearch || flags.isClaim ||
     flags.isDashboard || flags.isAdmin || flags.isMap || flags.isUpload ||
     flags.isPassword || flags.isAccount || flags.isLanguage ||
-    flags.isNavigation || flags.isAiMatching || flags.isDemo ||
+    flags.isAccessibility || flags.isDyslexicFont || flags.isNavigation || flags.isAiMatching || flags.isDemo ||
     flags.isTroubleshooting;
 }
 
@@ -285,9 +287,27 @@ function fallbackAnswer(message, context, user) {
 
   if (flags.isLanguage) {
     return createResponse({
-      reply: `The website includes these languages: ${languageList()}. You can use the site language controls to switch the interface, and the core lost-and-found flows stay the same across languages.`,
-      actions: [action('searchFound'), action('searchMissing'), context.signedIn ? action('submissions') : action('signIn')],
+      reply: `The website includes these languages: ${languageList()}. Signed-in users can switch their saved site language from the Settings tab in the Student Portal. The core lost-and-found flows stay the same across languages.`,
+      actions: [context.signedIn ? action('submissions') : action('signIn'), action('searchFound'), action('searchMissing')],
       quickReplies: ['How do I switch pages?', 'How do I report an item?', 'How do map pins work?']
+    }, user);
+  }
+
+  if (flags.isAccessibility) {
+    return createResponse({
+      reply: 'Accessibility support includes a dyslexia-friendly OpenDyslexic font setting in Student Portal → Settings, translated interface controls, visible focus states, keyboard-friendly form controls, reduced-motion fallbacks for major animations, and local fallbacks when advanced effects are unavailable.',
+      actions: [context.signedIn ? action('submissions') : action('signIn'), action('searchFound'), action('map')],
+      quickReplies: ['Where is the dyslexia font setting?', 'Supported languages', 'How do I report an item?']
+    }, user);
+  }
+
+  if (flags.isDyslexicFont) {
+    return createResponse({
+      reply: context.signedIn
+        ? 'Yes — open the Settings tab in the Student Portal from the gear button in the top navigation. Turn on “Dyslexia-friendly font” to switch the site to OpenDyslexic; it saves to your account.'
+        : 'Yes — the dyslexia-friendly font setting is in Student Portal → Settings after you sign in. It switches the site to OpenDyslexic and saves to your account.',
+      actions: [context.signedIn ? action('submissions') : action('signIn'), action('searchFound'), action('map')],
+      quickReplies: ['Accessibility features', 'Supported languages', 'How do I report an item?']
     }, user);
   }
 
@@ -418,6 +438,7 @@ function knowledgeBase() {
       'Public users can search and browse without signing in.',
       'Users must sign in to submit found reports, missing reports, claims, messages, and account actions.',
       `Supported languages include: ${languageList()}.`,
+      'The top navigation includes a Settings gear for signed-in users. Student Portal Settings stores the preferred language, dyslexia-friendly OpenDyslexic font mode, and alert preferences on the account.',
       'Found and missing reports can include item details, location, date, optional image, and optional map room/pin metadata.',
       'Upload limit copy is 10 MB. HEIC photos are converted when supported.',
       'Claims require proof of ownership and are reviewed by administrators before pickup.',

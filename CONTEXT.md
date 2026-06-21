@@ -1,7 +1,173 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-17 by Codex
+> Last updated: 2026-06-19 by Codex
+
+---
+
+## Latest Update — Vercel Deployment Planning
+
+Current goal: create a concrete deployment plan for making Green Level Lost &
+Found live on Vercel without breaking the local judge-demo workflow.
+
+Completed:
+- Inspected the current Express/Prisma architecture and deployment blockers:
+  - `server/index.js` currently creates the Express app and calls
+    `app.listen()` directly;
+  - uploads are written to local `uploads/` through Multer disk storage;
+  - uploaded photos are served from local disk through `/uploads/:filename`;
+  - GatorBot/OpenAI and AI profile generation read server-side image data;
+  - notifications and account UI settings still use runtime JSON files in
+    `data/`;
+  - sessions already support Postgres through `SESSION_STORE=postgres`.
+- Checked current package scripts and deployment-relevant env placeholders in
+  `package.json` and `.env.example`.
+- Confirmed official deployment references to use while implementing:
+  - Vercel Express guide;
+  - Vercel Blob docs;
+  - Vercel environment variable docs;
+  - Prisma production migration docs.
+- Wrote the deployment implementation plan at
+  `docs/superpowers/plans/2026-06-19-vercel-deployment.md`.
+
+Plan summary:
+- Refactor Express into a reusable `server/app.js` plus local-only
+  `server/index.js` and Vercel `api/index.js`.
+- Add `vercel.json` for build/rewrite behavior.
+- Use hosted Postgres for Prisma data and sessions.
+- Move local JSON-backed settings/notifications into Prisma.
+- Move local photo uploads into persistent object storage, recommended Vercel
+  Blob, while preserving `/uploads/:filename` compatibility.
+- Keep OpenAI/GatorBot, AI matching, SMTP, auth, routes, and page URLs working
+  in production.
+- Document Vercel env vars and judge-day live/local fallback commands.
+
+Verification:
+- Plan-only change so no app tests were run for implementation behavior.
+- Official docs were checked over the network for deployment direction.
+
+Known risks / next steps:
+- Vercel cannot be treated like a persistent local server. Local disk uploads
+  and runtime JSON files must be moved before relying on the live deployment.
+- Production database seeding should be a deliberate one-time command, not a
+  serverless startup side effect.
+- The current dirty worktree contains unrelated feature changes; preserve those
+  when implementation starts.
+
+---
+
+## Latest Update — Account Settings Gear + Dyslexia/Language Consolidation
+
+Current goal: reduce top-nav clutter by moving language, dyslexia-friendly
+font, and alert preferences into a saved Settings tab in the student portal.
+The nav now uses a gear/settings entry instead of separate top-bar controls.
+
+Completed:
+- Added account UI preferences API:
+  - `GET /api/auth/settings`
+  - `POST /api/auth/settings`
+  - Settings are keyed by authenticated `userId` and stored in local runtime
+    data at `data/user-settings.json`.
+- Added `server/lib/userSettingsService.js` with normalized defaults:
+  - `preferredLanguage: "en"`
+  - `dyslexicFontEnabled: false`
+  - supported language validation matching the site translation list.
+- Updated shared nav behavior in `public/js/nav.js`:
+  - removed automatic language-switcher injection from top nav/sidebar auth
+    slots;
+  - added a Settings gear/link for signed-in users that opens
+    `/my-submissions.html?tab=settings`;
+  - account settings load after auth and apply the saved language/font choice
+    across pages.
+- Reworked `public/my-submissions.html`:
+  - renamed the Alerts tab to Settings;
+  - moved email alert preferences into that Settings tab;
+  - added Site Language select and Dyslexia-friendly font toggle;
+  - saving the form persists account settings and notification preferences;
+  - `?tab=settings` deep-links directly to the Settings tab.
+- Updated GatorBot knowledge/fallback answers so it correctly directs users to
+  the Settings gear / Student Portal Settings for:
+  - dyslexia-friendly font;
+  - supported languages;
+  - alert preferences.
+- Added `.gitignore` entry for `data/user-settings.json` so local runtime
+  settings data does not get committed.
+- Added backend coverage in `tests/run.js` for authenticated account settings
+  persistence and unauthenticated rejection.
+
+Verification:
+- `node --check server/lib/userSettingsService.js` passed.
+- `node --check server/routes/auth.js` passed.
+- `node --check public/js/nav.js` passed.
+- `node --check server/lib/gatorbot.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 119 / 119.
+
+Known risks / next steps:
+- Settings persistence is currently JSON-backed like notification preferences,
+  not Prisma-backed. It is keyed by account/user ID, but a future hardening pass
+  could move it into Postgres if desired.
+- The translation engine and old switcher rendering helpers still exist in
+  `public/js/nav.js` for compatibility, but the top-nav injection path is no
+  longer called.
+- Browser visual QA was not run in this pass; automated verification is clean.
+
+---
+
+## Latest Update — Navigation, Scroll Story, Map Hover, And GatorBot Polish
+
+Current goal: polish the shared public navigation, homepage scroll-story
+readability, campus map room hover stability, and GatorBot launcher affordance
+without changing backend data, map geometry, scroll-lens choreography, or AI
+provider behavior.
+
+Completed:
+- Standardized the public top-nav order on pages with static nav bars:
+  - `Search Items` -> `/search.html`
+  - `Report Missing` -> `/report-missing.html`
+  - `Report Found` -> `/report.html`
+  - `Campus Map` -> `/map.html`
+- Added shared nav spacing classes in `public/css/style.css`:
+  - `.site-nav-shell`
+  - `.site-top-links`
+  This gives the nav more centered breathing room and keeps links from crowding
+  the page edges.
+- Updated homepage scroll-story nav behavior:
+  - nav is visible immediately on page load;
+  - scroll now only strengthens the nav background via
+    `scrolly-nav-enhanced`;
+  - no fade-in-on-scroll dependency remains.
+- Improved scroll-story copy readability:
+  - stronger contrast and text shadow on descriptions;
+  - `Official Campus Lost & Found` kicker now reads as a subtle premium pill;
+  - added a small animated down-arrow cue under the intro copy.
+- Stabilized campus map hover in `public/js/campus-map-world.js`:
+  - added invisible, non-animated room hit targets;
+  - raycasting now uses stable hit targets instead of lifted visual geometry;
+  - added a short hover grace window to avoid one-frame flicker;
+  - kept hover as lift-only, preserving selected/focus behavior.
+- Improved GatorBot launcher affordance:
+  - added a compact `Ask GatorBot` badge with status dot;
+  - added a one-time `Need help?` nudge that disappears after the assistant is
+    opened;
+  - badge/nudge are hidden on mobile to avoid blocking CTAs.
+
+Verification:
+- `node --check public/js/nav.js` passed.
+- `node --check public/js/scroll-story.js` passed.
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/gatorbot.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 117 / 117.
+
+Known risks / next steps:
+- Browser visual QA was not run in this pass; changes were verified by static
+  checks and the full automated suite.
+- The shared nav script only manages auth/language controls, so static public
+  nav markup was updated directly on the relevant top-nav pages.
+- If collaborators continue editing the homepage/map/GatorBot files, coordinate
+  around `public/css/style.css`, `public/js/scroll-story.js`,
+  `public/js/campus-map-world.js`, and `public/js/gatorbot.js`.
 
 ---
 
@@ -1282,3 +1448,65 @@ page.bringToFront() before measuring.
 ## Next Step
 
 User review in real Chrome; commit the branch when approved.
+
+## 2026-06-19 Dyslexia Font Toggle
+
+- Added locally hosted OpenDyslexic font files under `public/fonts/opendyslexic/`
+  from `/Users/paarthrathod/Downloads/opendyslexic-0.92.zip`.
+- `public/js/nav.js` now injects a `Dyslexia Font` toggle into the shared nav/auth
+  control area, with sidebar fallback. Preference is stored in
+  `localStorage` as `gl-dyslexic-font-enabled` and applied to
+  `html.font-dyslexic` before user/auth loading completes.
+- `public/css/style.css` defines OpenDyslexic `@font-face` rules and applies the
+  dyslexia-friendly font/spacing while preserving Material Symbols and monospace
+  code fonts.
+- GatorBot knowledge and deterministic fallback now treat dyslexia/OpenDyslexic
+  questions as website-related and tell users to use the top-navigation toggle.
+- Test coverage added in `tests/run.js` for the GatorBot dyslexia toggle answer.
+
+Verification:
+
+```bash
+node --check public/js/nav.js
+node --check server/lib/gatorbot.js
+git diff --check
+npm test   # 118 / 118 pass
+```
+
+## 2026-06-20 Deployment Cleanup Checkpoint
+
+- Removed the abandoned GatorBot text-to-speech/Kokoro experiment after the user
+  decided not to ship TTS:
+  - deleted `server/lib/textToSpeech.js`, `server/routes/tts.js`, and
+    `tests/tts.test.js`;
+  - removed `/api/tts` from `server/app.js`;
+  - removed `@huggingface/inference` from `package.json` / `package-lock.json`;
+  - removed TTS UI controls/styles from `public/js/gatorbot.js` and
+    `public/css/style.css`;
+  - removed TTS env placeholders from `.env.example`.
+- Current deployment work keeps the Vercel path:
+  - `api/index.js` imports the Express app from `server/app.js`;
+  - `server/index.js` remains the local dev server entry;
+  - `vercel.json` runs `npm run vercel:build`;
+  - upload storage can use local disk in development or Vercel Blob in
+    production;
+  - user settings and notification persistence moved into Prisma-backed tables.
+- OpenDyslexic is now account-level UI preference work, not a loose top-nav-only
+  toggle. The font assets live in `public/fonts/opendyslexic/`.
+- Secret scan before staging showed only placeholders in docs and a regex inside
+  the deployment plan; no real API keys or credentials were found in tracked or
+  untracked project files. `.env` remains ignored.
+
+Verification:
+
+```bash
+node --check server/app.js && node --check server/index.js && node --check api/index.js
+node --check public/js/gatorbot.js && node --check public/js/nav.js && node --check public/js/campus-map-world.js
+node --check server/lib/aiProvider.js && node --check server/lib/aiProfile.js && node --check server/lib/gatorbot.js
+node --check server/lib/storageProvider.js && node --check server/lib/userSettingsService.js
+node --check server/routes/uploadProxy.js && node --check server/routes/auth.js && node --check server/routes/notifications.js
+node --check scripts/migrate-uploads-to-blob.js && node --check scripts/run-build-data-migration-if-enabled.js && node --check tests/run.js
+git diff --check
+npm run deploy:check
+npm test   # 119 / 119 pass
+```

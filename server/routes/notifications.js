@@ -8,19 +8,19 @@ router.use(requireAuth);
 
 // GET /api/notifications/preferences
 router.get('/preferences', asyncHandler(async (req, res) => {
-  const prefs = getPreferences(req.session.userId);
+  const prefs = await getPreferences(req.session.userId);
   res.json(prefs);
 }));
 
 // POST /api/notifications/preferences
 router.post('/preferences', asyncHandler(async (req, res) => {
-  const updated = savePreferences(req.session.userId, req.body);
+  const updated = await savePreferences(req.session.userId, req.body);
   res.json({ message: 'Preferences updated successfully.', preferences: updated });
 }));
 
 // GET /api/notifications/logs
 router.get('/logs', asyncHandler(async (req, res) => {
-  const logs = getLogs(req.session.userId);
+  const logs = await getLogs(req.session.userId);
   res.json(logs);
 }));
 

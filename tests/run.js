@@ -43,15 +43,15 @@ function date(value) {
 async function resetTestDatabase() {
   await runCommand('npx prisma migrate deploy', { DATABASE_URL: TEST_DATABASE_URL });
 
-  await fs.promises.mkdir(path.join(ROOT, 'data'), { recursive: true });
-  await fs.promises.writeFile(path.join(ROOT, 'data/notification-logs.json'), '[]\n');
-
   await testPrisma.message.deleteMany();
   await testPrisma.claim.deleteMany();
   await testPrisma.foundItem.deleteMany();
   await testPrisma.missingItem.deleteMany();
   await testPrisma.uploadedAsset.deleteMany();
   await testPrisma.auditLog.deleteMany();
+  await testPrisma.notificationLog.deleteMany();
+  await testPrisma.notificationPreference.deleteMany();
+  await testPrisma.userSettings.deleteMany();
   await testPrisma.user.deleteMany();
 
   await testPrisma.user.createMany({
@@ -483,6 +483,28 @@ async function runTests() {
     user001Cookie = r.cookie;
   });
 
+  await test('/auth/settings — account appearance settings persist by user', async () => {
+    const anonymous = await req('GET', '/api/auth/settings');
+    assert(anonymous.status === 401, `Expected unauthenticated settings request to return 401, got ${anonymous.status}`);
+
+    const initial = await req('GET', '/api/auth/settings', null, user001Cookie);
+    assert(initial.status === 200, `Expected 200, got ${initial.status}: ${JSON.stringify(initial.body)}`);
+    assert(initial.body.preferredLanguage === 'en', `Expected default preferredLanguage=en, got ${initial.body.preferredLanguage}`);
+    assert(initial.body.dyslexicFontEnabled === false, 'Expected dyslexic font to default to false');
+
+    const saved = await req('POST', '/api/auth/settings', {
+      preferredLanguage: 'es',
+      dyslexicFontEnabled: true
+    }, user001Cookie);
+    assert(saved.status === 200, `Expected 200 from settings save, got ${saved.status}: ${JSON.stringify(saved.body)}`);
+    assert(saved.body.preferredLanguage === 'es', `Expected saved language es, got ${saved.body.preferredLanguage}`);
+    assert(saved.body.dyslexicFontEnabled === true, 'Expected saved dyslexic font preference true');
+
+    const persisted = await req('GET', '/api/auth/settings', null, user001Cookie);
+    assert(persisted.body.preferredLanguage === 'es', 'Expected preferred language to persist');
+    assert(persisted.body.dyslexicFontEnabled === true, 'Expected dyslexic font preference to persist');
+  });
+
   await test('/auth/me — authenticated as admin → 200, correct data', async () => {
     const r = await req('GET', '/api/auth/me', null, adminCookie);
     assert(r.status === 200, `Expected 200, got ${r.status}`);
@@ -517,6 +539,22 @@ async function runTests() {
     assert(/Gujarati/i.test(r.body.reply), `Expected Gujarati in supported language reply: ${r.body.reply}`);
     assert(/Greek/i.test(r.body.reply), `Expected Greek in supported language reply: ${r.body.reply}`);
     assert(!JSON.stringify(r.body).includes('@school.edu'), 'Language answer must not expose private emails');
+  });
+
+  await test('/gatorbot/chat — dyslexia font toggle is website knowledge, not refused', async () => {
+    const r = await req('POST', '/api/gatorbot/chat', {
+      message: 'Where is the dyslexic toggle for this website?',
+      pagePath: '/index.html',
+      pageTitle: 'Home'
+    });
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(r.body.usedFallback === true, 'Test mode should use deterministic fallback');
+    assert(!/only help with Green Level Lost & Found/i.test(r.body.reply), `Dyslexia toggle question should not be refused: ${r.body.reply}`);
+    assert(/dyslexia-friendly font|Dyslexia Font/i.test(r.body.reply), `Expected dyslexia font in reply: ${r.body.reply}`);
+    assert(/OpenDyslexic/i.test(r.body.reply), `Expected OpenDyslexic in reply: ${r.body.reply}`);
+    assert(/Settings/i.test(r.body.reply), `Expected Settings location in reply: ${r.body.reply}`);
+    assert(/Student Portal|sign in/i.test(r.body.reply), `Expected Student Portal or sign-in guidance in reply: ${r.body.reply}`);
+    assert(!JSON.stringify(r.body).includes('@school.edu'), 'Dyslexia answer must not expose private emails');
   });
 
   await test('/gatorbot/chat — anonymous report question points to auth actions', async () => {
@@ -586,16 +624,17 @@ async function runTests() {
   });
 
   await test('/auth/forgot-password — valid email → reset link works once', async () => {
-    const fs = require('fs');
-    const logsFile = path.join(__dirname, '../data/notification-logs.json');
-    const latestResetToken = () => {
-      const logs = JSON.parse(fs.readFileSync(logsFile, 'utf8'));
-      const resetLog = logs.find(log =>
-        log.subject.includes('Password Reset Request') &&
-        log.recipient === 'student@school.edu'
-      );
+    const latestResetToken = async () => {
+      const resetLog = await testPrisma.notificationLog.findFirst({
+        where: {
+          subject: { contains: 'Password Reset Request' },
+          email: 'student@school.edu'
+        },
+        orderBy: { createdAt: 'desc' }
+      });
       assert(resetLog, 'Expected password reset email in notification logs');
-      const tokenMatch = resetLog.body.match(/token=([a-f0-9]+)/);
+      const body = resetLog.metadata?.body || '';
+      const tokenMatch = body.match(/token=([a-f0-9]+)/);
       assert(tokenMatch, 'Expected token in reset password email body');
       return tokenMatch[1];
     };
@@ -604,7 +643,7 @@ async function runTests() {
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.message.includes('password reset link shortly'), 'Expected reset message');
 
-    const token = latestResetToken();
+    const token = await latestResetToken();
 
     const shortPassword = await req('POST', '/api/auth/reset-password', { token, password: '123' });
     assert(shortPassword.status === 400, `Expected 400 for short password, got ${shortPassword.status}`);
@@ -622,7 +661,7 @@ async function runTests() {
     assert(loginNew.status === 200, `Expected 200 with new password, got ${loginNew.status}`);
 
     await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
-    const restoreToken = latestResetToken();
+    const restoreToken = await latestResetToken();
     const restore = await req('POST', '/api/auth/reset-password', { token: restoreToken, password: 'student123' });
     assert(restore.status === 200, `Expected restore reset to pass, got ${restore.status}`);
   });

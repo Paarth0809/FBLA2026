@@ -1,9 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const { prisma } = require('./prisma');
-
-const PREFS_FILE = path.join(__dirname, '../../data/notification-preferences.json');
-const LOGS_FILE = path.join(__dirname, '../../data/notification-logs.json');
+const { publicUrl } = require('./publicUrl');
 
 let transporter = null;
 if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -33,88 +29,93 @@ if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP
   }
 }
 
-function ensureFile(filePath, defaultContent) {
-  if (!fs.existsSync(filePath)) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(defaultContent, null, 2));
-  }
-}
-
-function readJson(filePath, fallback) {
-  ensureFile(filePath, fallback);
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch (err) {
-    console.error('[NotificationService] Error reading local notification store:', err.message);
-    return fallback;
-  }
-}
-
-function writeJson(filePath, value) {
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
-}
-
 function normalizePreferences(newPrefs = {}, defaultEmail = '') {
   return {
     emailEnabled: newPrefs.emailEnabled !== false,
     email: (newPrefs.email || defaultEmail || '').trim(),
     matchAlerts: newPrefs.matchAlerts !== false,
+    claimAlerts: newPrefs.claimAlerts !== false,
     statusAlerts: newPrefs.statusAlerts !== false,
     messageAlerts: newPrefs.messageAlerts !== false
   };
 }
 
-function getPreferences(userId, defaultEmail = '') {
-  const prefs = readJson(PREFS_FILE, {});
-  if (prefs[userId]) return normalizePreferences(prefs[userId], defaultEmail);
-  return normalizePreferences({}, defaultEmail);
+function logToApi(log) {
+  if (!log) return null;
+  const metadata = log.metadata && typeof log.metadata === 'object' ? log.metadata : {};
+  return {
+    id: log.id,
+    timestamp: log.createdAt instanceof Date ? log.createdAt.toISOString() : log.createdAt,
+    userId: log.userId,
+    type: log.type,
+    recipient: log.email || metadata.recipient || '',
+    subject: log.subject,
+    body: metadata.body || '',
+    status: log.status,
+    error: log.error || null,
+    mode: metadata.mode || null
+  };
 }
 
-function savePreferences(userId, newPrefs) {
-  try {
-    const prefs = readJson(PREFS_FILE, {});
-    prefs[userId] = normalizePreferences(newPrefs);
-    writeJson(PREFS_FILE, prefs);
-    return prefs[userId];
-  } catch (err) {
-    console.error('[NotificationService] Error saving preferences:', err.message);
-    throw err;
-  }
+async function getPreferences(userId, defaultEmail = '') {
+  const prefs = await prisma.notificationPreference.findUnique({ where: { userId } });
+  return normalizePreferences(prefs || {}, defaultEmail);
 }
 
-function addLog(logEntry) {
+async function savePreferences(userId, newPrefs) {
+  const normalized = normalizePreferences(newPrefs);
+  const saved = await prisma.notificationPreference.upsert({
+    where: { userId },
+    create: { userId, ...normalized },
+    update: normalized
+  });
+  return normalizePreferences(saved);
+}
+
+async function addLog(logEntry) {
   try {
-    const logs = readJson(LOGS_FILE, []);
-    const entry = {
-      id: Math.random().toString(36).substring(2, 9),
-      timestamp: new Date().toISOString(),
-      ...logEntry
-    };
-    logs.unshift(entry);
-    if (logs.length > 100) logs.pop();
-    writeJson(LOGS_FILE, logs);
-    return entry;
+    const entry = await prisma.notificationLog.create({
+      data: {
+        userId: logEntry.userId || null,
+        email: logEntry.recipient || logEntry.email || null,
+        type: logEntry.type || 'EMAIL',
+        subject: logEntry.subject || '',
+        status: logEntry.status || 'logged',
+        error: logEntry.error || null,
+        metadata: {
+          body: logEntry.body || '',
+          mode: logEntry.mode || '',
+          recipient: logEntry.recipient || logEntry.email || ''
+        }
+      }
+    });
+    return logToApi(entry);
   } catch (err) {
     console.error('[NotificationService] Error writing notification log:', err.message);
     return null;
   }
 }
 
-function getLogs(userId) {
-  const logs = readJson(LOGS_FILE, []);
-  return logs.filter((log) => log.userId === userId);
+async function getLogs(userId) {
+  const logs = await prisma.notificationLog.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 100
+  });
+  return logs.map(logToApi);
 }
 
 async function dispatchEmail(userId, to, subject, body) {
-  const logEntry = addLog({
-    userId,
-    type: 'EMAIL',
-    recipient: to,
-    subject,
-    body
-  });
-
   if (!transporter) {
+    const logEntry = await addLog({
+      userId,
+      type: 'EMAIL',
+      recipient: to,
+      subject,
+      body,
+      status: 'preview',
+      mode: 'local-preview'
+    });
     console.log(`
 ┌──────────────────── EMAIL PREVIEW ────────────────────
 │ To:      ${to}
@@ -136,9 +137,28 @@ async function dispatchEmail(userId, to, subject, body) {
       subject,
       text: body
     });
+    const logEntry = await addLog({
+      userId,
+      type: 'EMAIL',
+      recipient: to,
+      subject,
+      body,
+      status: 'sent',
+      mode: 'smtp'
+    });
     console.log(`[NotificationService] Email sent successfully to ${to}`);
     return { logged: Boolean(logEntry), sent: true, mode: 'smtp' };
   } catch (err) {
+    const logEntry = await addLog({
+      userId,
+      type: 'EMAIL',
+      recipient: to,
+      subject,
+      body,
+      status: 'error',
+      mode: 'smtp',
+      error: err.message
+    });
     console.error(`[NotificationService] Failed to send email to ${to}:`, err.message);
     return { logged: Boolean(logEntry), sent: false, mode: 'smtp', error: err.message };
   }
@@ -149,8 +169,9 @@ async function triggerAlert(userId, alertType, data) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return;
 
-    const prefs = getPreferences(userId, user.email);
+    const prefs = await getPreferences(userId, user.email);
     if (alertType === 'MATCH' && !prefs.matchAlerts) return;
+    if (alertType === 'CLAIM_STATUS' && !prefs.claimAlerts) return;
     if ((alertType === 'STATUS' || alertType === 'CLAIM_STATUS') && !prefs.statusAlerts) return;
     if (alertType === 'MESSAGE' && !prefs.messageAlerts) return;
 
@@ -159,6 +180,7 @@ async function triggerAlert(userId, alertType, data) {
 
     let emailSubject = '';
     let emailBody = '';
+    const dashboardUrl = publicUrl('/my-submissions.html');
 
     if (alertType === 'MATCH') {
       emailSubject = `Potential Match for "${data.itemName}" - Green Level Lost & Found`;
@@ -171,7 +193,7 @@ Category: ${data.category}
 Location Found: ${data.locationFound}
 
 Log in to your Student Portal and check the Matches tab to claim this item:
-http://localhost:3000/my-submissions.html
+${dashboardUrl}
 
 Best regards,
 Green Level Lost & Found`;
@@ -182,7 +204,7 @@ Green Level Lost & Found`;
 Your reported ${data.itemType} item "${data.itemName}" status has been updated to: ${data.status.toUpperCase()}.
 
 View details inside your submissions dashboard:
-http://localhost:3000/my-submissions.html
+${dashboardUrl}
 
 Best regards,
 Green Level Lost & Found`;
@@ -193,7 +215,7 @@ Green Level Lost & Found`;
 Your claim for "${data.itemName}" has been ${data.status.toUpperCase()} by an administrator.
 
 View updates in your dashboard:
-http://localhost:3000/my-submissions.html
+${dashboardUrl}
 
 Best regards,
 Green Level Lost & Found`;
@@ -206,7 +228,7 @@ You received a new message from ${data.senderName} regarding the item "${data.it
 "${data.content}"
 
 Reply in the Messages tab of your dashboard:
-http://localhost:3000/my-submissions.html
+${dashboardUrl}
 
 Best regards,
 Green Level Lost & Found`;

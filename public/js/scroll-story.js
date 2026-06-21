@@ -30,7 +30,7 @@
   let rafId = 0;
   let loaded = false;
 
-  document.body.classList.add('has-scroll-story', 'scrolly-nav-armed');
+  document.body.classList.add('has-scroll-story', 'scrolly-nav-armed', 'scrolly-nav-visible');
 
   function frameUrl(index) {
     return `${framePath}${String(index).padStart(4, '0')}.${frameExt}`;
@@ -147,7 +147,8 @@
       (1 - final) * 8
     );
 
-    document.body.classList.toggle('scrolly-nav-visible', window.scrollY > 40 || progress > 0.025);
+    document.body.classList.add('scrolly-nav-visible');
+    document.body.classList.toggle('scrolly-nav-enhanced', window.scrollY > 40 || progress > 0.025);
   }
 
   function publishProgress(progress, frameIndex) {

@@ -10,6 +10,8 @@ const { requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../lib/asyncHandler');
 const { userToApi } = require('../lib/modelMapper');
 const { dispatchEmail } = require('../lib/notificationService');
+const { getUserSettings, saveUserSettings } = require('../lib/userSettingsService');
+const { publicUrl } = require('../lib/publicUrl');
 
 const router = express.Router();
 const resetTokens = new Map();
@@ -118,6 +120,21 @@ router.get('/me', asyncHandler(async (req, res) => {
   res.json(publicUser(user));
 }));
 
+// GET /api/auth/settings — return account UI preferences for the current user.
+router.get('/settings', requireAuth, asyncHandler(async (req, res) => {
+  const settings = await getUserSettings(req.session.userId);
+  res.json(settings);
+}));
+
+// POST /api/auth/settings — save account UI preferences for the current user.
+router.post('/settings', requireAuth, asyncHandler(async (req, res) => {
+  const settings = await saveUserSettings(req.session.userId, {
+    preferredLanguage: req.body.preferredLanguage,
+    dyslexicFontEnabled: req.body.dyslexicFontEnabled
+  });
+  res.json(settings);
+}));
+
 // POST /api/auth/forgot-password — generate a one-time reset link.
 router.post('/forgot-password', asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -137,9 +154,7 @@ router.post('/forgot-password', asyncHandler(async (req, res) => {
   const expiresAt = Date.now() + (60 * 60 * 1000);
   resetTokens.set(token, { userId: user.id, expiresAt });
 
-  const host = req.get('host') || 'localhost:3000';
-  const protocol = req.protocol || 'http';
-  const resetUrl = `${protocol}://${host}/reset-password.html?token=${token}`;
+  const resetUrl = publicUrl(`/reset-password.html?token=${token}`, req);
   const subject = 'Password Reset Request - Green Level Lost & Found';
   const body = `Hi ${user.name},
 

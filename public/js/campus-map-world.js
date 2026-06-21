@@ -490,6 +490,7 @@ export class CampusMapWorld {
     this.selected = null;
     this.labels = new Map();
     this.interactive = [];
+    this.roomHitTargets = [];
     this.roomGroups = new Map();
     this.pinGroups = new Map();
     this.stairGroups = new Map();
@@ -510,6 +511,8 @@ export class CampusMapWorld {
     this.focusMode = null;
     this.livePins = [];
     this.livePinIds = new Set();
+    this.lastHoverSeenAt = 0;
+    this.hoverGraceMs = 90;
 
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1200, 1800);
     this.camera.zoom = 1;
@@ -641,6 +644,14 @@ export class CampusMapWorld {
         depthWrite: false
       })
     };
+    this.hitTargetMaterial = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide
+    });
+    this.hitTargetMaterial.colorWrite = false;
 
     this.setupScene();
     this.bindEvents();
@@ -819,6 +830,8 @@ export class CampusMapWorld {
     this.focusMode = null;
     this.onFocusChange({ active: false, room: null, floor });
     this.interactive = [];
+    this.roomHitTargets = [];
+    this.lastHoverSeenAt = 0;
     this.roomGroups.clear();
     this.pinGroups.clear();
     this.stairGroups.clear();
@@ -1134,7 +1147,15 @@ export class CampusMapWorld {
     };
     this.activeFloorGroup.add(group);
     this.roomGroups.set(room.id, group);
-    this.interactive.push(floorMesh, ...walls);
+
+    const hitTarget = new THREE.Mesh(polygonTopGeometry(room.polygon), this.hitTargetMaterial);
+    hitTarget.name = `${room.id}-hit-target`;
+    hitTarget.position.y = floorTopY + 1.5;
+    hitTarget.userData.entity = { type: 'room', room, floor, group };
+    hitTarget.userData.mapRole = 'room-hit-target';
+    hitTarget.renderOrder = 500;
+    this.activeFloorGroup.add(hitTarget);
+    this.roomHitTargets.push(hitTarget);
   }
 
   addWallFeature(wall, floor) {
@@ -1913,7 +1934,7 @@ export class CampusMapWorld {
     }
 
     const hit = this.pickEntity();
-    this.setHovered(hit);
+    this.applyHoverHit(hit);
   }
 
   handlePointerUp(event) {
@@ -1942,11 +1963,26 @@ export class CampusMapWorld {
   }
 
   pickEntity() {
-    if (!this.interactive.length) return null;
+    const targets = this.interactive.concat(this.roomHitTargets);
+    if (!targets.length) return null;
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects(this.interactive, false);
+    const hits = this.raycaster.intersectObjects(targets, false);
     const hit = hits.find((entry) => entry.object.userData.entity);
     return hit?.object.userData.entity || null;
+  }
+
+  applyHoverHit(entity) {
+    if (entity) {
+      this.lastHoverSeenAt = performance.now();
+      this.setHovered(entity);
+      return;
+    }
+
+    if (this.hovered && performance.now() - this.lastHoverSeenAt < this.hoverGraceMs) {
+      return;
+    }
+
+    this.setHovered(null);
   }
 
   setHovered(entity) {
@@ -1960,6 +1996,7 @@ export class CampusMapWorld {
   }
 
   clearHover() {
+    this.lastHoverSeenAt = 0;
     this.setHovered(null);
   }
 

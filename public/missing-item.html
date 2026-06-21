@@ -50,15 +50,19 @@
 
   <!-- Navbar -->
   <nav class="fixed top-0 w-full z-50 bg-inverse-surface border-b border-white/5" style="box-shadow:0 2px 12px rgba(0,0,0,0.18)">
-    <div class="max-w-container mx-auto px-6 h-16 flex items-center justify-between">
-      <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-lg text-white hover:text-primary-container transition-colors">
+    <div class="site-nav-shell max-w-container mx-auto h-16 flex items-center justify-between">
+      <a href="/index.html" class="flex items-center gap-2 font-headline font-bold text-lg text-white hover:text-primary-container transition-colors shrink-0">
         <span class="material-symbols-outlined filled text-primary-container" style="font-size:22px">search</span>
         Green Level Lost &amp; Found
       </a>
-      <div class="flex items-center gap-1">
-        <a href="/search.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Found Items</a>
-        <a href="/search-missing.html" class="hidden md:block text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Missing Items</a>
-        <div id="nav-auth" class="flex items-center gap-2 ml-2"></div>
+      <div class="site-top-links hidden lg:flex" aria-label="Primary navigation">
+        <a href="/search.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Search Items</a>
+        <a href="/report-missing.html" class="text-white bg-white/10 px-3 py-2 rounded-xl text-sm font-semibold transition-colors">Report Missing</a>
+        <a href="/report.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Report Found</a>
+        <a href="/map.html" class="text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors">Campus Map</a>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <div id="nav-auth" class="flex items-center gap-2 ml-1"></div>
       </div>
     </div>
   </nav>

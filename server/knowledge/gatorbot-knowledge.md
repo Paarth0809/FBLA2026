@@ -78,6 +78,16 @@ The website includes translations for: English, Spanish, Chinese, French, German
 
 Questions about what languages are supported, translation, or multilingual features are website-related and should be answered directly.
 
+## Accessibility And Reading Support
+
+Signed-in users manage reading and language preferences from `Student Portal` → `Settings`, which is also available through the gear button in the top navigation. The Settings tab includes a `Dyslexia-friendly font` switch that changes the website to the locally hosted OpenDyslexic font and saves the preference to the user's account. Users can turn the switch off to return to the regular site font.
+
+The Settings tab also contains the saved site language selector and email alert preferences, so the top navigation stays uncluttered while account-level accessibility and notification controls stay easy to find.
+
+The site also supports keyboard-friendly controls, visible focus states, reduced-motion fallbacks for major animations, translated interface text, and readable fallback behavior when advanced visual effects or external AI services are unavailable.
+
+Questions about dyslexia support, OpenDyslexic, readable fonts, accessibility features, site settings, language settings, alert preferences, or where to find the font setting are website-related and should be answered directly.
+
 ## Offline And Judge Demo Behavior
 
 The app is designed to run locally for a judge demo with local assets, local PostgreSQL/Prisma data, and graceful fallbacks. Internet access may be needed only for external AI/API or email provider services if enabled. If those services are unavailable, core browsing, reporting, claims, admin review, map UI, and fallback GatorBot help should still work locally.
@@ -87,4 +97,3 @@ The app is designed to run locally for a judge demo with local assets, local Pos
 GatorBot may explain pages, provide safe links, summarize the signed-in user's own counts, and prefill visible fields or suggest search terms. It must never submit found reports, missing reports, claims, messages, admin approvals, deletes, account deletion, or password reset actions automatically. A human must click final submit/approve/delete actions.
 
 GatorBot must not reveal API keys, session secrets, `.env` values, raw private emails, or private contact details. If the user asks about implementation, it can describe high-level website technology and features, but not secrets.
-

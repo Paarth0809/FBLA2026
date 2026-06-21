@@ -189,7 +189,7 @@
         <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">pan_tool</span> Claims</button>
         <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn"><span class="material-symbols-outlined">compare_arrows</span> Matches</button>
         <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn"><span class="material-symbols-outlined">mail</span> Messages</button>
-        <button class="tab"        onclick="switchTab('settings', this)" role="tab" aria-selected="false" aria-controls="tab-settings" id="settings-tab-btn"><span class="material-symbols-outlined">notifications</span> Alerts</button>
+        <button class="tab"        onclick="switchTab('settings', this)" role="tab" aria-selected="false" aria-controls="tab-settings" id="settings-tab-btn"><span class="material-symbols-outlined">settings</span> Settings</button>
       </div>
 
       <!-- Tab: Found Items -->
@@ -217,15 +217,40 @@
         <div id="messages-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading messages"></div></div></div>
       </div>
 
-      <!-- Tab: Alerts Settings -->
-      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-label="Alert preferences">
-        <div class="max-w-2xl bg-white border border-outline-variant p-6 rounded-2xl shadow-sm flex flex-col gap-6">
+      <!-- Tab: Settings -->
+      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-label="Account settings">
+        <div class="max-w-3xl bg-white border border-outline-variant p-6 rounded-2xl shadow-sm flex flex-col gap-6">
           <div>
-            <h3 class="font-headline font-bold text-lg text-on-surface mb-1">Alert Preferences</h3>
-            <p class="text-xs text-on-surface-variant">Configure how you receive notifications for lost and found activity.</p>
+            <h3 class="font-headline font-bold text-lg text-on-surface mb-1">Settings</h3>
+            <p class="text-xs text-on-surface-variant">Manage accessibility, language, and alert preferences for your account.</p>
           </div>
 
-          <form id="prefs-form" class="flex flex-col gap-6" onsubmit="savePrefsForm(event)">
+          <form id="settings-form" class="flex flex-col gap-6" onsubmit="saveSettingsForm(event)">
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="flex flex-col gap-2">
+                <label for="setting-language" class="font-semibold text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary" style="font-size:20px">language</span> Site Language
+                </label>
+                <select id="setting-language" class="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest"></select>
+                <p class="text-xs text-on-surface-variant">Saved to your account and applied across the site.</p>
+              </div>
+
+              <div class="flex flex-col gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+                <span class="font-semibold text-sm flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary" style="font-size:20px">text_fields</span> Reading Font
+                </span>
+                <label class="flex items-start gap-3 text-sm cursor-pointer select-none">
+                  <input type="checkbox" id="setting-dyslexic-font" class="mt-1 rounded border-outline-variant text-primary focus:ring-primary/20">
+                  <span>
+                    <strong class="block text-on-surface">Use dyslexia-friendly font</strong>
+                    <span class="text-on-surface-variant">Switches the site to the local OpenDyslexic font.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div class="border-t border-outline-variant my-1"></div>
+
             <!-- Email Configuration -->
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between">
@@ -257,7 +282,7 @@
             </div>
 
             <button type="submit" class="btn btn-primary w-full mt-4 flex items-center justify-center gap-2">
-              <span class="material-symbols-outlined" style="font-size:18px">save</span> Save Alert Settings
+              <span class="material-symbols-outlined" style="font-size:18px">save</span> Save Settings
             </button>
           </form>
         </div>
@@ -340,11 +365,20 @@
       loadMyClaims();
       loadMatches();
       loadMessages();
-      loadNotificationPrefs();
+      loadSettings();
+      activateInitialTabFromUrl();
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
-    function switchTab(name, btn) {
+    function activateInitialTabFromUrl() {
+      const tabName = new URLSearchParams(window.location.search).get('tab');
+      const tabButton = tabName ? document.getElementById(tabName + '-tab-btn') : null;
+      if (tabButton && document.getElementById('tab-' + tabName)) {
+        switchTab(tabName, tabButton, { updateUrl: false });
+      }
+    }
+
+    function switchTab(name, btn, options = {}) {
       document.querySelectorAll('.tab').forEach(t => {
         t.classList.remove('active');
         t.setAttribute('aria-selected', 'false');
@@ -356,6 +390,16 @@
       panel.classList.remove('active');
       void panel.offsetWidth; // reflow to restart CSS animation
       panel.classList.add('active');
+
+      if (options.updateUrl !== false) {
+        const url = new URL(window.location.href);
+        if (name === 'found') {
+          url.searchParams.delete('tab');
+        } else {
+          url.searchParams.set('tab', name);
+        }
+        window.history.replaceState({}, '', url);
+      }
     }
 
     // ── Status hints ──────────────────────────────────────────────────────────
@@ -1101,9 +1145,51 @@
       }
     }
 
-    async function savePrefsForm(e) {
+    function populateLanguageSettings(activeLanguage) {
+      const select = document.getElementById('setting-language');
+      if (!select) return;
+
+      const supported = typeof window.getSupportedLanguages === 'function'
+        ? window.getSupportedLanguages()
+        : { en: 'English', es: 'Spanish', zh: 'Chinese', fr: 'French', de: 'German' };
+
+      select.innerHTML = Object.entries(supported)
+        .filter(([code]) => code !== 'select')
+        .map(([code, label]) => `<option value="${code}">${label}</option>`)
+        .join('');
+
+      select.value = supported[activeLanguage] ? activeLanguage : 'en';
+    }
+
+    async function loadAppearanceSettings() {
+      const fallbackSettings = {
+        preferredLanguage: typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en',
+        dyslexicFontEnabled: typeof isDyslexicFontEnabled === 'function' ? isDyslexicFontEnabled() : false
+      };
+
+      try {
+        const settings = await api.get('/auth/settings');
+        populateLanguageSettings(settings.preferredLanguage || fallbackSettings.preferredLanguage);
+        document.getElementById('setting-dyslexic-font').checked = Boolean(settings.dyslexicFontEnabled);
+      } catch (err) {
+        console.error('Failed to load account settings:', err);
+        populateLanguageSettings(fallbackSettings.preferredLanguage);
+        document.getElementById('setting-dyslexic-font').checked = fallbackSettings.dyslexicFontEnabled;
+      }
+    }
+
+    async function loadSettings() {
+      await Promise.all([
+        loadAppearanceSettings(),
+        loadNotificationPrefs()
+      ]);
+    }
+
+    async function saveSettingsForm(e) {
       e.preventDefault();
 
+      const preferredLanguage = document.getElementById('setting-language').value || 'en';
+      const dyslexicFontEnabled = document.getElementById('setting-dyslexic-font').checked;
       const email = document.getElementById('pref-email-address').value.trim();
       const matchAlerts = document.getElementById('pref-trigger-matches').checked;
       const statusAlerts = document.getElementById('pref-trigger-status').checked;
@@ -1111,10 +1197,17 @@
 
       const emailEnabled = email !== '';
 
+      let btn;
       try {
-        const btn = e.target.querySelector('button[type="submit"]');
+        btn = e.target.querySelector('button[type="submit"]');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner inline-block w-4 h-4 mr-2"></span> Saving...';
+
+        if (typeof window.saveAccountSettings === 'function') {
+          await window.saveAccountSettings({ preferredLanguage, dyslexicFontEnabled });
+        } else {
+          await api.post('/auth/settings', { preferredLanguage, dyslexicFontEnabled });
+        }
 
         await api.post('/notifications/preferences', {
           emailEnabled,
@@ -1124,12 +1217,19 @@
           messageAlerts
         });
 
-        showToast('Notification settings saved successfully!', 'success');
-        btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> Save Alert Settings';
+        showToast('Settings saved successfully!', 'success');
       } catch (err) {
         showToast(err.message || 'Failed to save settings.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> Save Settings';
+        }
       }
+    }
+
+    function savePrefsForm(e) {
+      return saveSettingsForm(e);
     }
 
 

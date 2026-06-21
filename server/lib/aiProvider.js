@@ -127,13 +127,23 @@ async function generateWebsiteAssistantJson({ prompt }, overrides = {}) {
   return extractJsonObject(responseText(response));
 }
 
-async function generateImageProfileJson({ prompt, imagePath }, overrides = {}) {
+async function generateImageProfileJson({ prompt, imagePath, imageBuffer, mimeType }, overrides = {}) {
   const config = providerConfig('profile', overrides);
   if (!isProviderConfigured(config)) throw new Error('OpenAI provider is not configured');
-  if (!fs.existsSync(imagePath)) return null;
 
-  const imageData = fs.readFileSync(imagePath).toString('base64');
-  const mimeType = mimeTypeForFile(imagePath);
+  let imageData;
+  let resolvedMimeType = mimeType;
+
+  if (Buffer.isBuffer(imageBuffer)) {
+    imageData = imageBuffer.toString('base64');
+    resolvedMimeType = resolvedMimeType || 'image/jpeg';
+  } else if (imagePath && fs.existsSync(imagePath)) {
+    imageData = fs.readFileSync(imagePath).toString('base64');
+    resolvedMimeType = resolvedMimeType || mimeTypeForFile(imagePath);
+  } else {
+    return null;
+  }
+
   const client = getOpenAIClient(config);
   const response = await withTimeout(client.responses.create({
     model: config.model,
@@ -142,7 +152,7 @@ async function generateImageProfileJson({ prompt, imagePath }, overrides = {}) {
         role: 'user',
         content: [
           { type: 'input_text', text: prompt },
-          { type: 'input_image', image_url: `data:${mimeType};base64,${imageData}` }
+          { type: 'input_image', image_url: `data:${resolvedMimeType};base64,${imageData}` }
         ]
       }
     ]

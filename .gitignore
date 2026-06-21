@@ -1,12 +1,15 @@
 node_modules/
 uploads/
 .env
+.env.vercel.local
 .DS_Store
 .playwright-mcp/
 test-results/
 .firecrawl/
 data/notification-logs.json
 data/notification-preferences.json
+data/user-settings.json
 .claude/
 .planning/
 .vscode/
+.vercel
