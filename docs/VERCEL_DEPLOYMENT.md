@@ -33,6 +33,12 @@ AI_MATCHING_ENABLED=false
 Optional email delivery:
 
 ```env
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=no-reply@yourdomain.com
+RESEND_FROM_NAME=Green Level Lost & Found
+
+# Legacy SMTP fallback, only if not using Resend.
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_SECURE=true
@@ -42,7 +48,12 @@ SMTP_FROM_EMAIL=your-email@gmail.com
 SMTP_FROM_NAME=Green Level Lost & Found
 ```
 
-Do not commit real `.env` files, API keys, SMTP passwords, Blob tokens, or database credentials.
+Do not commit real `.env` files, API keys, SMTP passwords, Resend keys, Blob tokens, or database credentials.
+
+Resend API keys are not automatically connected to Vercel just because the key
+exists in Resend. Add the variables above to the Vercel project manually, or use
+the Vercel integration only if it confirms it wrote `RESEND_API_KEY` into the
+same project/environments.
 
 ## Build And Migration Behavior
 
@@ -107,14 +118,31 @@ npx vercel env add UPLOAD_STORAGE production
 npx vercel env add BLOB_READ_WRITE_TOKEN production
 npx vercel env add AI_PROVIDER production
 npx vercel env add OPENAI_API_KEY production
+npx vercel env add EMAIL_PROVIDER production
+npx vercel env add RESEND_API_KEY production
+npx vercel env add RESEND_FROM_EMAIL production
+npx vercel env add RESEND_FROM_NAME production
 npx vercel --prod
 ```
 
-Add SMTP variables the same way if password reset and alert emails should send real email in production.
+Use `EMAIL_PROVIDER=resend` for production email. The `RESEND_FROM_EMAIL` sender
+must be allowed by Resend, usually through a verified domain. After changing
+Vercel environment variables, redeploy so serverless functions receive the new
+values.
+
+Local email verification:
+
+```bash
+npm run email:check
+npm run email:check -- --to=you@example.com
+```
+
+The second command sends a real test message only when a real provider is
+configured. SMTP variables are still supported as a fallback.
 
 ## Demo Safety
 
 - If OpenAI is unavailable, GatorBot falls back to local website help.
 - If AI matching is disabled, report submissions still work.
-- If SMTP is unavailable, password reset and alerts use the app's local/logged fallback behavior.
+- If Resend/SMTP is unavailable, password reset and alerts use the app's local/logged fallback behavior.
 - The app requires Postgres in production; there is no JSON-file fallback on Vercel.

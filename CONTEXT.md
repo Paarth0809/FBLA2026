@@ -5,6 +5,59 @@
 
 ---
 
+## Latest Update — Resend Email Provider Wiring
+
+Current goal: replace fragile SMTP-only email delivery with a production-ready
+Resend path for password resets and alert notifications, while keeping local
+judge-demo preview behavior and SMTP fallback support.
+
+Completed:
+- Added `server/lib/emailDelivery.js` as the shared email provider layer:
+  - resolves `EMAIL_PROVIDER=preview|resend|smtp|auto`;
+  - prefers Resend in auto mode when `RESEND_API_KEY` and a sender are present;
+  - keeps SMTP as a legacy fallback;
+  - prevents real network email during tests unless explicitly allowed;
+  - falls back to local preview mode if a provider is missing or cannot
+    initialize.
+- Refactored `server/lib/notificationService.js` to send through the shared
+  provider instead of constructing a Gmail/SMTP transporter directly.
+- Added the `resend` npm dependency.
+- Updated `scripts/check-email-config.js`:
+  - reports resolved email mode without exposing secrets;
+  - supports Resend, SMTP, and local preview;
+  - can send a real test email with
+    `npm run email:check -- --to=you@example.com` once a provider is configured.
+- Updated `.env.example` and `docs/VERCEL_DEPLOYMENT.md` with Resend-first
+  production variables:
+  - `EMAIL_PROVIDER=resend`
+  - `RESEND_API_KEY`
+  - `RESEND_FROM_EMAIL`
+  - `RESEND_FROM_NAME`
+- Updated GatorBot knowledge so password-reset guidance says production email
+  should use Resend, with SMTP only as a fallback.
+- Added focused provider tests in `tests/email-delivery.test.js` and wired them
+  into `npm test`.
+
+Verification:
+- `node tests/email-delivery.test.js` passed.
+- `node --check server/lib/emailDelivery.js` passed.
+- `node --check server/lib/notificationService.js` passed.
+- `node --check scripts/check-email-config.js` passed.
+- `git diff --check` passed.
+- `EMAIL_PROVIDER=preview npm run email:check` passed.
+- `npm test` passed 119 / 119.
+
+Known risks / next steps:
+- Local `.env` still had old Gmail SMTP values and no Resend values when this
+  note was written. Real email will not send until Resend variables are added
+  locally and in Vercel, then the server is restarted/redeployed.
+- Creating a Resend API key does not automatically connect it to Vercel unless
+  a Vercel integration explicitly writes the env vars into the project.
+- `RESEND_FROM_EMAIL` must be an allowed Resend sender, usually from a verified
+  domain for production reliability.
+
+---
+
 ## Latest Update — Vercel Deployment Planning
 
 Current goal: create a concrete deployment plan for making Green Level Lost &

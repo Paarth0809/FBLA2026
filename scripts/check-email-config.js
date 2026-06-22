@@ -1,23 +1,36 @@
-// check-email-config.js — verify optional SMTP settings without exposing secrets.
+// check-email-config.js — verify optional email delivery without exposing secrets.
 // Usage:
 //   npm run email:check
 //   npm run email:check -- --to=you@example.com
 
 require('dotenv').config();
 
-const required = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
-const missing = required.filter((key) => !process.env[key]);
+const {
+  createEmailDelivery,
+  redact,
+  resolveEmailConfig
+} = require('../server/lib/emailDelivery');
+
 const sendTo = process.argv.find((arg) => arg.startsWith('--to='))?.slice('--to='.length);
 
-function redact(value = '') {
-  if (!value) return 'UNSET';
-  if (value.length <= 4) return 'SET';
-  return `${value.slice(0, 2)}…${value.slice(-2)}`;
-}
-
 async function main() {
+  const config = resolveEmailConfig(process.env);
+
   console.log('Email delivery configuration');
   console.log('────────────────────────────');
+  console.log(`EMAIL_PROVIDER=${process.env.EMAIL_PROVIDER || 'auto'}`);
+  console.log(`Resolved mode=${config.mode}`);
+  if (config.reason) console.log(`Reason=${config.reason}`);
+  console.log('');
+
+  console.log('Resend');
+  console.log(`RESEND_API_KEY=${process.env.RESEND_API_KEY ? 'SET' : 'UNSET'}`);
+  console.log(`RESEND_FROM_EMAIL=${process.env.RESEND_FROM_EMAIL || 'UNSET'}`);
+  console.log(`RESEND_FROM_NAME=${process.env.RESEND_FROM_NAME || 'UNSET'}`);
+  console.log(`EMAIL_FROM=${process.env.EMAIL_FROM || 'UNSET'}`);
+  console.log('');
+
+  console.log('SMTP fallback');
   console.log(`SMTP_HOST=${process.env.SMTP_HOST || 'UNSET'}`);
   console.log(`SMTP_PORT=${process.env.SMTP_PORT || '587'}`);
   console.log(`SMTP_SECURE=${process.env.SMTP_SECURE || 'false'}`);
@@ -26,48 +39,36 @@ async function main() {
   console.log(`SMTP_FROM_EMAIL=${process.env.SMTP_FROM_EMAIL || 'UNSET'}`);
   console.log('');
 
-  if (missing.length) {
-    console.log(`Local preview mode: missing ${missing.join(', ')}.`);
-    console.log('Forgot-password links will be logged and shown in development instead of emailed.');
+  const delivery = createEmailDelivery({
+    env: {
+      ...process.env,
+      EMAIL_DELIVERY_TEST_ALLOW_REAL: 'true'
+    }
+  });
+
+  if (config.mode === 'local-preview') {
+    console.log('Local preview mode: password reset links will be logged/shown in development instead of emailed.');
     return;
   }
 
-  const nodemailer = require('nodemailer');
-  const smtpOptions = {
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    },
-    connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS || '10000', 10),
-    greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT_MS || '10000', 10),
-    socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS || '15000', 10)
-  };
-
-  if (process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false') {
-    smtpOptions.tls = { rejectUnauthorized: false };
+  if (config.mode === 'smtp') {
+    await delivery.verify();
+    console.log('SMTP connection verified.');
+  } else if (config.mode === 'resend') {
+    console.log('Resend configuration found. Resend does not need an SMTP handshake.');
   }
-
-  const transporter = nodemailer.createTransport(smtpOptions);
-  await transporter.verify();
-  console.log('SMTP connection verified.');
 
   if (!sendTo) {
     console.log('No test message sent. Add -- --to=you@example.com to send one.');
     return;
   }
 
-  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
-  const fromName = process.env.SMTP_FROM_NAME || 'Green Level Lost & Found';
-  await transporter.sendMail({
-    from: `"${fromName}" <${fromEmail}>`,
+  const result = await delivery.send({
     to: sendTo,
     subject: 'Green Level Lost & Found Email Test',
-    text: 'This is a test email from the local Green Level Lost & Found app.'
+    text: 'This is a test email from Green Level Lost & Found.'
   });
-  console.log(`Test email sent to ${sendTo}.`);
+  console.log(`Test email ${result.sent ? 'sent' : 'logged'} to ${sendTo} via ${result.mode}.`);
 }
 
 main().catch((err) => {

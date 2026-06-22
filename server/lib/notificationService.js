@@ -1,32 +1,14 @@
 const { prisma } = require('./prisma');
 const { publicUrl } = require('./publicUrl');
+const { createEmailDelivery } = require('./emailDelivery');
 
-let transporter = null;
-if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  try {
-    const nodemailer = require('nodemailer');
-    const smtpOptions = {
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      },
-      connectionTimeout: parseInt(process.env.SMTP_CONNECTION_TIMEOUT_MS || '10000', 10),
-      greetingTimeout: parseInt(process.env.SMTP_GREETING_TIMEOUT_MS || '10000', 10),
-      socketTimeout: parseInt(process.env.SMTP_SOCKET_TIMEOUT_MS || '15000', 10)
-    };
+let delivery = null;
 
-    if (process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false') {
-      smtpOptions.tls = { rejectUnauthorized: false };
-    }
-
-    transporter = nodemailer.createTransport(smtpOptions);
-    console.log('[NotificationService] SMTP transporter initialized.');
-  } catch (err) {
-    console.error('[NotificationService] Failed to initialize email delivery:', err.message);
+function getDelivery() {
+  if (!delivery) {
+    delivery = createEmailDelivery({ logger: console });
   }
+  return delivery;
 }
 
 function normalizePreferences(newPrefs = {}, defaultEmail = '') {
@@ -106,37 +88,38 @@ async function getLogs(userId) {
 }
 
 async function dispatchEmail(userId, to, subject, body) {
-  if (!transporter) {
-    const logEntry = await addLog({
-      userId,
-      type: 'EMAIL',
-      recipient: to,
+  const emailDelivery = getDelivery();
+  try {
+    const result = await emailDelivery.send({
+      to,
       subject,
-      body,
-      status: 'preview',
-      mode: 'local-preview'
+      text: body
     });
-    console.log(`
+
+    if (!result.sent) {
+      const logEntry = await addLog({
+        userId,
+        type: 'EMAIL',
+        recipient: to,
+        subject,
+        body,
+        status: 'preview',
+        mode: result.mode || 'local-preview'
+      });
+      console.log(`
 ┌──────────────────── EMAIL PREVIEW ────────────────────
 │ To:      ${to}
 │ Subject: ${subject}
+│ Mode:    ${result.mode || 'local-preview'}
+│ Reason:  ${result.reason || 'email provider is not configured'}
 │ Date:    ${new Date().toLocaleString()}
 ├───────────────────────────────────────────────────────
 │ ${body.split('\n').join('\n│ ')}
 └───────────────────────────────────────────────────────
 `);
-    return { logged: Boolean(logEntry), sent: false, mode: 'local-preview' };
-  }
+      return { logged: Boolean(logEntry), sent: false, mode: result.mode || 'local-preview' };
+    }
 
-  try {
-    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
-    const fromName = process.env.SMTP_FROM_NAME || 'Green Level Lost & Found';
-    await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to,
-      subject,
-      text: body
-    });
     const logEntry = await addLog({
       userId,
       type: 'EMAIL',
@@ -144,10 +127,10 @@ async function dispatchEmail(userId, to, subject, body) {
       subject,
       body,
       status: 'sent',
-      mode: 'smtp'
+      mode: result.mode || emailDelivery.mode
     });
-    console.log(`[NotificationService] Email sent successfully to ${to}`);
-    return { logged: Boolean(logEntry), sent: true, mode: 'smtp' };
+    console.log(`[NotificationService] Email sent successfully to ${to} via ${result.mode || emailDelivery.mode}`);
+    return { logged: Boolean(logEntry), sent: true, mode: result.mode || emailDelivery.mode };
   } catch (err) {
     const logEntry = await addLog({
       userId,
@@ -156,11 +139,11 @@ async function dispatchEmail(userId, to, subject, body) {
       subject,
       body,
       status: 'error',
-      mode: 'smtp',
+      mode: emailDelivery.mode || 'unknown',
       error: err.message
     });
     console.error(`[NotificationService] Failed to send email to ${to}:`, err.message);
-    return { logged: Boolean(logEntry), sent: false, mode: 'smtp', error: err.message };
+    return { logged: Boolean(logEntry), sent: false, mode: emailDelivery.mode || 'unknown', error: err.message };
   }
 }
 

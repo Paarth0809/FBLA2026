@@ -70,7 +70,7 @@ The report map picker should only help locate the item. Pins should not appear p
 
 ## Password And Account
 
-If a user forgot their password, send them to `/forgot-password.html`. Password reset emails require the local SMTP configuration to be set on the server. Account/private dashboard data is only available to the signed-in user. Public listings must not reveal private contact emails.
+If a user forgot their password, send them to `/forgot-password.html`. Password reset emails require email delivery to be configured on the server, preferably Resend in production or SMTP as a fallback. Account/private dashboard data is only available to the signed-in user. Public listings must not reveal private contact emails.
 
 ## Supported Languages
 
