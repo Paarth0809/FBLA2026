@@ -2,10 +2,10 @@
 // hard-coded localhost links leaking into Vercel messages.
 function configuredBaseUrl(req) {
   const explicit = process.env.PUBLIC_APP_URL || process.env.APP_BASE_URL;
-  if (explicit) return explicit.replace(/\/+$/, '');
+  if (explicit) return explicit.trim().replace(/\/+$/, '');
 
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL.replace(/\/+$/, '')}`;
+    return `https://${process.env.VERCEL_URL.trim().replace(/\/+$/, '')}`;
   }
 
   if (req) {

@@ -81,6 +81,28 @@ Known risks / next steps:
   switch to French or another language, and confirm the settings card, tab
   labels, sidebar footer, and language dropdown are translated.
 
+## Latest Update — Password Reset Link URL Hardening
+
+Current goal: fix password reset emails where the reset link displayed as only
+the site homepage because production `PUBLIC_APP_URL` contained hidden trailing
+whitespace.
+
+Completed:
+- Updated `server/lib/publicUrl.js` to trim configured base URLs before joining
+  reset/dashboard paths.
+- Added `tests/public-url.test.js` to guard against newline-separated reset
+  links.
+- Included the public URL regression test in `npm test`.
+- Replaced Vercel Production `PUBLIC_APP_URL` with a clean value that does not
+  contain a trailing newline.
+
+Verification:
+- `node tests/public-url.test.js` passed.
+- `node --check server/lib/publicUrl.js` passed.
+- `git diff --check` passed.
+- `npm run deploy:check` passed.
+- `npm test` passed 122 / 122.
+
 ## Latest Update — Campus Map Hover Reflow Fix + Passive Marker Restore
 
 Current goal: stop the remaining pinned-room hover glitch while restoring

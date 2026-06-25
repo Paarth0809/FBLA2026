@@ -1371,6 +1371,10 @@ async function runTests() {
     await runCommand('node tests/ai-provider.test.js');
   });
 
+  await test('public URL builder preserves email reset paths', async () => {
+    await runCommand('node tests/public-url.test.js');
+  });
+
   // ══════════════════════════════════════════════════
   //  SUMMARY
   // ══════════════════════════════════════════════════
