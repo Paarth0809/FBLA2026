@@ -111,6 +111,16 @@
       <div class="mb-6 pt-2 md:pt-8">
         <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Report a Found Item</h1>
         <p class="text-on-surface-variant text-sm">Found something on campus? Fill out the form below. An administrator will review and publish your submission.</p>
+        <nav class="report-mode-toggle mt-4" aria-label="Choose report type">
+          <a href="/report.html" class="active" aria-current="page">
+            <span class="material-symbols-outlined" aria-hidden="true">add_circle</span>
+            Found
+          </a>
+          <a href="/report-missing.html">
+            <span class="material-symbols-outlined" aria-hidden="true">report</span>
+            Missing
+          </a>
+        </nav>
       </div>
 
       <!-- Auth required card (hidden until auth loads) -->
@@ -130,9 +140,21 @@
       <div id="form-container" class="hidden">
         <div id="success-box" class="alert alert-success hidden mb-4" role="alert"></div>
         <div id="error-box"   class="alert alert-error   hidden mb-4" role="alert"></div>
+        <div id="missing-prefill-notice" class="alert alert-info hidden mb-4" role="status">
+          Prefilled from a missing report. Please review before submitting.
+        </div>
 
         <div class="student-form-card p-6 md:p-8">
           <form id="report-form" enctype="multipart/form-data" class="space-y-5">
+            <div class="demo-fill-card">
+              <div>
+                <strong>Demo prefill</strong>
+                <span>AirPods sample with photo and Room 1129.</span>
+              </div>
+              <button type="button" id="demo-fill-airpods" class="btn btn-outline btn-sm">
+                Prefill AirPods
+              </button>
+            </div>
 
             <div class="form-group">
               <label class="form-label" for="itemName">
@@ -287,6 +309,9 @@
   <script src="/js/nav.js?v=1.0.3"></script>
   <script type="module" src="/js/report-map-picker.js?v=20260617"></script>
   <script>
+    const MISSING_PREFILL_KEY = 'glhsFoundReportPrefill';
+    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found.jpg';
+
     // Set today as the max date for dateFound
     document.getElementById('dateFound').max = new Date().toISOString().split('T')[0];
 
@@ -299,8 +324,113 @@
         document.getElementById('form-container').classList.remove('hidden');
         // Pre-fill contact email with the logged-in user's email
         document.getElementById('contactEmail').value = user.email;
+        applyMissingItemPrefill();
       }
     });
+
+    function dispatchFieldEvents(field) {
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function setDemoField(id, value) {
+      const field = document.getElementById(id);
+      if (!field) return false;
+      field.value = value;
+      field.classList.remove('input-error', 'shake');
+      dispatchFieldEvents(field);
+      return true;
+    }
+
+    async function attachDemoPhoto() {
+      const photoInput = document.getElementById('photo');
+      if (!photoInput || typeof DataTransfer === 'undefined') return false;
+      const response = await fetch(DEMO_AIRPODS_PHOTO);
+      if (!response.ok) throw new Error('Demo photo could not be loaded.');
+      const blob = await response.blob();
+      const file = new File([blob], 'airpods-found.jpg', { type: blob.type || 'image/jpeg' });
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      photoInput.files = transfer.files;
+      photoInput.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    function todayIsoDate() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function selectDemoMapRoom() {
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        if (window.reportMapPicker?.selectRoom({ floorId: 'floor-1', roomNumber: '1129' })) return true;
+        await wait(75);
+      }
+      return false;
+    }
+
+    async function fillDemoAirpodsReport() {
+      setDemoField('itemName', 'AirPods');
+      setDemoField('category', 'Electronics');
+      setDemoField('description', 'White AirPods Pro case with small scratches on the bottom left.');
+      setDemoField('locationFound', 'Room 1129, Floor 1');
+      setDemoField('dateFound', todayIsoDate());
+
+      const mapSelected = await selectDemoMapRoom();
+      try {
+        await attachDemoPhoto();
+      } catch (error) {
+        console.warn('[demo-fill]', error);
+        showToast('Demo text was filled. Add the photo manually if needed.', 'info');
+        return;
+      }
+
+      showToast(mapSelected ? 'Demo AirPods report filled. Review before submitting.' : 'Demo AirPods report filled. Map picker is still loading.', 'success');
+    }
+
+    function setPrefilledField(id, value) {
+      const field = document.getElementById(id);
+      if (!field || field.value || value === undefined || value === null || value === '') return false;
+      field.value = String(value);
+      dispatchFieldEvents(field);
+      return true;
+    }
+
+    function applyMissingItemPrefill() {
+      const fromMissing = new URLSearchParams(window.location.search).get('fromMissing');
+      if (!fromMissing) return;
+
+      let payload;
+      try {
+        payload = JSON.parse(sessionStorage.getItem(MISSING_PREFILL_KEY) || '{}');
+      } catch {
+        sessionStorage.removeItem(MISSING_PREFILL_KEY);
+        return;
+      }
+
+      if (!payload || payload.source !== 'missing-item' || String(payload.missingItemId || '') !== String(fromMissing)) return;
+
+      const fields = payload.fields || {};
+      let applied = false;
+      applied = setPrefilledField('itemName', fields.itemName) || applied;
+      applied = setPrefilledField('category', fields.category) || applied;
+      applied = setPrefilledField('description', fields.description) || applied;
+      applied = setPrefilledField('locationFound', fields.locationFound) || applied;
+
+      ['mapFloorId', 'mapRoomId', 'mapRoomNumber', 'mapPinX', 'mapPinZ'].forEach((id) => {
+        applied = setPrefilledField(id, fields[id]) || applied;
+      });
+
+      if (applied) {
+        document.getElementById('missing-prefill-notice').classList.remove('hidden');
+      }
+      sessionStorage.removeItem(MISSING_PREFILL_KEY);
+    }
+
+    document.getElementById('demo-fill-airpods')?.addEventListener('click', fillDemoAirpodsReport);
 
     // Photo preview
     document.getElementById('photo').addEventListener('change', function() {

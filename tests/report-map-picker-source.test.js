@@ -1,3 +1,4 @@
+// Source-level report picker tests guard form behavior that depends on browser-only SVG geometry.
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');

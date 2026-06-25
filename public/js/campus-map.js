@@ -1,3 +1,6 @@
+// Campus map page controller. This module keeps the DOM controls, approved
+// found-item locations, floor switching, and Three.js map renderer in sync without
+// mixing page UI concerns into the renderer itself.
 import { CAMPUS_MAP_FLOORS, getCampusFloor } from './campus-map-data.js?v=explore-world-20260617';
 import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
 
@@ -19,20 +22,22 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     reset: document.getElementById('map-reset'),
     focusBack: document.getElementById('map-focus-back'),
     viewCube: document.getElementById('campus-view-cube'),
-    viewCubeCore: document.getElementById('campus-view-cube-core'),
-    togglePins: document.getElementById('toggle-pins'),
-    toggleDepth: document.getElementById('toggle-depth'),
-    toggleBlueprint: document.getElementById('toggle-blueprint')
+    viewCubeCore: document.getElementById('campus-view-cube-core')
   };
 
   if (!elements.canvas || !elements.tabs) return;
 
+  let world = null;
+
   const state = {
+    // Persistent page state lives outside CampusMapWorld so floor rebuilds,
+    // item-location refreshes, and focus mode can share the same selected context.
     activeFloorId: 'floor-1',
     selectedKey: null,
     focusedRoomId: null,
     mapPins: [],
-    mapPinsByRoom: new Map()
+    mapPinsByRoom: new Map(),
+    markerEls: new Map()
   };
 
   function escapeHtml(value) {
@@ -45,6 +50,8 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
   }
 
   function groupPinsByRoom(items) {
+    // Room grouping lets the side panel answer “what is in this room?” without
+    // leaking any private contact data from the found-item records.
     const grouped = new Map();
     items.forEach((item) => {
       if (!item.mapRoomId) return;
@@ -58,11 +65,84 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     return state.mapPinsByRoom.get(roomId) || [];
   }
 
+  function roomCenter(room) {
+    if (!Array.isArray(room?.polygon) || !room.polygon.length) return null;
+    const total = room.polygon.reduce((sum, point) => ({
+      x: sum.x + Number(point[0] || 0),
+      z: sum.z + Number(point[1] || 0)
+    }), { x: 0, z: 0 });
+    return {
+      x: total.x / room.polygon.length,
+      z: total.z / room.polygon.length
+    };
+  }
+
+  function passiveMarkerPoint(item) {
+    const roomGroup = item.mapRoomId ? world?.roomGroups?.get(item.mapRoomId) : null;
+    const room = roomGroup?.userData?.room || world?.activeFloor?.rooms?.find((entry) => entry.id === item.mapRoomId);
+    const fallback = roomCenter(room);
+    const x = Number.isFinite(Number(item.mapPinX)) ? Number(item.mapPinX) : fallback?.x;
+    const z = Number.isFinite(Number(item.mapPinZ)) ? Number(item.mapPinZ) : fallback?.z;
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+    return {
+      x,
+      y: (roomGroup?.userData?.wallTopY || 42) + (roomGroup?.userData?.currentY || 0) + 18,
+      z
+    };
+  }
+
+  function markerId(item) {
+    return String(item.id || `${item.mapFloorId}:${item.mapRoomId}:${item.mapPinX}:${item.mapPinZ}:${item.itemName}`);
+  }
+
+  function markerTitle(item) {
+    const name = item.itemName || item.category || 'Found item';
+    const room = item.mapRoomNumber ? ` in Room ${item.mapRoomNumber}` : '';
+    return `${name}${room}`;
+  }
+
+  function renderPassiveMarkers() {
+    if (!elements.labelLayer || !world?.activeFloor) return;
+    const visibleIds = new Set();
+    state.mapPins.forEach((item) => {
+      if (item.mapFloorId !== state.activeFloorId || !item.mapRoomId) return;
+      const point = passiveMarkerPoint(item);
+      if (!point) return;
+      const id = markerId(item);
+      let marker = state.markerEls.get(id);
+      if (!marker) {
+        marker = document.createElement('span');
+        marker.className = 'campus-map-passive-marker';
+        marker.setAttribute('aria-hidden', 'true');
+        elements.labelLayer.append(marker);
+        state.markerEls.set(id, marker);
+      }
+      const projected = world.projectWorldPoint({
+        x: point.x,
+        y: point.y,
+        z: point.z
+      });
+      marker.title = markerTitle(item);
+      marker.hidden = !projected || !projected.inView;
+      if (projected) {
+        marker.style.transform = `translate3d(${projected.x}px, ${projected.y}px, 0) translate(-50%, -100%)`;
+      }
+      visibleIds.add(id);
+    });
+
+    state.markerEls.forEach((marker, id) => {
+      if (!visibleIds.has(id)) {
+        marker.remove();
+        state.markerEls.delete(id);
+      }
+    });
+  }
+
   function itemCardHtml(item) {
     const title = escapeHtml(item.itemName || 'Found item');
     const description = escapeHtml(item.description || 'No description provided.');
     const category = escapeHtml(item.category || 'Found item');
-    const room = item.mapRoomNumber ? `Room ${escapeHtml(item.mapRoomNumber)}` : 'Pinned location';
+    const room = item.mapRoomNumber ? `Room ${escapeHtml(item.mapRoomNumber)}` : 'Mapped location';
     const claimUrl = escapeHtml(item.claimUrl || `/claim.html?id=${encodeURIComponent(item.id)}&type=found`);
     const detailUrl = escapeHtml(item.detailUrl || `/item.html?id=${encodeURIComponent(item.id)}`);
     const photo = item.photo ? `<img src="/uploads/${escapeHtml(item.photo)}" alt="${title} photo">` : `
@@ -93,7 +173,7 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
       return `
         <div class="campus-map-room-items empty">
           <span class="material-symbols-outlined" aria-hidden="true">location_off</span>
-          <p>No approved found items are pinned in this room yet.</p>
+          <p>No approved found items are mapped to this room yet.</p>
         </div>
       `;
     }
@@ -106,18 +186,33 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     `;
   }
 
+  function roomHoverSummary(room) {
+    const items = itemsForRoom(room.id);
+    const count = items.length;
+    const itemCopy = count === 1 ? '1 approved item here' : `${count} approved items here`;
+    return `
+      <div class="campus-map-room-items campus-map-room-items-preview${count ? '' : ' empty'}">
+        <span class="material-symbols-outlined" aria-hidden="true">${count ? 'inventory_2' : 'location_off'}</span>
+        <p>${count ? itemCopy : 'No approved found items are mapped to this room yet.'}</p>
+      </div>
+    `;
+  }
+
   async function loadMapPins() {
+    // The backend only returns approved, privacy-safe map locations. If this fetch
+    // fails, the map remains usable rather than blocking the whole page.
     try {
       const response = await fetch('/api/items/map-pins', { credentials: 'include' });
-      if (!response.ok) throw new Error(`Map pins failed: ${response.status}`);
+      if (!response.ok) throw new Error(`Map item locations failed: ${response.status}`);
       const items = await response.json();
       state.mapPins = Array.isArray(items) ? items : [];
       groupPinsByRoom(state.mapPins);
-      world?.setLivePins(state.mapPins);
+      renderPassiveMarkers();
     } catch (error) {
-      console.warn('[campus-map] Could not load approved found-item pins', error);
+      console.warn('[campus-map] Could not load approved found-item locations', error);
       state.mapPins = [];
       groupPinsByRoom([]);
+      renderPassiveMarkers();
     }
   }
 
@@ -131,7 +226,6 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
 
   function iconForEntity(entity) {
     if (!entity) return 'explore';
-    if (entity.type === 'pin') return entity.pin.live ? 'inventory_2' : entity.pin.status === 'connector' ? 'conversion_path' : 'location_on';
     if (entity.type === 'stair') return 'stairs';
     if (entity.room.kind === 'Hallway') return 'route';
     if (entity.room.kind === 'Major zone') return 'domain';
@@ -144,6 +238,8 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
   }
 
   function updateDefaultDetails(floor = getFloor()) {
+    // The details card doubles as lightweight onboarding for judges and first
+    // time users, so it resets to clear map controls whenever nothing is chosen.
     if (!elements.details) return;
     elements.details.innerHTML = `
       <span class="material-symbols-outlined filled" aria-hidden="true">explore</span>
@@ -152,7 +248,7 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
       <div class="campus-map-detail-meta">
         <span>Drag to pan</span>
         <span>Wheel or pinch to zoom</span>
-        <span>Tap a pin or zone</span>
+        <span>Tap a room to view approved items here</span>
       </div>
     `;
     updateReadout(world?.rendererLabel || 'Explore Mode');
@@ -162,36 +258,6 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     if (!elements.details) return;
     if (!entity) {
       updateDefaultDetails();
-      return;
-    }
-
-    if (entity.type === 'pin') {
-      if (entity.pin.live && entity.pin.item) {
-        const item = entity.pin.item;
-        const roomCopy = item.mapRoomNumber ? `Room ${escapeHtml(item.mapRoomNumber)}, ${escapeHtml(entity.floor.label)}` : escapeHtml(entity.floor.label);
-        elements.details.innerHTML = `
-          <span class="material-symbols-outlined filled" aria-hidden="true">inventory_2</span>
-          <h3>${escapeHtml(item.itemName)}</h3>
-          <p>${escapeHtml(item.description || 'Approved found item pinned to this map location.')}</p>
-          <div class="campus-map-detail-meta">
-            <span>${preview ? 'Previewing' : 'Selected'}</span>
-            <span>${roomCopy}</span>
-          </div>
-          <div class="campus-map-room-items">
-            ${itemCardHtml(item)}
-          </div>
-        `;
-        return;
-      }
-      elements.details.innerHTML = `
-        <span class="material-symbols-outlined filled" aria-hidden="true">${iconForEntity(entity)}</span>
-        <h3>${entity.pin.label}</h3>
-        <p>${entity.pin.type} on ${entity.floor.label}. These are sample anchors for future found-item location pins.</p>
-        <div class="campus-map-detail-meta">
-          <span>${preview ? 'Previewing' : 'Selected'}</span>
-          <span>${entity.pin.status === 'connector' ? 'Connector' : 'Example pin'}</span>
-        </div>
-      `;
       return;
     }
 
@@ -208,17 +274,21 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
       return;
     }
 
+    elements.details.innerHTML = selectedRoomDetails(entity, preview);
+  }
+
+  function selectedRoomDetails(entity, preview = false) {
     const roomNumber = entity.room.plannedRoomNumber ? ` Room ${entity.room.plannedRoomNumber}.` : '';
     const focusCopy = state.focusedRoomId === entity.room.id ? 'Focused room view' : preview ? 'Hovering' : 'Selected';
-    elements.details.innerHTML = `
+    return `
       <span class="material-symbols-outlined filled" aria-hidden="true">${iconForEntity(entity)}</span>
       <h3>${escapeHtml(entity.room.label)}</h3>
-      <p>${escapeHtml(entity.room.kind)} on ${escapeHtml(entity.floor.label)}.${escapeHtml(roomNumber)} Click a room to enter top-down focus mode and inspect pinned item locations inside it.</p>
+      <p>${escapeHtml(entity.room.kind)} on ${escapeHtml(entity.floor.label)}.${escapeHtml(roomNumber)} Click a room to enter top-down focus mode and inspect approved found items in that room.</p>
       <div class="campus-map-detail-meta">
         <span>${focusCopy}</span>
         <span>${entity.room.selectable ? 'Selectable zone' : 'Reference zone'}</span>
       </div>
-      ${roomItemSection(entity.room)}
+      ${preview ? roomHoverSummary(entity.room) : roomItemSection(entity.room)}
     `;
   }
 
@@ -246,8 +316,8 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     updateDefaultDetails(floor);
     try {
       await world.setFloor(floor);
-      world.setLivePins(state.mapPins);
       updateReadout(world.rendererLabel || 'Explore Mode');
+      renderPassiveMarkers();
     } finally {
       setLoading(false);
     }
@@ -268,6 +338,8 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
   }
 
   function findMatch(term) {
+    // Search spans floor names, approved found-item locations, CAD-derived rooms,
+    // typed labels, and stairs so users can jump to a room number.
     const normalized = term.trim().toLowerCase();
     if (!normalized) return null;
 
@@ -280,11 +352,16 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
         return { floor };
       }
 
-      const pin = floor.pins.find((entry) => (
-        entry.label.toLowerCase().includes(normalized) ||
-        entry.type.toLowerCase().includes(normalized)
+      const livePin = state.mapPins.find((item) => (
+        item.mapFloorId === floor.id &&
+        [
+          item.itemName,
+          item.category,
+          item.description,
+          item.mapRoomNumber
+        ].some((value) => String(value || '').toLowerCase().includes(normalized))
       ));
-      if (pin) return { floor, pin };
+      if (livePin) return { floor, livePin };
 
       const rooms = searchableRoomsForFloor(floor);
       const room = rooms.find((entry) => (
@@ -318,7 +395,7 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     }
 
     const selectAfterFloor = () => {
-      if (match.pin) world.selectPin(match.pin.id);
+      if (match.livePin?.mapRoomId) world.selectRoom(match.livePin.mapRoomId);
       if (match.room) world.selectRoom(match.room.id);
       if (match.stair) world.selectStair(match.stair.id);
     };
@@ -332,21 +409,24 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     selectAfterFloor();
   }
 
-  const world = new CampusMapWorld({
+  world = new CampusMapWorld({
     canvas: elements.canvas,
     labelLayer: elements.labelLayer,
     blueprintLayer: elements.blueprintLayer,
     viewCube: elements.viewCube,
     viewCubeCore: elements.viewCubeCore,
+    onFrame: () => renderPassiveMarkers(),
     onReady: ({ renderer } = {}) => updateReadout(renderer || '2.5D world'),
     onHover: (entity) => {
       if (!state.selectedKey) updateDetails(entity, true);
     },
     onSelect: (entity) => {
-      state.selectedKey = entity ? `${entity.type}:${entity.type === 'pin' ? entity.pin.id : entity.type === 'stair' ? entity.stair.id : entity.room.id}` : null;
+      state.selectedKey = entity ? `${entity.type}:${entity.type === 'stair' ? entity.stair.id : entity.room.id}` : null;
       updateDetails(entity);
     },
     onFocusChange: ({ active, room }) => {
+      // Room focus is a camera state, but the page shell owns the Back button
+      // and side-panel copy so keyboard and screen-reader users get the context.
       state.focusedRoomId = active && room ? room.id : null;
       elements.focusBack?.classList.toggle('hidden', !active);
       if (active && room && world?.activeFloor) {
@@ -380,13 +460,6 @@ import { CampusMapWorld } from './campus-map-world.js?v=explore-world-20260617';
     world.setCameraPreset(button.dataset.view, { keepZoom: true });
   });
   elements.search?.addEventListener('input', handleSearch);
-  elements.togglePins?.addEventListener('change', () => world.setPinsVisible(elements.togglePins.checked));
-  elements.toggleDepth?.addEventListener('change', () => {
-    const enabled = elements.toggleDepth.checked;
-    elements.viewport?.setAttribute('data-depth-enabled', String(enabled));
-    world.setDepthEnabled(enabled);
-  });
-  elements.toggleBlueprint?.addEventListener('change', () => world.setBlueprintVisible(elements.toggleBlueprint.checked));
 
   updateFloorTabs();
   loadMapPins().finally(() => setFloor(state.activeFloorId));

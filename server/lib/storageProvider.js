@@ -11,6 +11,8 @@ const IMAGE_EXTENSIONS = {
 };
 
 function activeStorageProvider() {
+  // Local files are ideal for offline rehearsals; Vercel Blob is selected
+  // automatically when deployment credentials are present.
   if (process.env.UPLOAD_STORAGE === 'vercel-blob' || process.env.BLOB_READ_WRITE_TOKEN) {
     return 'vercel-blob';
   }
@@ -28,6 +30,8 @@ function makeStoredName(originalName, contentType) {
 }
 
 async function putImage({ buffer, originalName, contentType }) {
+  // The app stores generated filenames, never user-provided names, so uploaded
+  // paths cannot escape the intended storage area.
   const storedName = makeStoredName(originalName, contentType);
   const provider = activeStorageProvider();
 
@@ -58,6 +62,8 @@ async function putImage({ buffer, originalName, contentType }) {
 }
 
 async function getImageBuffer(assetOrFilename) {
+  // AI matching and image previews can read from either local disk or public
+  // blob URLs through one small abstraction.
   const asset = typeof assetOrFilename === 'string'
     ? { storedName: assetOrFilename, storageProvider: 'local' }
     : assetOrFilename;
@@ -75,6 +81,8 @@ async function getImageBuffer(assetOrFilename) {
 }
 
 async function deleteImage(asset) {
+  // Account/item cleanup should remove the backing file when possible, but
+  // deletion failures should not break the database transaction.
   if (!asset?.storedName) return;
   if (asset.storageProvider === 'vercel-blob' && asset.storageKey) {
     const { del } = await import('@vercel/blob');

@@ -1,3 +1,5 @@
+// Upload migration utility for deployment: copies local uploaded assets to Vercel Blob
+// and records storage metadata without changing item ownership.
 require('dotenv').config();
 
 const fs = require('fs');

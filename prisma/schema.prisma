@@ -1,3 +1,5 @@
+// Green Level Lost & Found production-lite schema. Prisma keeps the PostgreSQL
+// database typed, migrated, and consistent across local demos and Vercel/Neon.
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,11 +8,13 @@ datasource db {
   provider = "postgresql"
 }
 
+// Roles stay intentionally small so route guards can make clear admin/student decisions.
 enum Role {
   USER
   ADMIN
 }
 
+// Found items are hidden until review and move through a controlled admin workflow.
 enum FoundItemStatus {
   PENDING
   APPROVED
@@ -18,6 +22,7 @@ enum FoundItemStatus {
   CLAIMED
 }
 
+// Missing-item reports follow the same moderation path, then close when recovered.
 enum MissingItemStatus {
   PENDING
   APPROVED
@@ -25,23 +30,27 @@ enum MissingItemStatus {
   FOUND
 }
 
+// Claim status is separate from item status so approvals can be transactional.
 enum ClaimStatus {
   PENDING
   APPROVED
   REJECTED
 }
 
+// Shared item type lets claims and messages point to found or missing workflows.
 enum ItemType {
   FOUND
   MISSING
 }
 
+// Upload purposes document why each stored file exists and who should see it.
 enum AssetPurpose {
   FOUND_ITEM_PHOTO
   MISSING_ITEM_PHOTO
   CLAIM_EVIDENCE
 }
 
+// Audit actions are explicit so admin/user activity remains explainable to judges.
 enum AuditAction {
   DATA_MIGRATED
   USER_SIGNED_UP
@@ -65,6 +74,7 @@ enum AuditAction {
   ACCOUNT_DELETED
 }
 
+// Users own submissions, claims, messages, preferences, and audit records.
 model User {
   id           String    @id @default(uuid())
   name         String
@@ -87,6 +97,7 @@ model User {
   notificationLogs NotificationLog[]
 }
 
+// Found items store private contact email separately from the public item shape.
 model FoundItem {
   id                  String           @id @default(uuid())
   itemName            String
@@ -118,6 +129,7 @@ model FoundItem {
   @@index([mapRoomId])
 }
 
+// Missing items mirror found-item privacy and moderation without map pin fields yet.
 model MissingItem {
   id                  String            @id @default(uuid())
   itemName            String
@@ -142,6 +154,7 @@ model MissingItem {
   @@index([submittedById])
 }
 
+// Claims capture proof-of-ownership requests and the owner/admin decision lifecycle.
 model Claim {
   id               String      @id @default(uuid())
   itemId           String
@@ -166,6 +179,7 @@ model Claim {
   @@index([ownerId])
 }
 
+// Messages are user-id based, not email based, so permissions remain enforceable.
 model Message {
   id          String   @id @default(uuid())
   itemId      String
@@ -185,6 +199,7 @@ model Message {
   @@index([receiverId])
 }
 
+// Uploaded assets keep file metadata/provenance separate from item records.
 model UploadedAsset {
   id           String       @id @default(uuid())
   ownerId      String
@@ -208,6 +223,7 @@ model UploadedAsset {
   @@index([storageProvider, storageKey])
 }
 
+// User settings hold account-synced accessibility and language preferences.
 model UserSettings {
   id                   String   @id @default(uuid())
   userId               String   @unique
@@ -218,6 +234,7 @@ model UserSettings {
   updatedAt            DateTime @updatedAt
 }
 
+// Notification preferences let users control which email alerts are sent.
 model NotificationPreference {
   id            String   @id @default(uuid())
   userId        String   @unique
@@ -232,6 +249,7 @@ model NotificationPreference {
   updatedAt     DateTime @updatedAt
 }
 
+// Notification logs make demo email behavior auditable without exposing secrets.
 model NotificationLog {
   id        String   @id @default(uuid())
   userId    String?
@@ -247,6 +265,7 @@ model NotificationLog {
   @@index([userId, createdAt])
 }
 
+// Audit logs record important security and workflow events across the system.
 model AuditLog {
   id         String      @id @default(uuid())
   actorId    String?

@@ -4,6 +4,8 @@ const multer = require('multer');
 const convertHeic = require('heic-convert');
 const { putImage } = require('./storageProvider');
 
+// Uploads stay in memory long enough to validate, convert HEIC, hash, and hand
+// off to the configured storage provider. This keeps disk writes centralized.
 const HEIC_EXTENSIONS = new Set(['.heic', '.heif']);
 
 function isHeicFile(file) {
@@ -15,6 +17,8 @@ function isHeicFile(file) {
 }
 
 const upload = multer({
+  // A 10 MB cap keeps judge-demo uploads realistic and prevents accidental
+  // large files from overwhelming local or serverless memory.
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
@@ -24,6 +28,8 @@ const upload = multer({
 });
 
 async function normalizeUploadedPhoto(file) {
+  // iPhones often produce HEIC photos; converting at upload time makes previews
+  // and matching work in browsers that only expect standard image formats.
   if (!file) return file;
   if (!file.buffer) throw new Error('Upload buffer was not available.');
   if (!isHeicFile(file)) return file;
@@ -45,6 +51,8 @@ async function normalizeUploadedPhoto(file) {
 }
 
 async function uploadedAssetData(file, ownerId, purpose) {
+  // UploadedAsset rows retain provenance and a content hash so reports, claims,
+  // and migrations can reference files without trusting raw filenames.
   if (!file) return null;
   if (!file.buffer) throw new Error('Upload buffer was not available.');
 

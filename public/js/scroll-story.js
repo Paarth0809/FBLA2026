@@ -1,3 +1,5 @@
+// Drives the cinematic 480-frame scrollytelling hero. The canvas owns the image
+// sequence while DOM text layers stay accessible and are mirrored by the lens shader.
 (function () {
   const story = document.querySelector('[data-scroll-story]');
   if (!story) return;
@@ -18,6 +20,7 @@
   const frameCount = Number(story.dataset.frameCount || 0);
   const framePath = story.dataset.framePath || '/frames/topaztable/frame_';
   const frameExt = story.dataset.frameExt || 'webp';
+  // In-memory cache maps scroll progress directly to frames once preloading completes.
   const frames = new Array(frameCount);
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const compactLayout = window.matchMedia('(max-width: 1024px)');
@@ -61,6 +64,7 @@
   function drawCover(image) {
     if (!image) return;
 
+    // Match CSS background-size: cover so generated frames fill all devices.
     resizeCanvas();
     const canvasRatio = canvas.width / canvas.height;
     const imageRatio = image.naturalWidth / image.naturalHeight;
@@ -93,6 +97,7 @@
   function nearestLoadedFrame(targetIndex) {
     if (frames[targetIndex]) return frames[targetIndex];
 
+    // During preload, show the closest cached frame to avoid blank flashes.
     for (let offset = 1; offset < frameCount; offset += 1) {
       const before = targetIndex - offset;
       const after = targetIndex + offset;
@@ -112,6 +117,7 @@
   }
 
   function updateLayers(progress) {
+    // Text layers fade over the canvas; the GLB lens consumes the same progress separately.
     const compact = compactLayout.matches;
     const intro = 1 - smoothstep(0.14, 0.22, progress);
     const catalog = smoothstep(0.2, 0.3, progress) * (1 - smoothstep(0.48, 0.58, progress));
@@ -152,6 +158,7 @@
   }
 
   function publishProgress(progress, frameIndex) {
+    // Other modules, especially the WebGL lens, subscribe to this lightweight state.
     window.__scrollStory = {
       progress,
       frameIndex,
@@ -174,6 +181,7 @@
 
   function render() {
     rafId = 0;
+    // Scroll progress is the single source of truth: progress -> frame -> text layer.
     const progress = reduceMotion ? 0 : currentProgress();
     lastKnownProgress = progress;
     const frameIndex = Math.round(progress * (frameCount - 1));
@@ -221,6 +229,7 @@
   }
 
   async function preloadFrames() {
+    // Parallel preloading keeps the 480-frame sequence responsive without flooding slower machines.
     updateProgress();
 
     if (reduceMotion) {

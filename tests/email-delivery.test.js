@@ -1,3 +1,4 @@
+// Email delivery tests keep Resend/SMTP fallback behavior deterministic without sending real messages.
 const assert = require('assert');
 
 const {

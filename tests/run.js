@@ -1359,6 +1359,14 @@ async function runTests() {
     await runCommand('node tests/report-map-picker-source.test.js');
   });
 
+  await test('demo report autofill and image preview source contracts hold', async () => {
+    await runCommand('node tests/demo-autofill-source.test.js');
+  });
+
+  await test('portal translation coverage source contracts hold', async () => {
+    await runCommand('node tests/translation-coverage-source.test.js');
+  });
+
   await test('OpenAI provider adapter handles website and image JSON safely', async () => {
     await runCommand('node tests/ai-provider.test.js');
   });

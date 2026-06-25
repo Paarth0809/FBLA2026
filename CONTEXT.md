@@ -1,9 +1,225 @@
 # CONTEXT.md — Session Handoff for Codex
 
 > Written by Claude at end of session or on request. Codex reads this to pick up where Claude left off.
-> Last updated: 2026-06-19 by Codex
+> Last updated: 2026-06-25 by Codex
 
 ---
+
+## Latest Update — Demo Autofill + Image Preview Polish
+
+Current goal: speed up judge-demo form entry with safe AirPods presets and make
+tall uploaded item photos preview more reliably.
+
+Completed:
+- Added `Demo Fill: AirPods` buttons to the found and missing report forms.
+- Toned down the demo fill panel into a plain utility row, removed the
+  decorative icon, and changed the copy to a simple `Demo prefill` label.
+- The demo fill:
+  - fills AirPods text/category/location/date fields;
+  - keeps the signed-in user's contact email;
+  - dispatches `input` and `change` events for validation state;
+  - attaches a bundled AirPods JPEG through `DataTransfer`;
+  - does not submit the form automatically.
+- Added `public/images/demo/airpods-found.jpg` so demo photo autofill does not
+  depend on ignored local `uploads/` files.
+- Exposed `window.reportMapPicker.selectRoom({ floorId, roomNumber })` from the
+  found report map picker and used it to select Floor 1 / Room 1129 for the
+  found-item demo preset.
+- Improved image display:
+  - form photo previews now use a stable 4:3 contained preview box;
+  - search/detail item photos add a `portrait-photo` class for tall images so
+    awkward portrait uploads do not crop the item out of view.
+- Added `tests/demo-autofill-source.test.js` and included it in `npm test`.
+
+Verification:
+- `node tests/demo-autofill-source.test.js` passed.
+- `node --check public/js/report-map-picker.js` passed.
+- `node tests/report-map-picker-source.test.js` passed.
+- `node tests/form-validation-source.test.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 120 / 120.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Manually sign in as a demo student, open
+  `/report.html`, click `Demo Fill: AirPods`, and confirm the form photo preview
+  and Room 1129 map chip/pin appear before submitting.
+- The demo photo is intentionally a static public asset for presentation speed;
+  normal user uploads still use the existing upload flow.
+
+## Latest Update — Student Portal Translation Coverage
+
+Current goal: make the Student Portal settings area fully translate when users
+switch site language, instead of mixing translated and English interface text.
+
+Completed:
+- Added supplemental translations for the newer portal/settings strings across
+  every supported language in `public/js/translations.js`.
+- Covered visible settings text such as `Settings`, `Site Language`, `Reading
+  Font`, `Email Alerts`, alert trigger labels, save states, and the portal
+  subtitle.
+- Added translation coverage for GatorBot launcher/panel copy such as `Ask
+  GatorBot`, `Need help?`, the placeholder, and assistant open/close labels.
+- Updated GatorBot to refresh those labels on every language change, so
+  switching back to English also restores the English launcher text.
+- Updated dynamic Student Portal rendering so status hints, claim hints, match
+  count tabs, message count tabs, modal titles, and settings-save feedback use
+  `window.t(...)`.
+- Updated the authenticated footer so `Signed in as` is translated before the
+  user's name.
+- Updated the settings language dropdown so language names are shown in the
+  active language and refresh after a language change.
+- Added `tests/translation-coverage-source.test.js` and wired it into
+  `npm test`.
+
+Verification:
+- `node tests/translation-coverage-source.test.js` passed.
+- `node --check public/js/nav.js` passed.
+- `node --check public/js/translations.js` passed.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Manually open `/my-submissions.html`,
+  switch to French or another language, and confirm the settings card, tab
+  labels, sidebar footer, and language dropdown are translated.
+
+## Latest Update — Campus Map Hover Reflow Fix + Passive Marker Restore
+
+Current goal: stop the remaining pinned-room hover glitch while restoring
+visible item-location markers that cannot interfere with Three.js raycasting or
+room hover animation.
+
+Completed:
+- Split campus map side-panel rendering in `public/js/campus-map.js`:
+  - hover now renders only lightweight room info and an approved-item count;
+  - selected, focused, or searched rooms still render full found-item cards with
+    `View Item` and `Claim` actions.
+- Restored visible approved-item location markers as passive HTML overlay dots:
+  - markers are projected from map coordinates via `CampusMapWorld.projectWorldPoint()`;
+  - markers live in the existing label overlay layer;
+  - markers use `pointer-events: none` and never create Three.js meshes,
+    raycast targets, labels, or animation loops.
+- Added a renderer frame callback so passive markers stay aligned during hover
+  lift, panning, zooming, floor switching, and camera focus animation.
+- Stabilized `.campus-map-details` with a minimum height, maximum height, and
+  internal scrolling so hover content changes do not resize the map shell.
+- Extended `tests/map-world-source.test.js` to guard against heavy hover item
+  rendering, reintroduced 3D marker systems, and clickable overlay markers.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node tests/map-world-source.test.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 119 / 119.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Manually open `/map.html`, hover a room
+  with an approved item, confirm the room does not bounce, then click/search the
+  room/item to verify full item cards still appear.
+- The visible item markers are intentionally informational only; item access
+  remains through room details, search, `View Item`, and `Claim`.
+
+## Latest Update — Campus Map Removed 3D Item Markers
+
+Current goal: eliminate the remaining hover jitter in rooms with approved found
+items by removing item marker meshes from the public Three.js campus map.
+
+Completed:
+- Removed the public map's 3D approved-item marker subsystem from
+  `public/js/campus-map-world.js`.
+- The renderer no longer creates, tracks, labels, animates, or raycasts item
+  marker objects.
+- Kept approved found-item data loading in `public/js/campus-map.js` for room
+  side-panel cards.
+- Changed found-item search so matching items select/focus their linked room
+  instead of selecting a 3D marker.
+- Updated map copy to refer to approved found items by room, not visible or
+  clickable pins.
+- Updated source-level map tests to prevent reintroducing 3D item markers.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node tests/map-world-source.test.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 119 / 119.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Manually open `/map.html`, hover a room
+  with an approved found item, click it, and confirm the side panel shows the
+  item card with `View Item` and `Claim`.
+- The report form map picker can still use map pins; this change only removes
+  public-map 3D item marker rendering.
+
+## Latest Update — Campus Map Visual-Only Pins
+
+Current goal: remove the remaining pinned-room jitter by making approved
+found-item pins visual markers only. Canvas interaction now belongs to rooms and
+stairs, while item details remain available through search and the room side
+panel.
+
+Completed:
+- Removed canvas pin click targets from `public/js/campus-map-world.js`.
+- Kept slim approved-item pins visible on the map, but removed pin raycasting
+  from pointer click selection.
+- In room-focus mode, canvas clicks no longer select pins or adjacent rooms.
+- Kept search-driven `selectPin()` behavior, so searching for a found item can
+  still focus/select its marker and show item details.
+- Stopped room and stair floating labels from appearing on hover alone; hover
+  feedback remains through room lift/materials and side-panel preview.
+- Updated map instructions from “Tap a room or approved pin” to “Tap a room to
+  view approved items here.”
+- Updated `tests/map-world-source.test.js` to guard against reintroducing pin
+  click targets or hover-driven floating labels.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node --check public/js/campus-map.js` passed.
+- `node tests/map-world-source.test.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 119 / 119.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Manually open `/map.html`, hover a room
+  with an approved item pin, click the room, and confirm the side panel shows
+  the item card with `View Item` and `Claim` actions.
+- Direct canvas clicking on pins is intentionally removed for judge-demo
+  stability.
+
+## Latest Update — Campus Map Pin Anchoring Fix
+
+Current goal: stop the remaining pinned-room hover glitch by anchoring live
+found-item pins to their linked room group instead of keeping them as
+independent floor-level scene objects.
+
+Completed:
+- Updated `public/js/campus-map-world.js` so mapped pins with a valid
+  `roomId` are parented to that room's Three.js group.
+- Kept fallback behavior for pins without a valid linked room by adding them to
+  the active floor group.
+- Changed pin cleanup to remove each marker from its actual parent.
+- Changed pin label and camera targeting logic to use world position, so nested
+  pins still label and focus correctly.
+- Kept the current interaction rules intact:
+  - overview mode clicks rooms/stairs, not pins;
+  - room-focus mode clicks only pins inside the focused room;
+  - hover raycasting still ignores pins;
+  - pin labels stay hidden unless selected.
+- Extended `tests/map-world-source.test.js` with guards for room-parented pins,
+  parent-based cleanup, world-position labels/focus, and no linked-room lift
+  chasing.
+
+Verification:
+- `node --check public/js/campus-map-world.js` passed.
+- `node tests/map-world-source.test.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 119 / 119.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Open `/map.html` and test a mapped item
+  room by hovering in overview, focusing the room, then selecting the pin.
+- The repo already had a large dirty tree from other active work; this pass only
+  intentionally changed `public/js/campus-map-world.js`,
+  `tests/map-world-source.test.js`, and this handoff note.
 
 ## Latest Update — Resend Email Provider Wiring
 
@@ -1563,3 +1779,40 @@ git diff --check
 npm run deploy:check
 npm test   # 119 / 119 pass
 ```
+
+## 2026-06-22 Rubric-Safe Comment + Documentation Pass
+
+- Added judge-friendly explanatory comments across major custom source areas
+  without changing behavior:
+  - Backend/server entrypoints, Express middleware setup, session/security
+    configuration, email delivery, Prisma mapping, uploads, notifications,
+    storage, and upload proxy routes.
+  - Frontend cinematic systems, including scroll-story frame preloading,
+    WebGL magnifying lens texture flow, grass-scene lazy loader, legacy 3D
+    magnifying glass showcase, GatorBot, campus map world, campus map page
+    controller, and report map picker.
+  - CSS design tokens, local accessibility font support, reduced motion,
+    dyslexic font mode, cinematic homepage systems, grass hero, campus map,
+    and GatorBot sections.
+  - Prisma schema model/enumeration purpose comments.
+  - Migration scripts and focused source-level tests.
+- Added `docs/CODE_DOCUMENTATION_GUIDE.md` to explain the HTML/CSS/JS/backend
+  separation and the comment strategy for judges.
+- Preserved untracked presentation screenshot artifacts:
+  `presentation-screenshots/` and `presentation-screenshots.zip`.
+
+Verification:
+
+```bash
+git diff --name-only -- '*.js' | while IFS= read -r file; do [ -z "$file" ] && continue; echo "node --check $file"; node --check "$file" || exit 1; done
+npx prisma validate   # schema valid
+git diff --check      # OK
+npm test              # 119 / 119 pass
+```
+
+Known risks:
+
+- This was intentionally comments/docs-only. It does not change runtime behavior
+  or add new rubric features.
+- Presentation screenshot files remain untracked until the user decides whether
+  to keep or discard them.

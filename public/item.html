@@ -108,6 +108,12 @@
       return escapeHtml(str).replace(/`/g, '&#96;');
     }
 
+    function markAdaptiveImage(img) {
+      const frame = img.closest('.item-card-img, .detail-img');
+      if (!frame || !img.naturalWidth || !img.naturalHeight) return;
+      frame.classList.toggle('portrait-photo', img.naturalHeight / img.naturalWidth > 1.25);
+    }
+
     function updateClaimArea() {
       const area = document.getElementById('claim-area');
       if (!area || !loadedItem) return;
@@ -150,7 +156,7 @@
 
     function render(item) {
       const img = item.photo
-        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}" class="img-load-fade" onload="this.classList.add('loaded')">`
+        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}" class="img-load-fade" onload="markAdaptiveImage(this); this.classList.add('loaded')">`
         : `<span style="font-size:5rem">${categoryEmoji(item.category)}</span>`;
 
       const claimedBanner = (item.status === 'claimed')

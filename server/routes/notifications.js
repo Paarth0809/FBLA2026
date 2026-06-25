@@ -4,6 +4,8 @@ const { requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../lib/asyncHandler');
 const { getPreferences, savePreferences, getLogs } = require('../lib/notificationService');
 
+// Notification settings are user-owned data. Requiring auth at the router level
+// prevents one user from reading or modifying another user's alert preferences.
 router.use(requireAuth);
 
 // GET /api/notifications/preferences

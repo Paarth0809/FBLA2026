@@ -1,3 +1,6 @@
+// Email delivery is provider-agnostic on purpose: local preview keeps demos
+// safe without credentials, Resend handles production, and SMTP remains a
+// fallback for collaborator machines that already have it configured.
 function redact(value = '') {
   if (!value) return 'UNSET';
   if (value.length <= 4) return 'SET';
@@ -39,6 +42,9 @@ function hasSmtpConfig(env) {
 }
 
 function resolveEmailConfig(env = process.env) {
+  // The provider resolver never throws for missing credentials. It returns a
+  // preview mode instead so password reset/report flows can still be tested
+  // without silently pretending an email was delivered.
   const preferred = String(env.EMAIL_PROVIDER || 'auto').trim().toLowerCase();
   const resendFrom = resolveResendFrom(env);
   const smtpFrom = resolveSmtpFrom(env);
@@ -122,6 +128,8 @@ function resolveEmailConfig(env = process.env) {
 }
 
 function createPreviewDelivery(config) {
+  // Preview mode records/logs email intent. That is useful for local demo
+  // rehearsals and automated tests where real outbound email would be noisy.
   return {
     mode: 'local-preview',
     config,
@@ -146,6 +154,8 @@ function normalizeResendError(error) {
 }
 
 function createResendDelivery(config, options = {}) {
+  // Resend is the production-friendly path for Vercel because it avoids SMTP
+  // handshakes from short-lived serverless functions.
   const ResendCtor = options.ResendCtor || require('resend').Resend;
   const client = new ResendCtor(config.apiKey);
 
@@ -177,6 +187,8 @@ function createResendDelivery(config, options = {}) {
 }
 
 function createSmtpDelivery(config, options = {}) {
+  // SMTP is still supported for local/collaborator machines, but production
+  // deployments should prefer Resend for reliability.
   const nodemailer = options.nodemailer || require('nodemailer');
   const smtpOptions = { ...config.smtp };
   const tlsRejectUnauthorized = smtpOptions.tlsRejectUnauthorized;
@@ -210,6 +222,8 @@ function createSmtpDelivery(config, options = {}) {
 }
 
 function createEmailDelivery(options = {}) {
+  // Tests default to preview mode so the suite never depends on external email
+  // infrastructure unless a test explicitly opts into it.
   const env = options.env || process.env;
   const logger = options.logger || console;
 

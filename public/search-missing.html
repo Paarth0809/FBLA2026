@@ -141,6 +141,12 @@
       return escapeHtml(str).replace(/`/g, '&#96;');
     }
 
+    function markAdaptiveImage(img) {
+      const frame = img.closest('.item-card-img, .detail-img');
+      if (!frame || !img.naturalWidth || !img.naturalHeight) return;
+      frame.classList.toggle('portrait-photo', img.naturalHeight / img.naturalWidth > 1.25);
+    }
+
     async function loadItems(keyword, category) {
       const content = document.getElementById('content');
       const countEl = document.getElementById('result-count');
@@ -168,7 +174,7 @@
 
     function itemCard(item, index) {
       const img = item.photo
-        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}">`
+        ? `<img src="/uploads/${safeAttr(item.photo)}" alt="${safeAttr(item.itemName)}" class="img-load-fade" onload="markAdaptiveImage(this); this.classList.add('loaded')">`
         : `<span title="${safeAttr(item.category)}">${categoryEmoji(item.category)}</span>`;
       const i = Math.min(index, 7);
       return `

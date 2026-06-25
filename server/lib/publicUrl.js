@@ -1,3 +1,5 @@
+// Build absolute URLs for emails and notifications. Centralizing this avoids
+// hard-coded localhost links leaking into Vercel messages.
 function configuredBaseUrl(req) {
   const explicit = process.env.PUBLIC_APP_URL || process.env.APP_BASE_URL;
   if (explicit) return explicit.replace(/\/+$/, '');

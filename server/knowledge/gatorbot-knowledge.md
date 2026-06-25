@@ -21,6 +21,8 @@ Green Level Lost & Found helps students and staff report found items, report mis
 
 Public users can browse/search approved found and missing listings without an account. Reporting, claiming, messaging, and dashboard access require signing in.
 
+The top navigation uses a single `Report Item` control instead of separate top-level report links. The menu opens `Report Found` and `Report Missing`. On the report pages, a Found/Missing toggle lets signed-in users switch between the two forms without hunting through the navigation.
+
 ## Student Pages
 
 - Student dashboard / My Submissions: `/my-submissions.html`
@@ -33,12 +35,15 @@ My Submissions has Found, Missing, Claims, Matches, and Messages tabs. After sub
 ## Admin Pages
 
 - Admin dashboard: `/admin.html`
+- Admin settings/dashboard entry: `/admin.html?tab=settings`
 
-Admin tools can approve, reject, delete, mark found/missing items claimed or found, review claims, and view relevant messages. Admin links and instructions should be shown only to users whose session role is admin.
+Admin tools can approve, reject, delete, mark found/missing items claimed or found, review claims, and view relevant messages. Admin links and instructions should be shown only to users whose session role is admin. Admin settings links should stay in the admin dashboard area, not the student portal.
 
 ## Reporting Found Items
 
 Users must sign in before submitting found items. The found report form asks for item name, category, description, where it was found, date found, optional photo, and optional campus map room/pin metadata. Photos are optional but helpful. The written location field remains valid even without a map pin.
+
+When a user opens a missing-item detail page and clicks `I Found This Item â€” Report It`, the site may prefill safe details into the found report form: item name, category, description, and helpful location or map fields if available. It must not copy private contact information, must not prefill the date found, and must not submit automatically.
 
 ## Reporting Missing Items
 
@@ -64,7 +69,7 @@ Avoid using showy "AI-powered" wording unless the user explicitly asks about the
 
 ## Campus Map And Pins
 
-The campus map shows floors, rooms, and approved found-item pins when available. Reports can include an optional room and draggable pin. The picker can select Basement, Floor 1, Floor 2, and Floor 3. A map pin is optional; users can still type a location manually.
+The Campus Map page shows floors, rooms, and approved found-item pins when available. Reports can include an optional room and draggable pin. The picker can select Basement, Floor 1, Floor 2, and Floor 3. A map pin is optional; users can still type a location manually.
 
 The report map picker should only help locate the item. Pins should not appear publicly until a found report is approved by an admin.
 
@@ -84,13 +89,15 @@ Signed-in users manage reading and language preferences from `Student Portal` â†
 
 The Settings tab also contains the saved site language selector and email alert preferences, so the top navigation stays uncluttered while account-level accessibility and notification controls stay easy to find.
 
+Student settings live at `/my-submissions.html?tab=settings`. The admin settings/admin dashboard entry point lives under `/admin.html?tab=settings`, so GatorBot should not send admin users into the student settings tab.
+
 The site also supports keyboard-friendly controls, visible focus states, reduced-motion fallbacks for major animations, translated interface text, and readable fallback behavior when advanced visual effects or external AI services are unavailable.
 
 Questions about dyslexia support, OpenDyslexic, readable fonts, accessibility features, site settings, language settings, alert preferences, or where to find the font setting are website-related and should be answered directly.
 
 ## Offline And Judge Demo Behavior
 
-The app is designed to run locally for a judge demo with local assets, local PostgreSQL/Prisma data, and graceful fallbacks. Internet access may be needed only for external AI/API or email provider services if enabled. If those services are unavailable, core browsing, reporting, claims, admin review, map UI, and fallback GatorBot help should still work locally.
+Mention demo/offline behavior only when the user asks about presentations, judge demos, Wi-Fi, local hosting, or offline reliability. For that context: the app is designed to run locally with local assets, local PostgreSQL/Prisma data, and graceful fallbacks. Internet access may be needed only for external AI/API or email provider services if enabled. If those services are unavailable, core browsing, reporting, claims, admin review, map UI, and fallback GatorBot help should still work locally.
 
 ## GatorBot Boundaries
 

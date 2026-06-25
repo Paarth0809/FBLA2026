@@ -1,3 +1,5 @@
+// Shared GatorBot widget. The browser handles only presentation, navigation,
+// and safe prefill; all AI/user-context decisions happen server-side.
 (function () {
   if (window.__gatorBotLoaded) return;
   window.__gatorBotLoaded = true;
@@ -5,6 +7,8 @@
   const STORAGE_KEY = 'gatorbotPrefill';
   const SEEN_KEY = 'gatorbotSeen';
   const state = {
+    // UI state stays local so opening/closing the assistant never affects page
+    // forms, auth, or route state.
     open: false,
     busy: false,
     lastFocus: null,
@@ -15,6 +19,11 @@
       'How do map pins work?'
     ]
   };
+
+  function t(key) {
+    if (typeof window.t === 'function') return window.t(key);
+    return key;
+  }
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -27,6 +36,8 @@
   }
 
   function apiPost(path, body) {
+    // Prefer the shared API wrapper when present, but keep a self-contained
+    // fetch fallback so the assistant works on every page.
     if (window.api && typeof window.api.post === 'function') {
       return window.api.post(path, body);
     }
@@ -43,36 +54,38 @@
   }
 
   function buildWidget() {
+    // The widget is injected once per page, avoiding repeated HTML fragments in
+    // every static page while still giving the assistant a consistent UI.
     const root = document.createElement('div');
     root.className = 'gatorbot-root';
     root.innerHTML = `
       <div class="gatorbot-nudge" aria-hidden="true">
         <span class="material-symbols-outlined" aria-hidden="true">support_agent</span>
-        <span>Need help?</span>
+        <span>${escapeHtml(t('Need help?'))}</span>
       </div>
-      <button class="gatorbot-launcher" type="button" aria-label="Open GatorBot assistant">
+      <button class="gatorbot-launcher" type="button" aria-label="${escapeHtml(t('Open GatorBot assistant'))}">
         <span class="gatorbot-launcher-ring" aria-hidden="true"></span>
         <img src="/images/gatorbot.jpeg" alt="" aria-hidden="true">
       </button>
       <div class="gatorbot-launcher-badge" aria-hidden="true">
         <span class="gatorbot-status-dot"></span>
-        <span>Ask GatorBot</span>
+        <span>${escapeHtml(t('Ask GatorBot'))}</span>
       </div>
       <section class="gatorbot-panel" role="dialog" aria-modal="false" aria-labelledby="gatorbot-title" hidden>
         <header class="gatorbot-header">
           <div class="gatorbot-avatar"><img src="/images/gatorbot.jpeg" alt="" aria-hidden="true"></div>
           <div>
             <h2 id="gatorbot-title">GatorBot</h2>
-            <p>Website assistant</p>
+            <p>${escapeHtml(t('Website assistant'))}</p>
           </div>
-          <button class="gatorbot-close" type="button" aria-label="Close GatorBot">×</button>
+          <button class="gatorbot-close" type="button" aria-label="${escapeHtml(t('Close GatorBot'))}">×</button>
         </header>
         <div class="gatorbot-messages" role="log" aria-live="polite" aria-relevant="additions"></div>
-        <div class="gatorbot-quick" aria-label="Suggested questions"></div>
+        <div class="gatorbot-quick" aria-label="${escapeHtml(t('Suggested questions'))}"></div>
         <form class="gatorbot-composer">
-          <label class="sr-only" for="gatorbot-input">Ask GatorBot</label>
-          <textarea id="gatorbot-input" rows="1" maxlength="1000" placeholder="Ask about reports, claims, map pins..."></textarea>
-          <button type="submit" aria-label="Send message">
+          <label class="sr-only" for="gatorbot-input">${escapeHtml(t('Ask GatorBot'))}</label>
+          <textarea id="gatorbot-input" rows="1" maxlength="1000" placeholder="${escapeHtml(t('Ask about reports, claims, map pins...'))}"></textarea>
+          <button type="submit" aria-label="${escapeHtml(t('Send message'))}">
             <span class="material-symbols-outlined" aria-hidden="true">send</span>
           </button>
         </form>
@@ -91,6 +104,18 @@
   const form = root.querySelector('.gatorbot-composer');
   const input = root.querySelector('#gatorbot-input');
 
+  function updateStaticLabels() {
+    root.querySelector('.gatorbot-nudge span:last-child').textContent = t('Need help?');
+    root.querySelector('.gatorbot-launcher-badge span:last-child').textContent = t('Ask GatorBot');
+    root.querySelector('.gatorbot-header p').textContent = t('Website assistant');
+    root.querySelector('label[for="gatorbot-input"]').textContent = t('Ask GatorBot');
+    input.setAttribute('placeholder', t('Ask about reports, claims, map pins...'));
+    quick.setAttribute('aria-label', t('Suggested questions'));
+    closeButton.setAttribute('aria-label', t('Close GatorBot'));
+    form.querySelector('button[type="submit"]').setAttribute('aria-label', t('Send message'));
+    launcher.setAttribute('aria-label', state.open ? t('Close GatorBot assistant') : t('Open GatorBot assistant'));
+  }
+
   try {
     if (localStorage.getItem(SEEN_KEY) === 'true') root.classList.add('gatorbot-seen');
   } catch {
@@ -102,9 +127,9 @@
   }
 
   function renderQuickReplies(replies) {
-    state.quickReplies = Array.isArray(replies) && replies.length ? replies : state.quickReplies;
+    if (Array.isArray(replies)) state.quickReplies = replies;
     quick.innerHTML = state.quickReplies.map(reply => (
-      `<button type="button" class="gatorbot-chip" data-prompt="${escapeHtml(reply)}">${escapeHtml(reply)}</button>`
+      `<button type="button" class="gatorbot-chip" data-prompt="${escapeHtml(reply)}">${escapeHtml(t(reply))}</button>`
     )).join('');
   }
 
@@ -152,7 +177,7 @@
     root.classList.toggle('is-open', open);
     panel.hidden = !open;
     launcher.setAttribute('aria-expanded', open ? 'true' : 'false');
-    launcher.setAttribute('aria-label', open ? 'Close GatorBot assistant' : 'Open GatorBot assistant');
+    launcher.setAttribute('aria-label', open ? t('Close GatorBot assistant') : t('Open GatorBot assistant'));
 
     if (open) {
       root.classList.add('gatorbot-seen');
@@ -255,8 +280,9 @@
         pageTitle: document.title
       });
       setTyping(false);
+      const hasActions = Array.isArray(data.actions) && data.actions.length > 0;
       addMessage('bot', data.reply || 'I can help with Green Level Lost & Found.', data.actions || []);
-      renderQuickReplies(data.quickReplies || []);
+      renderQuickReplies(hasActions ? [] : data.quickReplies || []);
     } catch {
       setTyping(false);
       addMessage('bot', 'I can still help with website basics, but the assistant connection hiccupped. Try searching items, reporting from the student portal, or checking My Submissions.');
@@ -269,6 +295,8 @@
 
   launcher.addEventListener('click', () => setOpen(!state.open));
   closeButton.addEventListener('click', () => setOpen(false));
+  document.addEventListener('languageChanged', updateStaticLabels);
+  document.addEventListener('languageChanged', () => renderQuickReplies());
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && state.open) setOpen(false);
     handleTrap(event);
@@ -297,6 +325,6 @@
   });
 
   renderQuickReplies(state.quickReplies);
-  addMessage('bot', 'Hi, I’m GatorBot. Ask me about searching, reports, claims, messages, submissions, or the campus map.');
+  addMessage('bot', t('Hi, I’m GatorBot. Ask me about searching, reports, claims, messages, submissions, or the campus map.'));
   applyPrefill();
 }());

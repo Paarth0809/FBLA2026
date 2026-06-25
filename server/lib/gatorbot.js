@@ -37,15 +37,33 @@ const SUPPORTED_LANGUAGES = [
 const ACTIONS = {
   signIn: { label: 'Sign In', href: '/login.html', kind: 'link' },
   createAccount: { label: 'Create Account', href: '/signup.html', kind: 'link' },
+  search: { label: 'Search Items', href: '/search.html', kind: 'link' },
   searchFound: { label: 'Search Found Items', href: '/search.html', kind: 'link' },
   searchMissing: { label: 'Search Missing Items', href: '/search-missing.html', kind: 'link' },
-  reportFound: { label: 'Report Found Item', href: '/report.html', kind: 'link' },
-  reportMissing: { label: 'Report Missing Item', href: '/report-missing.html', kind: 'link' },
-  submissions: { label: 'My Submissions', href: '/my-submissions.html', kind: 'link' },
+  reportItem: { label: 'Report Item', href: '/report.html', kind: 'link', roles: ['student'] },
+  reportFound: { label: 'Report Found Item', href: '/report.html', kind: 'link', roles: ['student'] },
+  reportMissing: { label: 'Report Missing Item', href: '/report-missing.html', kind: 'link', roles: ['student'] },
+  submissions: { label: 'My Submissions', href: '/my-submissions.html', kind: 'link', roles: ['student'] },
+  studentSettings: { label: 'Student Settings', href: '/my-submissions.html?tab=settings', kind: 'link', roles: ['student'] },
   map: { label: 'Campus Map', href: '/map.html', kind: 'link' },
   resetPassword: { label: 'Reset Password', href: '/forgot-password.html', kind: 'link' },
-  admin: { label: 'Admin Dashboard', href: '/admin.html', kind: 'link', adminOnly: true }
+  admin: { label: 'Admin Dashboard', href: '/admin.html', kind: 'link', roles: ['admin'] },
+  adminPortal: { label: 'Admin Portal', href: '/admin.html', kind: 'link', roles: ['admin'] },
+  adminSettings: { label: 'Admin Settings', href: '/admin.html?tab=settings', kind: 'link', roles: ['admin'] }
 };
+
+const ROUTE_LABELS = new Map([
+  ['/map.html', 'the Campus Map page'],
+  ['/search.html', 'Search Found Items'],
+  ['/search-missing.html', 'Search Missing Items'],
+  ['/report.html', 'Report Found Item'],
+  ['/report-missing.html', 'Report Missing Item'],
+  ['/my-submissions.html', 'My Submissions'],
+  ['/admin.html', 'Admin Dashboard'],
+  ['/login.html', 'Sign In'],
+  ['/signup.html', 'Create Account'],
+  ['/forgot-password.html', 'Reset Password']
+]);
 
 const ALLOWED_HREFS = new Set(Object.values(ACTIONS).map(action => action.href));
 const DEFAULT_QUICK_REPLIES = [
@@ -59,18 +77,51 @@ function normalizeText(value) {
   return String(value || '').trim();
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function scrubInternalRoutes(value) {
+  let reply = String(value || '');
+  reply = reply.replace(/\b(?:is\s+)?here:\s*\/map\.html\b/gi, 'is available from the Campus Map button');
+
+  for (const [route, label] of ROUTE_LABELS) {
+    reply = reply.replace(new RegExp(escapeRegExp(route), 'gi'), label);
+  }
+
+  return reply;
+}
+
 function sanitizeReply(value) {
-  const reply = normalizeText(value)
+  const reply = normalizeText(scrubInternalRoutes(value))
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[private email]');
   return reply.slice(0, 1200);
 }
 
+function normalizeRole(user) {
+  return String(user?.role || '').trim().toLowerCase();
+}
+
 function isAdmin(user) {
-  return user && user.role === 'ADMIN';
+  return normalizeRole(user) === 'admin';
+}
+
+function isStudent(user) {
+  const role = normalizeRole(user);
+  return Boolean(user) && role !== 'admin';
 }
 
 function action(key) {
   return { ...ACTIONS[key] };
+}
+
+function canUseAction(source, user) {
+  if (!source) return false;
+  const roles = Array.isArray(source.roles) ? source.roles : [];
+  if (!roles.length) return true;
+  if (roles.includes('admin')) return isAdmin(user);
+  if (roles.includes('student')) return isStudent(user);
+  return false;
 }
 
 function sanitizeActions(actions, user) {
@@ -83,7 +134,7 @@ function sanitizeActions(actions, user) {
     const href = normalizeText(candidate.href);
     if (!ALLOWED_HREFS.has(href)) continue;
     const source = Object.values(ACTIONS).find(item => item.href === href);
-    if (!source || (source.adminOnly && !isAdmin(user))) continue;
+    if (!canUseAction(source, user)) continue;
     if (seen.has(href)) continue;
     seen.add(href);
     safe.push({
@@ -149,6 +200,7 @@ function intent(message) {
     isNavigation: /\b(page|pages|route|routes|navigation|nav|link|button|where can i|where do i|how can i get|take me|open|go to)\b/.test(text),
     isAiMatching: /\b(ai|matching|match|matches|recognition|image recognition|photo profile|compare|suggested match|potential match)\b/.test(text),
     isDemo: /\b(judge|judges|fbla|demo|presentation|offline|wifi|wi-fi|local|feature|features|technology|tech stack|built with)\b/.test(text),
+    isOfflineDemo: /\b(judge|judges|fbla|demo|presentation|offline|wifi|wi-fi|local)\b/.test(text),
     isTroubleshooting: /\b(error|bug|broken|not working|failed|failure|red outline|validation|server error|reset link|email not sent|stuck|cannot|can't)\b/.test(text)
   };
 }
@@ -266,7 +318,7 @@ function fallbackAnswer(message, context, user) {
     const counts = context.adminCounts || {};
     return createResponse({
       reply: `For admin review, open the GLHS Portal. Current queue: ${counts.pendingFound || 0} found reports, ${counts.pendingMissing || 0} missing reports, and ${counts.pendingClaims || 0} claims waiting for review.`,
-      actions: [action('admin')],
+      actions: [action('adminPortal'), action('adminSettings')],
       quickReplies: ['How do claims work?', 'How do messages work?', 'Show student portal help']
     }, user);
   }
@@ -288,7 +340,7 @@ function fallbackAnswer(message, context, user) {
   if (flags.isLanguage) {
     return createResponse({
       reply: `The website includes these languages: ${languageList()}. Signed-in users can switch their saved site language from the Settings tab in the Student Portal. The core lost-and-found flows stay the same across languages.`,
-      actions: [context.signedIn ? action('submissions') : action('signIn'), action('searchFound'), action('searchMissing')],
+      actions: [context.signedIn ? (isAdmin(user) ? action('adminSettings') : action('studentSettings')) : action('signIn'), action('searchFound'), action('searchMissing')],
       quickReplies: ['How do I switch pages?', 'How do I report an item?', 'How do map pins work?']
     }, user);
   }
@@ -296,7 +348,7 @@ function fallbackAnswer(message, context, user) {
   if (flags.isAccessibility) {
     return createResponse({
       reply: 'Accessibility support includes a dyslexia-friendly OpenDyslexic font setting in Student Portal → Settings, translated interface controls, visible focus states, keyboard-friendly form controls, reduced-motion fallbacks for major animations, and local fallbacks when advanced effects are unavailable.',
-      actions: [context.signedIn ? action('submissions') : action('signIn'), action('searchFound'), action('map')],
+      actions: [context.signedIn ? (isAdmin(user) ? action('adminSettings') : action('studentSettings')) : action('signIn'), action('searchFound'), action('map')],
       quickReplies: ['Where is the dyslexia font setting?', 'Supported languages', 'How do I report an item?']
     }, user);
   }
@@ -306,7 +358,7 @@ function fallbackAnswer(message, context, user) {
       reply: context.signedIn
         ? 'Yes — open the Settings tab in the Student Portal from the gear button in the top navigation. Turn on “Dyslexia-friendly font” to switch the site to OpenDyslexic; it saves to your account.'
         : 'Yes — the dyslexia-friendly font setting is in Student Portal → Settings after you sign in. It switches the site to OpenDyslexic and saves to your account.',
-      actions: [context.signedIn ? action('submissions') : action('signIn'), action('searchFound'), action('map')],
+      actions: [context.signedIn ? (isAdmin(user) ? action('adminSettings') : action('studentSettings')) : action('signIn'), action('searchFound'), action('map')],
       quickReplies: ['Accessibility features', 'Supported languages', 'How do I report an item?']
     }, user);
   }
@@ -355,7 +407,7 @@ function fallbackAnswer(message, context, user) {
 
   if (flags.isMap) {
     return createResponse({
-      reply: 'The campus map helps place found-item pins by floor and room. In the report form, the map pin is optional: you can select a room and drag the pin to the exact spot if you know it.',
+      reply: 'Use the Campus Map button below or the site navigation. The map shows floors, rooms, and approved found-item pins when available. In the report form, a map pin is optional: select a room and drag the pin if you know the exact spot.',
       actions: [action('map'), context.signedIn ? action('reportFound') : action('signIn')],
       quickReplies: ['Can I report without a pin?', 'How accurate is the map?', 'Search found items']
     }, user);
@@ -394,8 +446,11 @@ function fallbackAnswer(message, context, user) {
   }
 
   if (flags.isNavigation || flags.isDemo) {
+    const localNote = flags.isOfflineDemo
+      ? ' For presentations or limited Wi-Fi, the core browsing, reporting, claims, admin review, and map flows are designed to keep working in the local judge-demo setup.'
+      : '';
     return createResponse({
-      reply: `${SITE_NAME} includes public search pages, found and missing item detail pages, report forms, claim flow, My Submissions, messages, matches, the campus map with room pins, password reset, and an admin review dashboard for authorized staff. Core pages are designed to run locally for a judge demo.`,
+      reply: `${SITE_NAME} includes public search pages, found and missing item detail pages, report forms, claim flow, My Submissions, messages, matches, the campus map with room pins, password reset, and an admin review dashboard for authorized staff.${localNote}`,
       actions: [action('searchFound'), action('searchMissing'), action('map'), context.signedIn ? action('submissions') : action('signIn')],
       quickReplies: ['What languages are supported?', 'How do I report?', 'How does admin review work?']
     }, user);
@@ -457,6 +512,8 @@ If a question is ambiguous but could plausibly refer to the website, answer in t
 Only refuse questions that are clearly unrelated to this website. For unrelated questions, say: "I can only help with Green Level Lost & Found."
 Never include private emails or private contact information.
 Admin guidance and /admin.html actions are allowed only when context.role is ADMIN.
+Do not print raw internal routes like /map.html or /report.html in reply text. Use natural page names such as "Campus Map" and rely on the allowed action buttons for navigation.
+Mention local/offline judge-demo behavior only when the user explicitly asks about demos, presentations, Wi-Fi, local hosting, or offline reliability.
 Be concise and practical. Prefer links/actions from the allowed action catalog.
 Return ONLY valid JSON with this shape:
 {"reply":"...","actions":[{"label":"...","href":"/search.html","kind":"link"}],"quickReplies":["..."]}

@@ -116,11 +116,18 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const itemId = params.get('id');
+    const MISSING_PREFILL_KEY = 'glhsFoundReportPrefill';
     let _currentItem = null;
 
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function markAdaptiveImage(img) {
+      const frame = img.closest('.item-card-img, .detail-img');
+      if (!frame || !img.naturalWidth || !img.naturalHeight) return;
+      frame.classList.toggle('portrait-photo', img.naturalHeight / img.naturalWidth > 1.25);
     }
 
     async function loadItem() {
@@ -170,7 +177,7 @@
 
     function render(item) {
       const img = item.photo
-        ? '<img src="/uploads/' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.itemName) + '" class="img-load-fade" onload="this.classList.add(\'loaded\')">'
+        ? '<img src="/uploads/' + escapeHtml(item.photo) + '" alt="' + escapeHtml(item.itemName) + '" class="img-load-fade" onload="markAdaptiveImage(this); this.classList.add(\'loaded\')">'
         : '<span style="font-size:5rem">' + categoryEmoji(item.category) + '</span>';
 
       const foundBanner = (item.status === 'found')
@@ -180,7 +187,7 @@
       document.getElementById('content').innerHTML =
         foundBanner +
         '<div class="alert alert-warning mb-4"><span class="material-symbols-outlined">warning</span> This item has been reported as <strong>missing</strong>. ' +
-        'If you\'ve found it, please <a href="/report.html" style="font-weight:600;color:#92400e">report it as found</a> or message the owner securely.</div>' +
+        'If you\'ve found it, please <a href="/report.html?fromMissing=' + encodeURIComponent(item.id) + '" data-found-from-missing style="font-weight:600;color:#92400e">report it as found</a> or message the owner securely.</div>' +
         '<div class="detail-grid">' +
           '<div><div class="detail-img">' + img + '</div></div>' +
           '<div class="flex flex-col gap-4">' +
@@ -198,11 +205,40 @@
                 '<div class="detail-field"><div class="detail-label"><span class="material-symbols-outlined">mail</span> Contact</div><div class="detail-value">' + renderContactBlock(item) + '</div></div>' +
               '</div>' +
             '</div>' +
-            '<a href="/report.html" class="btn btn-success btn-lg w-full">' +
+            '<a href="/report.html?fromMissing=' + encodeURIComponent(item.id) + '" class="btn btn-success btn-lg w-full" data-found-from-missing>' +
               '<span class="material-symbols-outlined" style="font-size:18px">check_circle</span> I Found This Item — Report It' +
             '</a>' +
           '</div>' +
         '</div>';
+      document.querySelectorAll('[data-found-from-missing]').forEach((link) => {
+        link.addEventListener('click', storeFoundReportPrefill);
+      });
+    }
+
+    function safePrefillValue(value, maxLength = 600) {
+      return String(value || '').trim().slice(0, maxLength);
+    }
+
+    function storeFoundReportPrefill() {
+      if (!_currentItem) return;
+      const fields = {
+        itemName: safePrefillValue(_currentItem.itemName, 120),
+        category: safePrefillValue(_currentItem.category, 80),
+        description: safePrefillValue(_currentItem.description, 800),
+        locationFound: safePrefillValue(_currentItem.lastSeenLocation, 180)
+      };
+
+      ['mapFloorId', 'mapRoomId', 'mapRoomNumber', 'mapPinX', 'mapPinZ'].forEach((key) => {
+        const value = safePrefillValue(_currentItem[key], 120);
+        if (value) fields[key] = value;
+      });
+
+      sessionStorage.setItem(MISSING_PREFILL_KEY, JSON.stringify({
+        source: 'missing-item',
+        missingItemId: _currentItem.id,
+        fields,
+        createdAt: Date.now()
+      }));
     }
 
     let _msgState = { itemId: '', itemName: '' };

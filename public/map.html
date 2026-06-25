@@ -70,7 +70,7 @@
       <div class="campus-map-hero-copy">
         <p class="campus-map-kicker">Explore Mode</p>
         <h1>Explore the building like a miniature world.</h1>
-        <p>Switch floors, glide through raised room tiles, and preview how found-item location pins will sit inside the school.</p>
+        <p>Switch floors, glide through raised room tiles, and inspect approved found items by room.</p>
       </div>
       <div class="campus-map-hero-card" aria-label="Map status">
         <span class="material-symbols-outlined filled" aria-hidden="true">deployed_code</span>
@@ -95,28 +95,13 @@
 
         <label class="campus-map-search">
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
-          <input id="map-search" type="search" placeholder="Search floor or pin..." autocomplete="off">
+          <input id="map-search" type="search" placeholder="Search floors, rooms, or approved items..." autocomplete="off">
         </label>
-
-        <div class="campus-map-toggles" aria-label="Map layers">
-          <label>
-            <input id="toggle-pins" type="checkbox" checked>
-            <span>Show example pins</span>
-          </label>
-          <label>
-            <input id="toggle-depth" type="checkbox" checked>
-            <span>Explore depth</span>
-          </label>
-          <label>
-            <input id="toggle-blueprint" type="checkbox">
-            <span>Blueprint debug</span>
-          </label>
-        </div>
 
         <div id="map-details" class="campus-map-details" aria-live="polite">
           <span class="material-symbols-outlined filled" aria-hidden="true">touch_app</span>
-          <h3>Select a pin</h3>
-          <p>Hover or click a map pin to preview the location card. Live item pins will come after the base map is approved.</p>
+          <h3>Select a room</h3>
+          <p>Hover or click a room to inspect it. Approved found items appear in the room details when available.</p>
         </div>
       </aside>
 

@@ -1,3 +1,4 @@
+// Converter tests make sure AutoCAD layer semantics survive the DXF-to-map JSON pipeline.
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');

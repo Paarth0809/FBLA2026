@@ -2,6 +2,8 @@ const { prisma } = require('./prisma');
 const { publicUrl } = require('./publicUrl');
 const { createEmailDelivery } = require('./emailDelivery');
 
+// Notification delivery is lazy so tests and scripts can import this module
+// without immediately initializing SMTP/Resend clients.
 let delivery = null;
 
 function getDelivery() {
@@ -12,6 +14,8 @@ function getDelivery() {
 }
 
 function normalizePreferences(newPrefs = {}, defaultEmail = '') {
+  // Missing preference rows should behave like a user-friendly opt-in default,
+  // while still allowing users to disable individual alert classes.
   return {
     emailEnabled: newPrefs.emailEnabled !== false,
     email: (newPrefs.email || defaultEmail || '').trim(),
@@ -55,6 +59,8 @@ async function savePreferences(userId, newPrefs) {
 }
 
 async function addLog(logEntry) {
+  // Every attempted notification is stored, even preview/error deliveries.
+  // This gives administrators and judges a transparent audit trail.
   try {
     const entry = await prisma.notificationLog.create({
       data: {
@@ -88,6 +94,8 @@ async function getLogs(userId) {
 }
 
 async function dispatchEmail(userId, to, subject, body) {
+  // Sending and logging are coupled so the UI can show what happened whether
+  // the provider sent, previewed, or failed the message.
   const emailDelivery = getDelivery();
   try {
     const result = await emailDelivery.send({
@@ -148,6 +156,8 @@ async function dispatchEmail(userId, to, subject, body) {
 }
 
 async function triggerAlert(userId, alertType, data) {
+  // Alert fan-out always reloads the user and preferences from Postgres; caller
+  // supplied emails are not trusted for privacy or delivery decisions.
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return;

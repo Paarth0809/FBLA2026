@@ -6,6 +6,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// WebGL magnifying-glass lens for the scrollytelling hero. It keeps the real GLB
+// visible while a shader magnifies and refracts the story canvas and DOM copy below.
 const story = document.querySelector('[data-scroll-story]');
 const sticky = story?.querySelector('.scroll-story-sticky');
 const storyCanvas = story?.querySelector('[data-story-canvas]');
@@ -18,6 +20,7 @@ if (story && sticky && storyCanvas && lensCanvas) {
 
 function initScrollLens() {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Reduced-motion users keep the readable story without extra WebGL movement.
   if (reduceMotion || !window.WebGLRenderingContext) {
     story.classList.add('scroll-lens-disabled');
     return;
@@ -57,6 +60,8 @@ function initScrollLens() {
   scene.add(modelPivot);
 
   const compositor = createStoryCompositor(storyCanvas, originalLayers);
+  // Separate background and text textures let final-exit optics keep refracting
+  // the scene after text magnification fades out.
   const backgroundTexture = createCanvasTexture(compositor.backgroundCanvas, 'ScrollStoryBackground');
   const textTexture = createCanvasTexture(compositor.textCanvas, 'ScrollStoryText');
 
@@ -104,6 +109,7 @@ function initScrollLens() {
 
   const loader = new GLTFLoader();
   loader.load(
+    // The GLB model remains the visual source of truth; shader math follows its projected glass.
     '/models/magnifying-glass.glb',
     (gltf) => {
       model = gltf.scene;
@@ -196,6 +202,8 @@ function initScrollLens() {
 
     const state = computeLensState(progress.current);
     state.scrollProgress = progress.current;
+    // Render order matters: pose the GLB, project the real glass shape, update
+    // masks/textures, then shade the lens so optics stay attached to the model.
     updateModel(state);
     const optics = smoothProjectedOptics(computeProjectedOptics(state), state);
     updateOriginalTextMasks(state, optics);

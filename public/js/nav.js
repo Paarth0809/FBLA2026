@@ -30,6 +30,79 @@ function safeText(value) {
   }[char]));
 }
 
+function normalizedRole(user = currentUser) {
+  return String(user?.role || '').trim().toLowerCase();
+}
+
+function isAdminUser(user = currentUser) {
+  return normalizedRole(user) === 'admin';
+}
+
+function primaryNavLinkClasses(active = false) {
+  return active
+    ? 'text-white bg-white/10 px-3 py-2 rounded-xl text-sm font-semibold transition-colors'
+    : 'text-white/75 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-colors';
+}
+
+function normalizePrimaryNavigation() {
+  document.querySelectorAll('.site-top-links').forEach((nav) => {
+    if (nav.dataset.reportMenuNormalized === 'true') return;
+    const path = window.location.pathname || '/';
+    const isSearchActive = path === '/search.html';
+    const isReportActive = path === '/report.html' || path === '/report-missing.html';
+    const isMapActive = path === '/map.html';
+    const showReportMenu = !isAdminUser();
+    nav.dataset.reportMenuNormalized = 'true';
+    nav.innerHTML = `
+      <a href="/search.html" class="${primaryNavLinkClasses(isSearchActive)}">Search Items</a>
+      ${showReportMenu ? `
+      <div class="nav-report-menu">
+        <button type="button"
+                class="${primaryNavLinkClasses(isReportActive)} nav-report-menu-button"
+                aria-haspopup="true"
+                aria-expanded="false">
+          <span>Report Item</span>
+          <span class="material-symbols-outlined" aria-hidden="true" style="font-size:16px">expand_more</span>
+        </button>
+        <div class="nav-report-menu-panel" role="menu" aria-label="Report item options">
+          <a href="/report.html" role="menuitem">Report Found</a>
+          <a href="/report-missing.html" role="menuitem">Report Missing</a>
+        </div>
+      </div>
+      ` : ''}
+      <a href="/map.html" class="${primaryNavLinkClasses(isMapActive)}">Campus Map</a>
+    `;
+  });
+}
+
+function closeReportMenus(exceptMenu) {
+  document.querySelectorAll('.nav-report-menu.is-open').forEach((menu) => {
+    if (menu === exceptMenu) return;
+    menu.classList.remove('is-open');
+    const button = menu.querySelector('.nav-report-menu-button');
+    if (button) button.setAttribute('aria-expanded', 'false');
+  });
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  if (!target) return;
+  const button = target.closest('.nav-report-menu-button');
+  if (button) {
+    const menu = button.closest('.nav-report-menu');
+    const open = !menu.classList.contains('is-open');
+    closeReportMenus(menu);
+    menu.classList.toggle('is-open', open);
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    return;
+  }
+  if (!target.closest('.nav-report-menu')) closeReportMenus();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeReportMenus();
+});
+
 // loadUser — fetches the current session user from the server.
 // Called automatically at the bottom of this file when nav.js loads.
 async function loadUser() {
@@ -52,6 +125,7 @@ async function loadUser() {
 // renderNav — builds navigation action groups based on login state.
 // Injected into #nav-auth and optional compact/sidebar nav slots.
 function renderNav() {
+  normalizePrimaryNavigation();
   const slots = Array.from(document.querySelectorAll('#nav-auth, #nav-auth-mobile, [data-nav-auth]'));
 
   slots.forEach((el) => {
@@ -88,16 +162,16 @@ function renderNav() {
 
 function renderLoggedInNav(mode = 'default') {
   const firstName = (currentUser.name || 'there').split(' ')[0];
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = isAdminUser();
   const portalHref = isAdmin ? '/admin.html' : '/my-submissions.html';
   const portalLabel = isAdmin ? 'GLHS Portal' : 'Student Portal';
   const portalIcon = isAdmin ? 'admin_panel_settings' : 'space_dashboard';
-  const settingsHref = '/my-submissions.html?tab=settings';
+  const settingsHref = isAdmin ? '/admin.html?tab=settings' : '/my-submissions.html?tab=settings';
 
   if (mode === 'sidebar') {
     return `
       <div class="auth-panel">
-        <div class="auth-user">Signed in as ${safeText(firstName)}</div>
+        <div class="auth-user">${safeText(t('Signed in as'))} ${safeText(firstName)}</div>
         <a href="${settingsHref}" class="btn btn-outline btn-sm w-full">
           <span class="material-symbols-outlined">settings</span>Settings
         </a>
@@ -168,7 +242,7 @@ function requireAuth() {
 
 // requireAdmin — redirects to the homepage if the user is not an admin.
 function requireAdmin() {
-  if (!currentUser || currentUser.role !== 'admin') {
+  if (!currentUser || !isAdminUser()) {
     window.location.href = '/';
     return false;
   }
@@ -281,7 +355,7 @@ function initMotion() {
     if (!(field instanceof HTMLElement)) return;
     field.classList.remove('input-error');
     if (field.matches('input, textarea, select') && field.hasAttribute('required')) {
-      field.classList.toggle('input-valid', field.checkValidity() && Boolean(field.value));
+      field.classList.toggle('input-valid', field.validity.valid && Boolean(field.value));
     }
   });
 
@@ -289,7 +363,7 @@ function initMotion() {
     const field = event.target;
     if (!(field instanceof HTMLElement) || !field.matches('input, textarea, select')) return;
     if (!field.hasAttribute('required')) return;
-    field.classList.toggle('input-valid', field.checkValidity() && Boolean(field.value));
+    field.classList.toggle('input-valid', field.validity.valid && Boolean(field.value));
   }, true);
 
   const showImageFallback = (img) => {
@@ -1479,7 +1553,9 @@ window.setDyslexicFontEnabled = setDyslexicFontEnabled;
 window.applyAccountSettings = applyAccountSettings;
 window.saveAccountSettings = saveAccountSettings;
 window.loadAccountSettings = loadAccountSettings;
-window.getSupportedLanguages = () => ({ ...languageNames.en });
+window.getSupportedLanguages = (lang = getCurrentLanguage()) => ({
+  ...(languageNames[lang] || languageNames.en)
+});
 
 // Dynamically load translations.js and bootstrap i18n
 function bootstrapTranslations() {

@@ -140,6 +140,10 @@
             <span class="material-symbols-outlined" style="font-size:14px">report</span>
             Report Missing Item
           </a>
+          <a href="/map.html" class="btn btn-outline btn-sm flex items-center gap-1.5">
+            <span class="material-symbols-outlined" style="font-size:14px">map</span>
+            Campus Map
+          </a>
         </div>
       </div>
 
@@ -508,7 +512,7 @@
         <td>${formatDate(item.dateFound)}</td>
         <td>
           ${statusBadge(item.status)}
-          <div class="form-hint mt-1">${STATUS_HINT[item.status] || ''}</div>
+          <div class="form-hint mt-1">${window.t(STATUS_HINT[item.status] || '')}</div>
         </td>
       </tr>`;
 
@@ -633,7 +637,7 @@
         <td>${formatDate(item.lastSeenDate)}</td>
         <td>
           ${statusBadge(item.status)}
-          <div class="form-hint mt-1">${STATUS_HINT[item.status] || ''}</div>
+          <div class="form-hint mt-1">${window.t(STATUS_HINT[item.status] || '')}</div>
           ${markFoundBtn}
         </td>
       </tr>`;
@@ -749,7 +753,7 @@
         <td>${formatDate(claim.createdAt)}</td>
         <td>
           ${statusBadge(claim.status)}
-          <div class="form-hint mt-1">${CLAIM_HINT[claim.status] || ''}</div>
+          <div class="form-hint mt-1">${window.t(CLAIM_HINT[claim.status] || '')}</div>
         </td>
         <td>${contactCell}</td>
       </tr>`;
@@ -770,8 +774,9 @@
         if (matchBtn) {
           const total = withMatches.reduce((n, g) => n + g.foundMatches.length, 0);
           setDashStat('stat-matches-count', total);
+          const matchesLabel = window.t('Matches');
           matchBtn.innerHTML = '<span class="material-symbols-outlined">compare_arrows</span> ' +
-            (total > 0 ? 'Matches (' + total + ')' : 'Matches');
+            (total > 0 ? matchesLabel + ' (' + total + ')' : matchesLabel);
         }
 
         if (!_matchesNotified && withMatches.length > 0) {
@@ -881,8 +886,9 @@
 
         const btn = document.getElementById('messages-tab-btn');
         if (btn) {
+          const messagesLabel = window.t('Messages');
           btn.innerHTML = '<span class="material-symbols-outlined">mail</span> ' +
-            (merged.length > 0 ? 'Messages (' + merged.length + ')' : 'Messages');
+            (merged.length > 0 ? messagesLabel + ' (' + merged.length + ')' : messagesLabel);
         }
       } catch (err) {
         el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
@@ -1022,7 +1028,7 @@
     function openMessageModal(receiverEmail, itemId, itemName, receiverLabel) {
       _msgState = { receiverEmail, itemId, itemName, replyToId: null };
 
-      document.getElementById('msg-modal-title').textContent = 'Send Message';
+      document.getElementById('msg-modal-title').textContent = window.t('Send Message');
       document.getElementById('msg-modal-context').innerHTML =
         '<strong>To:</strong> ' + escapeHtml(receiverLabel || receiverEmail) +
         ' &nbsp;|&nbsp; <strong>Re:</strong> ' + escapeHtml(itemName);
@@ -1047,7 +1053,7 @@
         replyToId:     msg.id
       };
 
-      document.getElementById('msg-modal-title').textContent = 'Reply to Message';
+      document.getElementById('msg-modal-title').textContent = window.t('Reply to Message');
       document.getElementById('msg-modal-context').innerHTML =
         '<strong>To:</strong> ' + escapeHtml(msg.senderName) + ' (' + escapeHtml(msg.senderEmail) + ')' +
         ' &nbsp;|&nbsp; <strong>Re:</strong> ' + escapeHtml(msg.itemName || 'item');
@@ -1067,7 +1073,7 @@
       document.getElementById('msg-char-count').textContent = '0';
       document.getElementById('msg-error').classList.add('hidden');
       document.getElementById('msg-send-btn').disabled = false;
-      document.getElementById('msg-send-btn').innerHTML = '<span class="material-symbols-outlined">send</span> Send Message';
+      document.getElementById('msg-send-btn').innerHTML = '<span class="material-symbols-outlined">send</span> ' + window.t('Send Message');
     }
 
     function closeMessageModal() {
@@ -1150,7 +1156,7 @@
       if (!select) return;
 
       const supported = typeof window.getSupportedLanguages === 'function'
-        ? window.getSupportedLanguages()
+        ? window.getSupportedLanguages(activeLanguage)
         : { en: 'English', es: 'Spanish', zh: 'Chinese', fr: 'French', de: 'German' };
 
       select.innerHTML = Object.entries(supported)
@@ -1160,6 +1166,11 @@
 
       select.value = supported[activeLanguage] ? activeLanguage : 'en';
     }
+
+    document.addEventListener('languageChanged', function(e) {
+      const activeLanguage = e.detail || (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en');
+      populateLanguageSettings(activeLanguage);
+    });
 
     async function loadAppearanceSettings() {
       const fallbackSettings = {
@@ -1201,7 +1212,7 @@
       try {
         btn = e.target.querySelector('button[type="submit"]');
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner inline-block w-4 h-4 mr-2"></span> Saving...';
+        btn.innerHTML = '<span class="spinner inline-block w-4 h-4 mr-2"></span> ' + window.t('Saving...');
 
         if (typeof window.saveAccountSettings === 'function') {
           await window.saveAccountSettings({ preferredLanguage, dyslexicFontEnabled });
@@ -1217,13 +1228,13 @@
           messageAlerts
         });
 
-        showToast('Settings saved successfully!', 'success');
+        showToast(window.t('Settings saved successfully!'), 'success');
       } catch (err) {
-        showToast(err.message || 'Failed to save settings.', 'error');
+        showToast(err.message || window.t('Failed to save settings.'), 'error');
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> Save Settings';
+          btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">save</span> ' + window.t('Save Settings');
         }
       }
     }

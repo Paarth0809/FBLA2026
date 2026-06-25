@@ -1,3 +1,6 @@
+// Mini campus map picker for report forms. It writes optional room/pin metadata
+// without replacing the user's own written location unless that field is empty
+// or still contains a prior map-generated value.
 const CLEAN_FLOOR_SOURCES = [
   {
     id: 'floor-1',
@@ -105,6 +108,8 @@ function getFloorMeta(floorId) {
 }
 
 function setHiddenValues(room, pin, activeFloorId) {
+  // Hidden fields are the contract with the backend: text location remains
+  // human-readable, while these values anchor approved items on the 3D map.
   document.getElementById('mapFloorId').value = room ? activeFloorId : '';
   document.getElementById('mapRoomId').value = room?.id || '';
   document.getElementById('mapRoomNumber').value = room?.roomNumber || room?.plannedRoomNumber || '';
@@ -113,6 +118,8 @@ function setHiddenValues(room, pin, activeFloorId) {
 }
 
 function initReportMapPicker() {
+  // The picker is optional. Missing markup should never block the normal found
+  // item report form, which keeps older/static pages resilient.
   const mount = document.getElementById('report-map-mini');
   const floorSelect = document.getElementById('report-floor-select');
   const search = document.getElementById('report-room-search');
@@ -508,11 +515,37 @@ function initReportMapPicker() {
 
   function activateFloor(nextFloorId) {
     activeFloorId = nextFloorId;
+    floorSelect.value = nextFloorId;
     search.value = '';
     updateSelection(null);
     const clean = cleanByFloor.get(activeFloorId);
     if (clean) renderPicker(clean);
   }
+
+  function selectRoom({ floorId, roomNumber }) {
+    const targetFloorId = floorId || activeFloorId;
+    const clean = cleanByFloor.get(targetFloorId);
+    if (!clean || !roomNumber) return false;
+    if (targetFloorId !== activeFloorId || !rooms.length) {
+      activateFloor(targetFloorId);
+    }
+    const normalizedRoom = String(roomNumber).trim().toLowerCase();
+    const match = rooms.find((room) => (
+      String(room.roomNumber || '').toLowerCase() === normalizedRoom ||
+      String(room.plannedRoomNumber || '').toLowerCase() === normalizedRoom ||
+      String(room.label || '').toLowerCase() === normalizedRoom ||
+      String(room.id || '').toLowerCase() === normalizedRoom
+    ));
+    if (!match) return false;
+    search.value = match.roomNumber || match.plannedRoomNumber || match.label || '';
+    updateSelection(match);
+    return true;
+  }
+
+  window.reportMapPicker = {
+    ...(window.reportMapPicker || {}),
+    selectRoom
+  };
 
   search.addEventListener('input', () => {
     const query = search.value.trim().toLowerCase();

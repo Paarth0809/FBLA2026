@@ -1,3 +1,6 @@
+// Campus map world renderer: turns cleaned AutoCAD/DXF geometry into an
+// interactive Three.js miniature with WebGPU when available and WebGL fallback
+// for judge-day reliability.
 import * as THREE from '/vendor/three/build/three.webgpu.js';
 import { WebGLRenderer } from '/vendor/three/build/three.module.js';
 import { gsap } from '/vendor/gsap/index.js';
@@ -6,8 +9,11 @@ const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').mat
 const DEBUG = new URLSearchParams(window.location.search).has('mapDebug');
 const DEBUG_DEPTH = new URLSearchParams(window.location.search).has('mapDepthDebug');
 const WEBGPU_INIT_TIMEOUT_MS = 1800;
+const DRAG_PAN_THRESHOLD = 8;
 
 const CAMERA_PRESETS = {
+  // Camera presets are expressed as target-relative offsets so view changes can
+  // animate smoothly without rebuilding the scene or swapping controls.
   iso: { x: -760, y: 640, z: 980, zoomBoost: 1 },
   top: { x: 0, y: 1260, z: 0.01, zoomBoost: 1.08 },
   roomFocus: { x: 78, y: 1240, z: 172, zoomBoost: 1.08 },
@@ -18,6 +24,9 @@ const CAMERA_PRESETS = {
 };
 
 const DEPTH_PRESET = {
+  // Depth values are intentionally centralized: the same CAD polygons can read
+  // as floors, hallways, walls, or selected rooms by changing visual language
+  // instead of mutating the source geometry.
   floorPlate: 4,
   hallway: 24,
   room: 84,
@@ -31,10 +40,10 @@ const DEPTH_PRESET = {
   roomWallThickness: 3.8,
   hallwayWallThickness: 2.4,
   stairBase: 18,
-  hoverLiftRoom: 12,
-  hoverLiftHallway: 5,
-  selectedLiftRoom: 24,
-  selectedLiftHallway: 10,
+  hoverLiftRoom: 22,
+  hoverLiftHallway: 8,
+  selectedLiftRoom: 30,
+  selectedLiftHallway: 13,
   hoverLiftStair: 20,
   rimHeight: 2.2,
   rimThickness: 2.2,
@@ -45,6 +54,8 @@ const DEPTH_PRESET = {
 };
 
 const COLORS = {
+  // Pale blue architectural palette inspired by the VECTR reference while
+  // retaining Green Level's emerald accents for active room states.
   floor: 0xe4f3fc,
   floorEdge: 0xaed0e4,
   hallway: 0xd9f1fb,
@@ -55,8 +66,6 @@ const COLORS = {
   wall: 0xc6d7e2,
   wallTop: 0xf4f8fb,
   connector: 0x8fdcff,
-  pin: 0x006c49,
-  pinSelected: 0xd4af37,
   stair: 0xf2f9ff,
   stairTread: 0x93b8d2,
   ink: 0x16251d,
@@ -90,6 +99,8 @@ function getViewCubeTransform(cameraRig) {
 }
 
 function normalizeWheelZoomFactor(event) {
+  // Trackpads can emit huge pixel deltas. Bounding the exponential factor keeps
+  // pinch/scroll zoom anchored and prevents the map from launching away.
   const modeMultiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
   const delta = clamp(event.deltaY * modeMultiplier, -180, 180);
   return clamp(Math.exp(-delta * 0.0019), 0.78, 1.28);
@@ -197,6 +208,15 @@ function extrudedPolygonGeometry(polygon, options = {}) {
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return geometry;
+}
+
+function createRoomHitTargetGeometry(polygon, height) {
+  return extrudedPolygonGeometry(polygon, {
+    depth: Math.max(1, height),
+    bevelSize: 0,
+    bevelThickness: 0,
+    bevelSegments: 0
+  });
 }
 
 function createOutlineSegments(polygon, y, color = 0x9ab8c9, opacity = 0.34) {
@@ -475,6 +495,7 @@ export class CampusMapWorld {
     this.onHover = options.onHover || (() => {});
     this.onReady = options.onReady || (() => {});
     this.onFocusChange = options.onFocusChange || (() => {});
+    this.onFrame = options.onFrame || (() => {});
     this.viewCube = options.viewCube || document.getElementById('campus-view-cube');
     this.viewCubeCore = options.viewCubeCore || document.getElementById('campus-view-cube-core');
 
@@ -492,12 +513,10 @@ export class CampusMapWorld {
     this.interactive = [];
     this.roomHitTargets = [];
     this.roomGroups = new Map();
-    this.pinGroups = new Map();
     this.stairGroups = new Map();
     this.walls = [];
     this.detailCache = new Map();
     this.detailLoadToken = 0;
-    this.pinsVisible = true;
     this.depthEnabled = true;
     this.blueprintVisible = DEBUG;
     this.disposed = false;
@@ -509,8 +528,6 @@ export class CampusMapWorld {
     this.lastFrameTime = performance.now();
     this.cameraRig = { x: -760, y: 640, z: 980 };
     this.focusMode = null;
-    this.livePins = [];
-    this.livePinIds = new Set();
     this.lastHoverSeenAt = 0;
     this.hoverGraceMs = 90;
 
@@ -635,8 +652,6 @@ export class CampusMapWorld {
         transparent: true,
         opacity: 0.72
       }),
-      pin: makeMaterial({ color: COLORS.pin, roughness: 0.42, metalness: 0.05 }),
-      pinSelected: makeMaterial({ color: COLORS.pinSelected, roughness: 0.36, metalness: 0.15 }),
       shadow: new THREE.MeshBasicMaterial({
         color: 0x4d7892,
         transparent: true,
@@ -764,8 +779,9 @@ export class CampusMapWorld {
     this.canvas.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
     this.canvas.addEventListener('pointermove', (event) => this.handlePointerMove(event));
     this.canvas.addEventListener('pointerup', (event) => this.handlePointerUp(event));
-    this.canvas.addEventListener('pointercancel', (event) => this.handlePointerUp(event));
-    this.canvas.addEventListener('pointerleave', () => this.clearHover());
+    this.canvas.addEventListener('pointercancel', (event) => this.handlePointerCancel(event));
+    this.canvas.addEventListener('pointerleave', (event) => this.handlePointerLeave(event));
+    this.canvas.addEventListener('lostpointercapture', (event) => this.handleLostPointerCapture(event));
     this.canvas.addEventListener('wheel', (event) => this.handleWheel(event), { passive: false });
     this.canvas.addEventListener('dblclick', (event) => {
       event.preventDefault();
@@ -833,9 +849,7 @@ export class CampusMapWorld {
     this.roomHitTargets = [];
     this.lastHoverSeenAt = 0;
     this.roomGroups.clear();
-    this.pinGroups.clear();
     this.stairGroups.clear();
-    this.livePinIds.clear();
     this.walls = [];
     this.clearLabels();
 
@@ -905,8 +919,6 @@ export class CampusMapWorld {
     (floor.routeSegments || []).forEach((entry) => this.addRouteSegment(entry));
     (floor.stairs || []).forEach((entry) => this.addStair(entry, floor));
     (floor.roomNumberLabels || []).forEach((entry) => this.addRoomNumberLabel(entry, floor));
-    floor.pins.forEach((entry) => this.addPin(entry, floor));
-    this.addLivePinsForFloor(floor);
     if (DEBUG_DEPTH) this.addDepthDebugHelpers(floor);
   }
 
@@ -1133,7 +1145,6 @@ export class CampusMapWorld {
     const center = polygonCenter(room.polygon);
     const label = createTextLabel(room.label, `campus-map-world-label room-label${isHallway ? ' hallway-label' : ''}`);
     label.hidden = true;
-    label.addEventListener('click', () => this.selectEntity({ type: 'room', room, floor, group }));
     this.labelLayer.append(label);
     this.labels.set(`room:${room.id}`, { el: label, world: new THREE.Vector3(center.x, wallTopY + 18, center.z), entity: { type: 'room', room, floor, group } });
 
@@ -1148,12 +1159,14 @@ export class CampusMapWorld {
     this.activeFloorGroup.add(group);
     this.roomGroups.set(room.id, group);
 
-    const hitTarget = new THREE.Mesh(polygonTopGeometry(room.polygon), this.hitTargetMaterial);
+    const hitTarget = new THREE.Mesh(createRoomHitTargetGeometry(room.polygon, slabDepth), this.hitTargetMaterial);
     hitTarget.name = `${room.id}-hit-target`;
-    hitTarget.position.y = floorTopY + 1.5;
+    hitTarget.position.y = baseY;
     hitTarget.userData.entity = { type: 'room', room, floor, group };
     hitTarget.userData.mapRole = 'room-hit-target';
+    hitTarget.userData.linkedRoomGroup = group;
     hitTarget.renderOrder = 500;
+    group.userData.hitTarget = hitTarget;
     this.activeFloorGroup.add(hitTarget);
     this.roomHitTargets.push(hitTarget);
   }
@@ -1250,7 +1263,6 @@ export class CampusMapWorld {
 
     const label = createTextLabel(stair.label, 'campus-map-world-label stair-label');
     label.hidden = true;
-    label.addEventListener('click', () => this.selectEntity({ type: 'stair', stair, floor, group }));
     this.labelLayer.append(label);
     this.labels.set(`stair:${stair.id}`, { el: label, world: group.position, entity: { type: 'stair', stair, floor, group } });
 
@@ -1524,97 +1536,6 @@ export class CampusMapWorld {
     this.render();
   }
 
-  addPin(pin, floor) {
-    const [x, z] = pin.position;
-    const group = new THREE.Group();
-    group.position.set(x, 26, z);
-    group.name = pin.id;
-    group.visible = this.pinsVisible;
-    group.userData = { type: 'pin', pin, floor, targetY: 26, currentY: 26 };
-
-    const shadow = new THREE.Mesh(new THREE.CircleGeometry(26, 32), this.materials.shadow);
-    shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = -25.5;
-    group.add(shadow);
-
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(6, 10, 42, 24), this.materials.pin);
-    stem.position.y = -4;
-    stem.userData.entity = { type: 'pin', pin, floor, group };
-    group.add(stem);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(19, 32, 18), this.materials.pin);
-    head.position.y = 24;
-    head.scale.y = 1.1;
-    head.userData.entity = { type: 'pin', pin, floor, group };
-    group.add(head);
-
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(25, 2.5, 10, 48), this.materials.pinSelected);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = 2;
-    ring.visible = false;
-    group.add(ring);
-    group.userData.ring = ring;
-
-    const label = createTextLabel(pin.label, 'campus-map-world-label pin-label');
-    label.addEventListener('click', () => this.selectEntity({ type: 'pin', pin, floor, group }));
-    this.labelLayer.append(label);
-    this.labels.set(`pin:${pin.id}`, { el: label, world: group.position, entity: { type: 'pin', pin, floor, group } });
-
-    this.activeFloorGroup.add(group);
-    this.pinGroups.set(pin.id, group);
-    this.interactive.push(stem, head);
-  }
-
-  removeLivePins() {
-    if (!this.livePinIds.size) return;
-    this.interactive = this.interactive.filter((object) => !object.userData?.entity?.pin?.live);
-    this.livePinIds.forEach((pinId) => {
-      const group = this.pinGroups.get(pinId);
-      if (group) {
-        this.activeFloorGroup?.remove(group);
-        this.disposeObject(group);
-      }
-      this.pinGroups.delete(pinId);
-      const label = this.labels.get(`pin:${pinId}`);
-      label?.el?.remove();
-      this.labels.delete(`pin:${pinId}`);
-    });
-    this.livePinIds.clear();
-  }
-
-  addLivePinsForFloor(floor) {
-    if (!floor || !Array.isArray(this.livePins) || !this.livePins.length) return;
-    this.livePins
-      .filter((item) => item.mapFloorId === floor.id && item.mapRoomId)
-      .forEach((item) => {
-        const room = floor.rooms.find((entry) => entry.id === item.mapRoomId);
-        const center = room?.polygon ? polygonCenter(room.polygon) : { x: 0, z: 0 };
-        const x = Number.isFinite(Number(item.mapPinX)) ? Number(item.mapPinX) : center.x;
-        const z = Number.isFinite(Number(item.mapPinZ)) ? Number(item.mapPinZ) : center.z;
-        const pin = {
-          id: `found-${item.id}`,
-          label: item.itemName,
-          type: item.category || 'Found item',
-          status: 'found',
-          position: [x, z],
-          roomId: item.mapRoomId,
-          roomNumber: item.mapRoomNumber,
-          live: true,
-          item
-        };
-        this.addPin(pin, floor);
-        this.livePinIds.add(pin.id);
-      });
-  }
-
-  setLivePins(items = []) {
-    this.livePins = Array.isArray(items) ? items : [];
-    if (!this.activeFloor || !this.activeFloorGroup) return;
-    this.removeLivePins();
-    this.addLivePinsForFloor(this.activeFloor);
-    this.updateLabels();
-  }
-
   buildBlueprintLayer(floor) {
     if (!this.blueprintLayer) return;
     this.blueprintLayer.replaceChildren();
@@ -1705,8 +1626,9 @@ export class CampusMapWorld {
   flyToEntity(entity) {
     if (!entity || REDUCED_MOTION) return;
     const group = entity.group;
-    const center = group?.position?.clone?.() || null;
-    if (!center) return;
+    if (!group) return;
+    const center = new THREE.Vector3();
+    group.getWorldPosition(center);
     if (entity.type === 'room' && entity.room?.polygon) {
       const roomCenter = polygonCenter(entity.room.polygon);
       center.set(roomCenter.x, 0, roomCenter.z);
@@ -1903,13 +1825,11 @@ export class CampusMapWorld {
     this.cancelCameraTween();
     this.canvas.setPointerCapture(event.pointerId);
     this.updatePointer(event);
-    const hit = this.pickEntity();
     this.drag = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      moved: false,
-      hit
+      moved: false
     };
   }
 
@@ -1918,7 +1838,15 @@ export class CampusMapWorld {
     if (this.drag && this.drag.pointerId === event.pointerId) {
       const dx = event.clientX - this.drag.x;
       const dy = event.clientY - this.drag.y;
-      if (Math.abs(dx) + Math.abs(dy) > 3) this.drag.moved = true;
+      if (!this.drag.moved) {
+        if (Math.abs(dx) + Math.abs(dy) <= DRAG_PAN_THRESHOLD) return;
+        this.drag.moved = true;
+        this.canvas.classList.add('is-dragging');
+        this.clearHover();
+        this.drag.x = event.clientX;
+        this.drag.y = event.clientY;
+        return;
+      }
 
       const rect = this.canvas.getBoundingClientRect();
       const viewWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
@@ -1933,15 +1861,39 @@ export class CampusMapWorld {
       return;
     }
 
-    const hit = this.pickEntity();
+    const hit = this.pickHoverEntity();
     this.applyHoverHit(hit);
   }
 
   handlePointerUp(event) {
     if (!this.drag || this.drag.pointerId !== event.pointerId) return;
-    const hit = this.pickEntity();
-    if (!this.drag.moved && hit) this.selectEntity(hit);
+    const wasDragging = this.drag.moved;
     this.drag = null;
+    this.canvas.classList.remove('is-dragging');
+    try {
+      this.canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture may already be released by the browser.
+    }
+    if (wasDragging) return;
+    const hit = this.pickClickEntity();
+    if (hit) this.selectEntity(hit);
+  }
+
+  handlePointerCancel(event) {
+    if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+    this.clearDragState({ clearHover: true });
+  }
+
+  handleLostPointerCapture(event) {
+    if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+    this.clearDragState({ clearHover: true });
+  }
+
+  clearDragState({ clearHover = false } = {}) {
+    this.drag = null;
+    this.canvas.classList.remove('is-dragging');
+    if (clearHover) this.clearHover();
   }
 
   updatePointer(event) {
@@ -1962,13 +1914,51 @@ export class CampusMapWorld {
     return this.raycaster.ray.intersectPlane(plane, point);
   }
 
-  pickEntity() {
+  projectWorldPoint(point) {
+    if (!this.canvas || !this.camera || !point) return null;
+    const rect = this.canvas.getBoundingClientRect();
+    const projected = new THREE.Vector3(point.x, point.y ?? 0, point.z);
+    projected.project(this.camera);
+    return {
+      x: (projected.x * 0.5 + 0.5) * rect.width,
+      y: (-projected.y * 0.5 + 0.5) * rect.height,
+      inView: projected.z >= -1 && projected.z <= 1
+    };
+  }
+
+  pickHoverEntity() {
     const targets = this.interactive.concat(this.roomHitTargets);
+    return this.pickEntityFromTargets(targets, true);
+  }
+
+  pickClickEntity() {
+    if (this.focusMode?.roomId) return null;
+    return this.pickEntityFromTargets(this.interactive.concat(this.roomHitTargets), true);
+  }
+
+  pickEntity() {
+    return this.pickHoverEntity();
+  }
+
+  pickEntityFromTargets(targets, preferStableRoom = true) {
     if (!targets.length) return null;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const hits = this.raycaster.intersectObjects(targets, false);
+    if (preferStableRoom) {
+      const stableRoomHit = this.preferStableHoveredRoomHit(hits);
+      if (stableRoomHit) return stableRoomHit.object.userData.entity;
+    }
     const hit = hits.find((entry) => entry.object.userData.entity);
     return hit?.object.userData.entity || null;
+  }
+
+  preferStableHoveredRoomHit(hits) {
+    if (!this.hovered || this.hovered.type !== 'room') return null;
+    const validHits = hits.filter((entry) => entry.object.userData.entity);
+    const firstEntity = validHits[0]?.object.userData.entity;
+    if (firstEntity?.type !== 'room') return null;
+    const hoveredKey = this.entityKey(this.hovered);
+    return validHits.find((entry) => this.entityKey(entry.object.userData.entity) === hoveredKey) || null;
   }
 
   applyHoverHit(entity) {
@@ -2000,6 +1990,11 @@ export class CampusMapWorld {
     this.setHovered(null);
   }
 
+  handlePointerLeave(event) {
+    if (this.drag) this.clearDragState();
+    this.clearHover();
+  }
+
   selectEntity(entity) {
     this.selected = entity;
     this.onSelect(entity);
@@ -2008,14 +2003,7 @@ export class CampusMapWorld {
     } else {
       this.flyToEntity(entity);
     }
-    this.updatePinMaterials();
     this.updateLabels();
-  }
-
-  selectPin(pinId) {
-    const group = this.pinGroups.get(pinId);
-    if (!group || !this.activeFloor) return;
-    this.selectEntity({ type: 'pin', pin: group.userData.pin, floor: this.activeFloor, group });
   }
 
   selectRoom(roomId) {
@@ -2032,31 +2020,9 @@ export class CampusMapWorld {
 
   entityKey(entity) {
     if (!entity) return '';
-    if (entity.type === 'pin') return `pin:${entity.pin.id}`;
     if (entity.type === 'stair') return `stair:${entity.stair.id}`;
     if (entity.type === 'room-number') return `room-number:${entity.label.id}`;
     return `room:${entity.room.id}`;
-  }
-
-  updatePinMaterials() {
-    this.pinGroups.forEach((group) => {
-      const selected = this.selected?.type === 'pin' && this.selected.pin.id === group.userData.pin.id;
-      group.children.forEach((child) => {
-        if (child.isMesh && child.material === this.materials.pinSelected) return;
-        if (child.isMesh && child.material !== this.materials.shadow) {
-          child.material = selected ? this.materials.pinSelected : this.materials.pin;
-        }
-      });
-      if (group.userData.ring) group.userData.ring.visible = selected;
-    });
-  }
-
-  setPinsVisible(visible) {
-    this.pinsVisible = visible;
-    this.pinGroups.forEach((group) => {
-      group.visible = visible;
-    });
-    this.updateLabels();
   }
 
   setDepthEnabled(enabled) {
@@ -2095,10 +2061,7 @@ export class CampusMapWorld {
 
     this.labels.forEach((record, key) => {
       const pos = record.world.clone();
-      if (record.entity.type === 'pin') {
-        pos.copy(record.entity.group.position);
-        pos.y += 50;
-      } else if (record.entity.type === 'stair') {
+      if (record.entity.type === 'stair') {
         pos.copy(record.entity.group.position);
         pos.y += 42;
       }
@@ -2115,7 +2078,8 @@ export class CampusMapWorld {
       const isRoomNumber = key.startsWith('room-number:');
       const isRoomLabel = key.startsWith('room:');
       const isStairLabel = key.startsWith('stair:');
-      const isPinLabel = key.startsWith('pin:');
+      const roomLabelIsActive = isRoomLabel && key === selectedKey;
+      const stairLabelIsActive = isStairLabel && key === selectedKey;
       const suppressDuplicateRoomNumber = Boolean(
         isRoomNumber &&
         activeRoomId &&
@@ -2126,9 +2090,8 @@ export class CampusMapWorld {
       record.el.hidden = !inView ||
         suppressDuplicateRoomNumber ||
         (isRoomNumber && !zoomVisible && !isActive) ||
-        (isRoomLabel && !isActive) ||
-        (isStairLabel && !isActive) ||
-        (isPinLabel && !this.pinsVisible);
+        (isRoomLabel && !roomLabelIsActive) ||
+        (isStairLabel && !stairLabelIsActive);
     });
   }
 
@@ -2181,19 +2144,11 @@ export class CampusMapWorld {
           (key === this.entityKey(this.selected) ? materialSet.selected : materialSet.hover) :
           materialSet.base;
       }
-      const scale = 1;
+      const scale = active ? (isHallway ? 1.004 : 1.014) : 1;
       group.scale.lerp(new THREE.Vector3(scale, scale, scale), REDUCED_MOTION ? 1 : Math.min(1, dt * 7));
-    });
-
-    this.pinGroups.forEach((group) => {
-      const key = `pin:${group.userData.pin.id}`;
-      const active = key === this.entityKey(this.hovered) || key === this.entityKey(this.selected);
-      const targetY = active ? 48 : 26;
-      group.userData.currentY += (targetY - group.userData.currentY) * (REDUCED_MOTION ? 1 : Math.min(1, dt * 10));
-      group.position.y = group.userData.currentY;
-      group.rotation.y += ((active ? 0.16 : 0) - group.rotation.y) * (REDUCED_MOTION ? 1 : Math.min(1, dt * 8));
-      const scale = active ? 1.08 : 1;
-      group.scale.lerp(new THREE.Vector3(scale, scale, scale), REDUCED_MOTION ? 1 : Math.min(1, dt * 8));
+      if (group.userData.hitTarget) {
+        group.userData.hitTarget.position.y = group.userData.baseY + group.userData.currentY;
+      }
     });
 
     this.stairGroups.forEach((group) => {
@@ -2207,6 +2162,7 @@ export class CampusMapWorld {
     });
 
     this.updateLabels();
+    this.onFrame();
     this.render();
   }
 

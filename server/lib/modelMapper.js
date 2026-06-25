@@ -1,3 +1,6 @@
+// Prisma stores normalized database field names and uppercase enum values.
+// These mappers preserve the original frontend API shape so older pages keep
+// working while the backend remains strongly structured around Postgres.
 function lowerEnum(value) {
   return String(value || '').toLowerCase();
 }
@@ -36,6 +39,8 @@ function userToApi(user) {
 }
 
 function foundItemToApi(item) {
+  // contactEmail is intentionally mapped from contactEmailPrivate here; routes
+  // decide when this mapper is safe to use so public APIs do not leak emails.
   if (!item) return null;
   return {
     id: item.id,
@@ -117,6 +122,8 @@ function messageToApi(message) {
 }
 
 const itemIncludes = {
+  // Shared include bundles keep route queries consistent and avoid accidental
+  // N+1 fetches when converting Prisma records to API DTOs.
   submittedBy: true,
   photoAsset: true
 };

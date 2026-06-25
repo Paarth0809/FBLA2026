@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 
+// Standalone magnifying-glass showcase used by legacy/home card variants. The
+// scroll lens has its own renderer; this file keeps the reusable GLB preview
+// self-contained and progressively enhanced.
 const card = document.querySelector('[data-model-card]');
 const canvas = document.querySelector('[data-model-canvas]');
 const fallback = document.querySelector('[data-model-fallback]');
@@ -13,6 +16,8 @@ if (card && canvas) {
 function initMagnifier() {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // The model is decorative/progressive, so unsupported WebGL falls back to
+  // normal page content instead of blocking navigation.
   if (!window.WebGLRenderingContext) {
     showFallback();
     return;
@@ -149,6 +154,7 @@ function initMagnifier() {
     hoverBoost += ((hovered ? 1 : 0) - hoverBoost) * 0.08;
 
     if (model) {
+      // Hover gently changes spin speed only; it never changes layout or focus order.
       const speed = reduceMotion ? 0 : 0.45 + hoverBoost * 0.08;
       spinAngle += delta * speed;
       model.rotation.set(baseRotation.x, baseRotation.y, baseRotation.z + spinAngle);
@@ -172,6 +178,8 @@ function polishMaterial(node) {
   const source = node.material;
   if (!source) return;
 
+  // The original GLB relies on material "cheats" for glass and metal, so we
+  // preserve that intent while boosting reflections for browser rendering.
   const materialName = source.name || '';
   const material = source.clone();
 
@@ -217,6 +225,7 @@ function polishMaterial(node) {
 }
 
 function createStudioEnvironment(renderer) {
+  // Canvas-generated studio bands create predictable offline reflections.
   const canvas = document.createElement('canvas');
   canvas.width = 2048;
   canvas.height = 1024;

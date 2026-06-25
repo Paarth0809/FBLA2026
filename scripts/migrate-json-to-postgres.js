@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// One-time migration utility for moving the original JSON demo data into Prisma/Postgres.
+// It preserves UUIDs, item statuses, photos, claims, and message relationships.
 require('dotenv').config();
 
 const fs = require('fs');
