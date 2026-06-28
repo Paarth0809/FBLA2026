@@ -9,8 +9,19 @@ function read(file) {
   return fs.readFileSync(path.join(ROOT, file), 'utf8');
 }
 
+function firstStudentSidebar(source) {
+  const match = source.match(/<aside class="student-sidebar[\s\S]*?<\/aside>/);
+  return match ? match[0] : '';
+}
+
+function claimHeader(source) {
+  const match = source.match(/<a href="#" id="back-link"[\s\S]*?<div id="auth-required"/);
+  return match ? match[0] : '';
+}
+
 const foundReport = read('public/report.html');
 const missingReport = read('public/report-missing.html');
+const claimPage = read('public/claim.html');
 const picker = read('public/js/report-map-picker.js');
 const search = read('public/search.html');
 const searchMissing = read('public/search-missing.html');
@@ -26,13 +37,53 @@ for (const [name, source] of [
   assert(source.includes('Prefill AirPods'), `${name} should expose a concise AirPods autofill button.`);
   assert(!source.includes('Need the judge demo preset?'), `${name} should avoid corny judge-demo question copy.`);
   assert(!source.includes('auto_fix_high'), `${name} demo fill button should stay plain without a decorative icon.`);
-  assert(source.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found.jpg';"), `${name} should use the bundled AirPods demo image.`);
   assert(source.includes('async function attachDemoPhoto()'), `${name} should attach the demo photo through a shared helper.`);
   assert(source.includes('new DataTransfer()'), `${name} should use DataTransfer so the real file input receives a File.`);
   assert(source.includes("photoInput.dispatchEvent(new Event('change', { bubbles: true }))"), `${name} should reuse the existing photo preview flow after attaching the file.`);
   assert(source.includes('dispatchFieldEvents(field)'), `${name} should dispatch validation events for programmatic field updates.`);
   assert(!/demo[^<\n]{0,80}submit\(/i.test(source), `${name} demo fill must not submit the form automatically.`);
 }
+
+assert(
+  foundReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found-case.jpg';"),
+  'Found report demo fill should use the AirPods case photo.'
+);
+assert(
+  foundReport.includes("new File([blob], 'airpods-found-case.jpg'"),
+  'Found report demo fill should name the attached case photo clearly.'
+);
+assert(
+  missingReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-missing-open.jpg';"),
+  'Missing report demo fill should use a different open-AirPods photo.'
+);
+assert(
+  missingReport.includes("new File([blob], 'airpods-missing-open.jpg'"),
+  'Missing report demo fill should name the attached open-AirPods photo clearly.'
+);
+assert(
+  !missingReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found-case.jpg';") &&
+    !foundReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-missing-open.jpg';"),
+  'Found and missing demo prefills should not share the same AirPods image.'
+);
+
+assert(claimPage.includes('Demo prefill'), 'Claim page should include the quiet demo prefill utility.');
+assert(claimPage.includes('Prefill claim'), 'Claim page should expose a concise claim prefill button.');
+assert(claimPage.includes('student-form-card'), 'Claim page should use the shared student form card surface.');
+assert(claimPage.includes('max-w-3xl'), 'Claim page should use the same centered student portal content rhythm as settings/forms.');
+assert(!claimPage.includes('claim-layout-grid'), 'Claim page should not show a separate two-column claim info layout.');
+assert(!claimPage.includes('claim-info-card'), 'Claim page should not show the extra claiming-item side card.');
+assert(!claimPage.includes('id="item-name-display" class="text-on-surface">…</strong>'), 'Claim page header should not default to an ellipsis item name.');
+assert(firstStudentSidebar(claimPage).includes('href="/map.html"') && firstStudentSidebar(claimPage).includes('Campus Map'), 'Claim page should expose Campus Map from the student sidebar.');
+assert(!claimHeader(claimPage).includes('href="/my-submissions.html"') && !claimHeader(claimPage).includes('href="/search.html"') && !claimHeader(claimPage).includes('href="/map.html"'), 'Claim page header should not duplicate sidebar navigation buttons.');
+assert(claimPage.includes('function fillDemoClaim()'), 'Claim page should define a demo claim prefill handler.');
+assert(claimPage.includes('setDemoClaimField('), 'Claim page demo prefill should use a helper for field updates.');
+assert(claimPage.includes("field.dispatchEvent(new Event('input', { bubbles: true }))"), 'Claim page demo prefill should dispatch input events.');
+assert(claimPage.includes("field.dispatchEvent(new Event('change', { bubbles: true }))"), 'Claim page demo prefill should dispatch change events.');
+assert(!/fillDemoClaim[\s\S]{0,900}\.submit\(/.test(claimPage), 'Claim page demo prefill must not submit the claim automatically.');
+assert(claimPage.includes('claim-success-card'), 'Claim page should show an intentional success card after submission.');
+assert(claimPage.includes('View My Claims'), 'Claim success state should link back to the claims/submissions area.');
+assert(claimPage.includes('result.claim?.itemName'), 'Claim success state should use the submitted claim response to restore item context.');
+assert(!claimPage.includes("document.getElementById('claim-form').style.display = 'none';"), 'Claim page should not leave an empty card by only hiding the form after submission.');
 
 assert(
   foundReport.includes("window.reportMapPicker?.selectRoom({ floorId: 'floor-1', roomNumber: '1129' })"),
@@ -52,8 +103,9 @@ assert(
 );
 
 assert(
-  fs.existsSync(path.join(ROOT, 'public/images/demo/airpods-found.jpg')),
-  'Bundled AirPods demo image should be tracked under public/images/demo.'
+  fs.existsSync(path.join(ROOT, 'public/images/demo/airpods-found-case.jpg')) &&
+    fs.existsSync(path.join(ROOT, 'public/images/demo/airpods-missing-open.jpg')),
+  'Both distinct AirPods demo images should be tracked under public/images/demo.'
 );
 
 assert(

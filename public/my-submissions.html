@@ -104,6 +104,11 @@
         <span class="material-symbols-outlined" style="font-size:18px">manage_search</span>
         Browse Missing Items
       </a>
+      <a href="/map.html"
+         class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors">
+        <span class="material-symbols-outlined" style="font-size:18px">map</span>
+        Campus Map
+      </a>
     </nav>
 
     <!-- Logout -->
@@ -130,20 +135,6 @@
           <div class="eyebrow mb-2">Student Portal</div>
           <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Welcome back</h1>
           <p class="text-on-surface-variant text-sm">Track reports, claims, matches, alerts, and messages from one place.</p>
-        </div>
-        <div class="flex gap-2 flex-wrap">
-          <a href="/report.html" class="btn btn-primary btn-sm flex items-center gap-1.5">
-            <span class="material-symbols-outlined" style="font-size:14px">add_circle</span>
-            Report Found Item
-          </a>
-          <a href="/report-missing.html" class="btn btn-outline btn-sm flex items-center gap-1.5">
-            <span class="material-symbols-outlined" style="font-size:14px">report</span>
-            Report Missing Item
-          </a>
-          <a href="/map.html" class="btn btn-outline btn-sm flex items-center gap-1.5">
-            <span class="material-symbols-outlined" style="font-size:14px">map</span>
-            Campus Map
-          </a>
         </div>
       </div>
 
@@ -192,7 +183,8 @@
         <button class="tab"        onclick="switchTab('missing',  this)" role="tab" aria-selected="false" aria-controls="tab-missing"><span class="material-symbols-outlined">search</span> Missing</button>
         <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">pan_tool</span> Claims</button>
         <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn"><span class="material-symbols-outlined">compare_arrows</span> Matches</button>
-        <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn"><span class="material-symbols-outlined">mail</span> Messages</button>
+        <button class="tab"        onclick="switchTab('notifications', this)" role="tab" aria-selected="false" aria-controls="tab-notifications" id="notifications-tab-btn"><span class="material-symbols-outlined">mail</span> Notifications</button>
+        <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn"><span class="material-symbols-outlined">person</span> Messages</button>
         <button class="tab"        onclick="switchTab('settings', this)" role="tab" aria-selected="false" aria-controls="tab-settings" id="settings-tab-btn"><span class="material-symbols-outlined">settings</span> Settings</button>
       </div>
 
@@ -214,6 +206,11 @@
       <!-- Tab: Matches -->
       <div id="tab-matches" class="tab-panel" role="tabpanel" aria-label="Potential item matches">
         <div id="matches-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading matches"></div></div></div>
+      </div>
+
+      <!-- Tab: Notifications -->
+      <div id="tab-notifications" class="tab-panel" role="tabpanel" aria-label="System notifications">
+        <div id="notifications-content"><div class="loading-center"><div class="spinner" role="status" aria-label="Loading notifications"></div></div></div>
       </div>
 
       <!-- Tab: Messages (Inbox) -->
@@ -368,6 +365,7 @@
       loadMissing();
       loadMyClaims();
       loadMatches();
+      loadNotifications();
       loadMessages();
       loadSettings();
       activateInitialTabFromUrl();
@@ -862,6 +860,82 @@
         </div>`;
     }
 
+    // ── Notifications tab ───────────────────────────────────────────────────
+    async function loadNotifications() {
+      const el = document.getElementById('notifications-content');
+      try {
+        const rawFeed = await api.get('/notifications/feed');
+        const feed = normalizeNotificationFeed(rawFeed);
+        renderNotifications(el, feed);
+
+        const btn = document.getElementById('notifications-tab-btn');
+        if (btn) {
+          const notificationsLabel = window.t('Notifications');
+          btn.innerHTML = '<span class="material-symbols-outlined">mail</span> ' +
+            (feed.length > 0 ? notificationsLabel + ' (' + feed.length + ')' : notificationsLabel);
+        }
+      } catch (err) {
+        el.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function normalizeNotificationFeed(rawFeed) {
+      if (Array.isArray(rawFeed)) return rawFeed;
+      if (rawFeed && Array.isArray(rawFeed.feed)) return rawFeed.feed;
+      if (rawFeed && Array.isArray(rawFeed.notifications)) return rawFeed.notifications;
+      if (rawFeed && Array.isArray(rawFeed.data)) return rawFeed.data;
+      return [];
+    }
+
+    function renderNotifications(el, feed) {
+      feed = normalizeNotificationFeed(feed);
+      if (!feed || feed.length === 0) {
+        el.innerHTML = `
+          <div class="empty-state">
+            <div class="icon"><span class="material-symbols-outlined">mail</span></div>
+            <h3>${window.t('No notifications yet')}</h3>
+            <p class="text-muted">${window.t('System alerts for matches, approvals, and claims will appear here.')}</p>
+          </div>`;
+        return;
+      }
+
+      el.innerHTML = `<div class="notification-list">${feed.map(notificationCard).join('')}</div>`;
+    }
+
+    function notificationIcon(type) {
+      if (type === 'MATCH') return 'compare_arrows';
+      if (type === 'CLAIM_STATUS') return 'pan_tool';
+      return 'task_alt';
+    }
+
+    function notificationCard(entry) {
+      const action = entry.actionHref
+        ? `<a class="btn btn-outline btn-sm notification-action" href="${safeAttr(entry.actionHref)}">${escapeHtml(window.t(entry.actionLabel || 'View submissions'))}</a>`
+        : '';
+      const status = entry.status || 'logged';
+
+      return `
+        <article class="notification-card">
+          <div class="notification-icon" aria-hidden="true">
+            <span class="material-symbols-outlined">${notificationIcon(entry.type)}</span>
+          </div>
+          <div class="notification-body-wrap">
+            <div class="notification-card-header">
+              <div>
+                <div class="notification-type">${escapeHtml(entry.type || 'STATUS')}</div>
+                <h3>${escapeHtml(entry.title || 'Notification')}</h3>
+              </div>
+              <span class="notification-status notification-status-${safeAttr(status)}">${escapeHtml(status)}</span>
+            </div>
+            <p class="notification-body">${escapeHtml(entry.body || '')}</p>
+            <div class="notification-meta">
+              <span>${formatMessageTime(entry.timestamp)}</span>
+              ${action}
+            </div>
+          </div>
+        </article>`;
+    }
+
     // ── Messages tab ──────────────────────────────────────────────────────────
     let _inboxMessages = [];
     let _myEmail = '';
@@ -887,7 +961,7 @@
         const btn = document.getElementById('messages-tab-btn');
         if (btn) {
           const messagesLabel = window.t('Messages');
-          btn.innerHTML = '<span class="material-symbols-outlined">mail</span> ' +
+          btn.innerHTML = '<span class="material-symbols-outlined">person</span> ' +
             (merged.length > 0 ? messagesLabel + ' (' + merged.length + ')' : messagesLabel);
         }
       } catch (err) {
@@ -1170,6 +1244,9 @@
     document.addEventListener('languageChanged', function(e) {
       const activeLanguage = e.detail || (typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en');
       populateLanguageSettings(activeLanguage);
+      loadMatches();
+      loadNotifications();
+      loadMessages();
     });
 
     async function loadAppearanceSettings() {

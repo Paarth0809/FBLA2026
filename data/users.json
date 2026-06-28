@@ -10,7 +10,7 @@
   {
     "id": "user-001",
     "name": "Alex Chen",
-    "email": "student@school.edu",
+    "email": "madelinefredrick@gmail.com",
     "passwordHash": "$2a$10$IQUaUlMxbgcI518VyJsF.eSkTDG06lB5RaiUviJWkcz7KDfaFuC.W",
     "role": "user",
     "createdAt": "2026-03-02T23:28:41.317Z"

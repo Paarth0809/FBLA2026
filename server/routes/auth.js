@@ -15,6 +15,8 @@ const { publicUrl } = require('../lib/publicUrl');
 
 const router = express.Router();
 const resetTokens = new Map();
+const LEGACY_DEMO_STUDENT_EMAIL = 'student@school.edu';
+const CURRENT_DEMO_STUDENT_EMAIL = 'madelinefredrick@gmail.com';
 
 function publicUser(user) {
   const apiUser = userToApi(user);
@@ -30,6 +32,64 @@ function establishSession(req, user) {
       req.session.userRole = publicUser(user).role;
       resolve();
     });
+  });
+}
+
+async function findUserForLogin(normalizedEmail) {
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (user || normalizedEmail !== CURRENT_DEMO_STUDENT_EMAIL) return user;
+
+  return prisma.$transaction(async (tx) => {
+    const currentUser = await tx.user.findUnique({ where: { email: CURRENT_DEMO_STUDENT_EMAIL } });
+    if (currentUser) return currentUser;
+
+    const legacyUser = await tx.user.findUnique({ where: { email: LEGACY_DEMO_STUDENT_EMAIL } });
+    if (!legacyUser) return null;
+
+    const updatedUser = await tx.user.update({
+      where: { id: legacyUser.id },
+      data: { email: CURRENT_DEMO_STUDENT_EMAIL }
+    });
+
+    await Promise.all([
+      tx.foundItem.updateMany({
+        where: {
+          submittedById: legacyUser.id,
+          contactEmailPrivate: LEGACY_DEMO_STUDENT_EMAIL
+        },
+        data: { contactEmailPrivate: CURRENT_DEMO_STUDENT_EMAIL }
+      }),
+      tx.missingItem.updateMany({
+        where: {
+          submittedById: legacyUser.id,
+          contactEmailPrivate: LEGACY_DEMO_STUDENT_EMAIL
+        },
+        data: { contactEmailPrivate: CURRENT_DEMO_STUDENT_EMAIL }
+      }),
+      tx.claim.updateMany({
+        where: {
+          submittedById: legacyUser.id,
+          claimerEmail: LEGACY_DEMO_STUDENT_EMAIL
+        },
+        data: { claimerEmail: CURRENT_DEMO_STUDENT_EMAIL }
+      }),
+      tx.notificationPreference.updateMany({
+        where: {
+          userId: legacyUser.id,
+          email: LEGACY_DEMO_STUDENT_EMAIL
+        },
+        data: { email: CURRENT_DEMO_STUDENT_EMAIL }
+      }),
+      tx.notificationLog.updateMany({
+        where: {
+          userId: legacyUser.id,
+          email: LEGACY_DEMO_STUDENT_EMAIL
+        },
+        data: { email: CURRENT_DEMO_STUDENT_EMAIL }
+      })
+    ]);
+
+    return updatedUser;
   });
 }
 
@@ -81,7 +141,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required.' });
 
   const normalizedEmail = email.toLowerCase().trim();
-  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  const user = await findUserForLogin(normalizedEmail);
 
   if (!user || !(await bcrypt.compare(password, user.passwordHash)))
     return res.status(401).json({ error: 'Invalid email or password.' });

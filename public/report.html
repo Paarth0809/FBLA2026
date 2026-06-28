@@ -310,7 +310,7 @@
   <script type="module" src="/js/report-map-picker.js?v=20260617"></script>
   <script>
     const MISSING_PREFILL_KEY = 'glhsFoundReportPrefill';
-    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found.jpg';
+    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found-case.jpg';
 
     // Set today as the max date for dateFound
     document.getElementById('dateFound').max = new Date().toISOString().split('T')[0];
@@ -348,7 +348,7 @@
       const response = await fetch(DEMO_AIRPODS_PHOTO);
       if (!response.ok) throw new Error('Demo photo could not be loaded.');
       const blob = await response.blob();
-      const file = new File([blob], 'airpods-found.jpg', { type: blob.type || 'image/jpeg' });
+      const file = new File([blob], 'airpods-found-case.jpg', { type: blob.type || 'image/jpeg' });
       const transfer = new DataTransfer();
       transfer.items.add(file);
       photoInput.files = transfer.files;

@@ -8,11 +8,22 @@ function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
 }
 
+function firstSidebar(source) {
+  const match = source.match(/<aside class="student-sidebar[\s\S]*?<\/aside>/);
+  return match ? match[0] : '';
+}
+
+function pageHeader(source) {
+  const match = source.match(/<!-- Page header -->[\s\S]*?<section class="stats-row"/);
+  return match ? match[0] : '';
+}
+
 const nav = read('public/js/nav.js');
 const reportFound = read('public/report.html');
 const reportMissing = read('public/report-missing.html');
 const missingDetail = read('public/missing-item.html');
 const submissions = read('public/my-submissions.html');
+const claim = read('public/claim.html');
 const admin = read('public/admin.html');
 const gatorbot = read('server/lib/gatorbot.js');
 const gatorbotWidget = read('public/js/gatorbot.js');
@@ -58,8 +69,22 @@ assert(
 );
 
 assert(
-  submissions.includes('/map.html') && submissions.includes('Campus Map'),
-  'student portal should include a Campus Map quick action'
+  firstSidebar(submissions).includes('Report Found Item') &&
+    firstSidebar(submissions).includes('Report Missing Item') &&
+    firstSidebar(submissions).includes('Browse Found Items') &&
+    firstSidebar(submissions).includes('Browse Missing Items') &&
+    firstSidebar(submissions).includes('href="/map.html"') &&
+    firstSidebar(submissions).includes('Campus Map') &&
+    firstSidebar(claim).includes('href="/map.html"') &&
+    firstSidebar(claim).includes('Campus Map'),
+  'student portal pages should expose Campus Map from the sidebar alongside report and browse links.'
+);
+
+assert(
+  !pageHeader(submissions).includes('href="/report.html"') &&
+    !pageHeader(submissions).includes('href="/report-missing.html"') &&
+    !pageHeader(submissions).includes('href="/map.html"'),
+  'My Submissions page header should not duplicate report or campus map sidebar actions.'
 );
 
 assert(
@@ -113,8 +138,42 @@ assert(
 );
 
 assert(
+  submissions.includes("switchTab('notifications', this)") &&
+    submissions.includes('id="notifications-tab-btn"') &&
+    submissions.includes('aria-controls="tab-notifications"') &&
+    submissions.includes('<span class="material-symbols-outlined">mail</span> Notifications') &&
+    submissions.includes('id="notifications-content"'),
+  'student portal should include a Notifications tab with an envelope icon and content mount.'
+);
+
+assert(
+  submissions.includes("switchTab('messages', this)") &&
+    /id="messages-tab-btn"[^>]*><span class="material-symbols-outlined">(person|account_circle|supervisor_account)<\/span> Messages/.test(submissions),
+  'Messages tab should use a person-style icon so it is visually distinct from Notifications.'
+);
+
+assert(
+  submissions.includes("api.get('/notifications/feed')") &&
+    submissions.includes('function normalizeNotificationFeed') &&
+    submissions.includes('Array.isArray(rawFeed)') &&
+    submissions.includes('Array.isArray(rawFeed.feed)') &&
+    submissions.includes('function renderNotifications') &&
+    submissions.includes('No notifications yet') &&
+    submissions.includes('System alerts for matches, approvals, and claims will appear here.'),
+  'student portal should load, normalize, and render a notification feed separate from messages.'
+);
+
+assert(
   /\.gatorbot-quick:empty\s*\{[^}]*display:\s*none/s.test(css),
   'Empty GatorBot quick-reply containers should not leave awkward spacing.'
+);
+
+assert(
+  nav.includes('lang-switcher-icon') &&
+    nav.includes('background: rgba(0, 108, 73, 0.10);') &&
+    nav.includes('color: var(--primary, #006c49);') &&
+    !nav.includes('lang-switcher-icon {\\n      color: rgba(255, 255, 255'),
+  'Language switcher globe icon should have a readable green treatment instead of low-contrast white.'
 );
 
 console.log('navigation-polish-source.test.js passed');

@@ -200,7 +200,7 @@ function renderLoggedInNav(mode = 'default') {
       <span class="hide-mobile">Settings</span>
     </a>
     <span class="nav-user hide-mobile text-xs font-semibold text-white/70 mr-1">
-      Hi, <strong class="text-white font-bold">${safeText(firstName)}</strong>
+      Hi,&nbsp;<strong class="text-white font-bold">${safeText(firstName)}</strong>
     </span>
     <a href="${portalHref}" class="btn btn-outline btn-sm flex items-center gap-1.5 font-semibold text-xs transition-all duration-200">
       <span class="material-symbols-outlined" style="font-size:16px">${portalIcon}</span>
@@ -902,10 +902,19 @@ function injectLanguageSwitcherCSS() {
     }
     .lang-switcher-btn .material-symbols-outlined {
       font-size: 16px;
-      color: rgba(255, 255, 255, 0.85);
       line-height: 1;
       display: inline-flex;
       align-items: center;
+    }
+    .lang-switcher-btn .lang-switcher-icon {
+      width: 1.45rem;
+      height: 1.45rem;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(0, 108, 73, 0.10);
+      color: var(--primary, #006c49);
+      border: 1px solid rgba(0, 108, 73, 0.16);
+      flex: 0 0 auto;
     }
     .lang-switcher-btn .lang-arrow {
       font-size: 14px;
@@ -997,6 +1006,11 @@ function injectLanguageSwitcherCSS() {
       border-color: var(--primary, #006c49);
       box-shadow: none;
     }
+    .w-full > .lang-switcher-dropdown .lang-switcher-btn .lang-switcher-icon {
+      background: rgba(0, 108, 73, 0.10);
+      color: var(--primary, #006c49);
+      border-color: rgba(0, 108, 73, 0.16);
+    }
     .w-full > .lang-switcher-dropdown .lang-switcher-btn .lang-arrow {
       color: var(--on-surface-variant, #3c4a42);
     }
@@ -1037,6 +1051,11 @@ function injectLanguageSwitcherCSS() {
       border-color: var(--primary, #006c49) !important;
       color: var(--primary, #006c49) !important;
       box-shadow: 0 4px 16px rgba(0, 108, 73, 0.15) !important;
+    }
+    .lang-switcher-floating .lang-switcher-btn .lang-switcher-icon {
+      background: rgba(0, 108, 73, 0.10) !important;
+      color: var(--primary, #006c49) !important;
+      border-color: rgba(0, 108, 73, 0.16) !important;
     }
     .lang-switcher-floating .lang-switcher-btn .lang-arrow {
       color: var(--outline, #6c7a71) !important;
@@ -1088,7 +1107,7 @@ function renderLanguageDropdownInside(container, activeLang) {
   container.innerHTML = `
     <div class="lang-switcher-dropdown">
       <button class="lang-switcher-btn" type="button" aria-expanded="false" aria-haspopup="listbox" onclick="toggleLangDropdown(event)">
-        <span class="material-symbols-outlined">language</span>
+        <span class="material-symbols-outlined lang-switcher-icon">language</span>
         <span class="lang-switcher-current-label">${currentLangName}</span>
         <span class="material-symbols-outlined lang-arrow">expand_more</span>
       </button>

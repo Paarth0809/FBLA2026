@@ -5,6 +5,7 @@ const { createEmailDelivery } = require('./emailDelivery');
 // Notification delivery is lazy so tests and scripts can import this module
 // without immediately initializing SMTP/Resend clients.
 let delivery = null;
+const SYSTEM_FEED_TYPES = new Set(['MATCH', 'STATUS', 'CLAIM_STATUS']);
 
 function getDelivery() {
   if (!delivery) {
@@ -43,6 +44,118 @@ function logToApi(log) {
   };
 }
 
+function titleCaseStatus(status = '') {
+  const normalized = String(status || '').toLowerCase();
+  if (!normalized) return 'updated';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function buildFeedPayload(alertType, data = {}) {
+  const itemName = data.itemName || 'Lost & Found item';
+  if (alertType === 'MATCH') {
+    return {
+      feedType: 'MATCH',
+      feedTitle: `Potential match for "${itemName}"`,
+      feedBody: data.matchName
+        ? `"${data.matchName}" may match your missing report. Check Matches to compare the details.`
+        : 'A potential match was found for one of your missing reports.',
+      actionHref: '/my-submissions.html?tab=matches',
+      actionLabel: 'View matches'
+    };
+  }
+  if (alertType === 'STATUS') {
+    const status = titleCaseStatus(data.status);
+    return {
+      feedType: 'STATUS',
+      feedTitle: `"${itemName}" ${status}`,
+      feedBody: `Your ${data.itemType || 'item'} report was ${status.toLowerCase()} by an administrator.`,
+      actionHref: '/my-submissions.html',
+      actionLabel: 'View submissions'
+    };
+  }
+  if (alertType === 'CLAIM_STATUS') {
+    const status = titleCaseStatus(data.status);
+    return {
+      feedType: 'CLAIM_STATUS',
+      feedTitle: `Claim for "${itemName}" ${status}`,
+      feedBody: `Your claim was ${status.toLowerCase()} by an administrator.`,
+      actionHref: '/my-submissions.html?tab=claims',
+      actionLabel: 'View claims'
+    };
+  }
+  return null;
+}
+
+function legacyEmailFeedPayload(log) {
+  if (!log || log.type !== 'EMAIL') return null;
+  const metadata = log.metadata && typeof log.metadata === 'object' ? log.metadata : {};
+  if (metadata.alertType) return null;
+  const subject = log.subject || '';
+  if (/password reset|new message/i.test(subject)) return null;
+
+  const match = subject.match(/^Potential Match for "(.+?)"/i);
+  if (match) {
+    return {
+      feedType: 'MATCH',
+      feedTitle: `Potential match for "${match[1]}"`,
+      feedBody: metadata.body || 'A potential match was found for one of your missing reports.',
+      actionHref: '/my-submissions.html?tab=matches',
+      actionLabel: 'View matches'
+    };
+  }
+
+  const status = subject.match(/^"(.+?)" Status Updated to ([A-Z]+)/i);
+  if (status) {
+    const label = titleCaseStatus(status[2]);
+    return {
+      feedType: 'STATUS',
+      feedTitle: `"${status[1]}" ${label}`,
+      feedBody: metadata.body || `Your report was ${label.toLowerCase()} by an administrator.`,
+      actionHref: '/my-submissions.html',
+      actionLabel: 'View submissions'
+    };
+  }
+
+  const claim = subject.match(/^Claim for "(.+?)" ([A-Z]+)/i);
+  if (claim) {
+    const label = titleCaseStatus(claim[2]);
+    return {
+      feedType: 'CLAIM_STATUS',
+      feedTitle: `Claim for "${claim[1]}" ${label}`,
+      feedBody: metadata.body || `Your claim was ${label.toLowerCase()} by an administrator.`,
+      actionHref: '/my-submissions.html?tab=claims',
+      actionLabel: 'View claims'
+    };
+  }
+
+  return null;
+}
+
+function feedLogToApi(log) {
+  const metadata = log.metadata && typeof log.metadata === 'object' ? log.metadata : {};
+  const feed = SYSTEM_FEED_TYPES.has(log.type)
+    ? {
+        feedType: metadata.feedType || log.type,
+        feedTitle: metadata.feedTitle || log.subject,
+        feedBody: metadata.feedBody || metadata.body || '',
+        actionHref: metadata.actionHref || '',
+        actionLabel: metadata.actionLabel || ''
+      }
+    : legacyEmailFeedPayload(log);
+
+  if (!feed || !SYSTEM_FEED_TYPES.has(feed.feedType)) return null;
+  return {
+    id: log.id,
+    timestamp: log.createdAt instanceof Date ? log.createdAt.toISOString() : log.createdAt,
+    type: feed.feedType,
+    title: feed.feedTitle,
+    body: feed.feedBody,
+    status: log.status,
+    actionHref: feed.actionHref,
+    actionLabel: feed.actionLabel
+  };
+}
+
 async function getPreferences(userId, defaultEmail = '') {
   const prefs = await prisma.notificationPreference.findUnique({ where: { userId } });
   return normalizePreferences(prefs || {}, defaultEmail);
@@ -71,6 +184,7 @@ async function addLog(logEntry) {
         status: logEntry.status || 'logged',
         error: logEntry.error || null,
         metadata: {
+          ...(logEntry.metadata && typeof logEntry.metadata === 'object' ? logEntry.metadata : {}),
           body: logEntry.body || '',
           mode: logEntry.mode || '',
           recipient: logEntry.recipient || logEntry.email || ''
@@ -93,7 +207,22 @@ async function getLogs(userId) {
   return logs.map(logToApi);
 }
 
-async function dispatchEmail(userId, to, subject, body) {
+async function getFeed(userId) {
+  const logs = await prisma.notificationLog.findMany({
+    where: {
+      userId,
+      OR: [
+        { type: { in: Array.from(SYSTEM_FEED_TYPES) } },
+        { type: 'EMAIL' }
+      ]
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 150
+  });
+  return logs.map(feedLogToApi).filter(Boolean).slice(0, 100);
+}
+
+async function dispatchEmail(userId, to, subject, body, options = {}) {
   // Sending and logging are coupled so the UI can show what happened whether
   // the provider sent, previewed, or failed the message.
   const emailDelivery = getDelivery();
@@ -112,7 +241,8 @@ async function dispatchEmail(userId, to, subject, body) {
         subject,
         body,
         status: 'preview',
-        mode: result.mode || 'local-preview'
+        mode: result.mode || 'local-preview',
+        metadata: options.metadata
       });
       console.log(`
 ┌──────────────────── EMAIL PREVIEW ────────────────────
@@ -135,7 +265,8 @@ async function dispatchEmail(userId, to, subject, body) {
       subject,
       body,
       status: 'sent',
-      mode: result.mode || emailDelivery.mode
+      mode: result.mode || emailDelivery.mode,
+      metadata: options.metadata
     });
     console.log(`[NotificationService] Email sent successfully to ${to} via ${result.mode || emailDelivery.mode}`);
     return { logged: Boolean(logEntry), sent: true, mode: result.mode || emailDelivery.mode };
@@ -148,7 +279,8 @@ async function dispatchEmail(userId, to, subject, body) {
       body,
       status: 'error',
       mode: emailDelivery.mode || 'unknown',
-      error: err.message
+      error: err.message,
+      metadata: options.metadata
     });
     console.error(`[NotificationService] Failed to send email to ${to}:`, err.message);
     return { logged: Boolean(logEntry), sent: false, mode: emailDelivery.mode || 'unknown', error: err.message };
@@ -161,6 +293,18 @@ async function triggerAlert(userId, alertType, data) {
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return;
+
+    const feedPayload = SYSTEM_FEED_TYPES.has(alertType) ? buildFeedPayload(alertType, data) : null;
+    if (feedPayload) {
+      await addLog({
+        userId,
+        type: feedPayload.feedType,
+        subject: feedPayload.feedTitle,
+        body: feedPayload.feedBody,
+        status: 'logged',
+        metadata: feedPayload
+      });
+    }
 
     const prefs = await getPreferences(userId, user.email);
     if (alertType === 'MATCH' && !prefs.matchAlerts) return;
@@ -228,7 +372,9 @@ Green Level Lost & Found`;
     }
 
     if (emailSubject && emailBody) {
-      await dispatchEmail(userId, emailRecipient, emailSubject, emailBody);
+      await dispatchEmail(userId, emailRecipient, emailSubject, emailBody, {
+        metadata: { alertType }
+      });
     }
   } catch (err) {
     console.error('[NotificationService] Error triggering alert:', err.message);
@@ -239,6 +385,7 @@ module.exports = {
   getPreferences,
   savePreferences,
   getLogs,
+  getFeed,
   dispatchEmail,
   triggerAlert
 };

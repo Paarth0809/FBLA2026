@@ -256,7 +256,7 @@
   <script src="/js/api.js"></script>
   <script src="/js/nav.js?v=1.0.3"></script>
   <script>
-    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found.jpg';
+    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-missing-open.jpg';
 
     document.getElementById('lastSeenDate').max = new Date().toISOString().split('T')[0];
 
@@ -290,7 +290,7 @@
       const response = await fetch(DEMO_AIRPODS_PHOTO);
       if (!response.ok) throw new Error('Demo photo could not be loaded.');
       const blob = await response.blob();
-      const file = new File([blob], 'airpods-found.jpg', { type: blob.type || 'image/jpeg' });
+      const file = new File([blob], 'airpods-missing-open.jpg', { type: blob.type || 'image/jpeg' });
       const transfer = new DataTransfer();
       transfer.items.add(file);
       photoInput.files = transfer.files;

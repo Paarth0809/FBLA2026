@@ -18,6 +18,9 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_DATABASE_URL) {
   throw new Error('TEST_DATABASE_URL is required for npm test.');
 }
+// Tests occasionally import app services directly in this process, so point
+// those imports at the isolated test database too.
+process.env.DATABASE_URL = TEST_DATABASE_URL;
 
 const testPrisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: TEST_DATABASE_URL })
@@ -67,7 +70,7 @@ async function resetTestDatabase() {
       {
         id: 'user-001',
         name: 'Alex Chen',
-        email: 'student@school.edu',
+        email: 'madelinefredrick@gmail.com',
         passwordHash: bcrypt.hashSync('student123', 10),
         role: 'USER',
         createdAt: date('2026-02-01T00:00:00.000Z')
@@ -122,17 +125,17 @@ async function resetTestDatabase() {
     data: [
       { id: 'missing-001', itemName: 'Blue Hydro Flask', category: 'Other',
         description: 'Blue 24oz Hydro Flask with ocean sticker. Name on bottom.', lastSeenLocation: 'Cafeteria',
-        lastSeenDate: date('2026-02-10T00:00:00.000Z'), contactEmailPrivate: 'student@school.edu',
+        lastSeenDate: date('2026-02-10T00:00:00.000Z'), contactEmailPrivate: 'madelinefredrick@gmail.com',
         status: 'APPROVED', submittedById: 'user-001', submitterName: 'Alex Chen',
         createdAt: date('2026-02-10T13:00:00.000Z') },
       { id: 'missing-002', itemName: 'HP Laptop Charger', category: 'Electronics',
         description: 'HP 45W charger with blue tape near connector, left in library.', lastSeenLocation: 'Library',
-        lastSeenDate: date('2026-02-14T00:00:00.000Z'), contactEmailPrivate: 'student@school.edu',
+        lastSeenDate: date('2026-02-14T00:00:00.000Z'), contactEmailPrivate: 'madelinefredrick@gmail.com',
         status: 'APPROVED', submittedById: 'user-001', submitterName: 'Alex Chen',
         createdAt: date('2026-02-14T11:30:00.000Z') },
       { id: 'missing-003', itemName: 'Gray Champion Hoodie', category: 'Clothing',
         description: 'Gray Champion hoodie size L with ink stain near pocket.', lastSeenLocation: 'Girls Locker Room',
-        lastSeenDate: date('2026-02-28T00:00:00.000Z'), contactEmailPrivate: 'student@school.edu',
+        lastSeenDate: date('2026-02-28T00:00:00.000Z'), contactEmailPrivate: 'madelinefredrick@gmail.com',
         status: 'PENDING', submittedById: 'user-001', submitterName: 'Alex Chen',
         createdAt: date('2026-02-28T10:00:00.000Z') }
     ]
@@ -410,6 +413,7 @@ async function runTests() {
   let userCookie   = '';
   let user001Cookie = ''; // cookie for the seeded user-001 (submitter of fixture missing items)
   let adminCookie  = '';
+  let signedUpUserId = '';
   let newItemId    = '';
   let newMissingId = '';
 
@@ -444,6 +448,7 @@ async function runTests() {
     assert(r.body.role === 'user', 'Expected role=user');
     assert(r.cookie,             'Expected Set-Cookie header');
     userCookie = r.cookie;
+    signedUpUserId = r.body.id;
   });
 
   await test('/auth/signup — duplicate email → 400', async () => {
@@ -477,7 +482,7 @@ async function runTests() {
   });
 
   await test('/auth/login — valid student → 200', async () => {
-    const r = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'student123' });
+    const r = await req('POST', '/api/auth/login', { email: 'madelinefredrick@gmail.com', password: 'student123' });
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.role === 'user', `Expected role=user, got ${r.body.role}`);
     user001Cookie = r.cookie;
@@ -603,7 +608,7 @@ async function runTests() {
   });
 
   await test('/auth/logout — valid session → 200, session destroyed', async () => {
-    const login = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'student123' });
+    const login = await req('POST', '/api/auth/login', { email: 'madelinefredrick@gmail.com', password: 'student123' });
     const c = login.cookie;
     const logout = await req('POST', '/api/auth/logout', null, c);
     assert(logout.status === 200, `Expected 200, got ${logout.status}`);
@@ -628,7 +633,7 @@ async function runTests() {
       const resetLog = await testPrisma.notificationLog.findFirst({
         where: {
           subject: { contains: 'Password Reset Request' },
-          email: 'student@school.edu'
+          email: 'madelinefredrick@gmail.com'
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -639,7 +644,7 @@ async function runTests() {
       return tokenMatch[1];
     };
 
-    const r = await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    const r = await req('POST', '/api/auth/forgot-password', { email: 'madelinefredrick@gmail.com' });
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.message.includes('password reset link shortly'), 'Expected reset message');
 
@@ -657,10 +662,10 @@ async function runTests() {
     const reused = await req('POST', '/api/auth/reset-password', { token, password: 'anotherpass123' });
     assert(reused.status === 400, `Expected 400 for reused token, got ${reused.status}`);
 
-    const loginNew = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'newstudentpass123' });
+    const loginNew = await req('POST', '/api/auth/login', { email: 'madelinefredrick@gmail.com', password: 'newstudentpass123' });
     assert(loginNew.status === 200, `Expected 200 with new password, got ${loginNew.status}`);
 
-    await req('POST', '/api/auth/forgot-password', { email: 'student@school.edu' });
+    await req('POST', '/api/auth/forgot-password', { email: 'madelinefredrick@gmail.com' });
     const restoreToken = await latestResetToken();
     const restore = await req('POST', '/api/auth/reset-password', { token: restoreToken, password: 'student123' });
     assert(restore.status === 200, `Expected restore reset to pass, got ${restore.status}`);
@@ -762,7 +767,7 @@ async function runTests() {
       description:   'Brown leather wallet found near the main entrance doors.',
       locationFound: 'Main Entrance',
       dateFound:     '2026-03-01',
-      contactEmail:  'student@school.edu',
+      contactEmail:  'madelinefredrick@gmail.com',
       mapFloorId:    'floor-1',
       mapRoomId:     'room-1133',
       mapRoomNumber: '1133',
@@ -877,7 +882,7 @@ async function runTests() {
       description:      'Black Sony headphones with red ear cups, left in the library.',
       lastSeenLocation: 'Library',
       lastSeenDate:     '2026-03-01',
-      contactEmail:     'student@school.edu'
+      contactEmail:     'madelinefredrick@gmail.com'
     }, userCookie);
     assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
     assert(r.body.item.status === 'pending', 'Expected status=pending');
@@ -967,7 +972,7 @@ async function runTests() {
       content: 'I found a bottle matching this description near the cafeteria.'
     }, userCookie);
     assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.body)}`);
-    assert(r.body.receiverEmail === 'student@school.edu', 'Server should resolve the owner account internally');
+    assert(r.body.receiverEmail === 'madelinefredrick@gmail.com', 'Server should resolve the owner account internally');
   });
 
   await test('GET /messages/inbox — missing-item owner receives secure contact message', async () => {
@@ -983,6 +988,108 @@ async function runTests() {
       content: 'Self-message should not be allowed.'
     }, user001Cookie);
     assert(r.status === 400, `Expected 400, got ${r.status}`);
+  });
+
+  // ══════════════════════════════════════════════════
+  //  NOTIFICATIONS
+  // ══════════════════════════════════════════════════
+  console.log('\n🔔  Notifications');
+  console.log('────────────────────────────────────────────────');
+
+  await test('GET /notifications/feed — unauthenticated → 401', async () => {
+    const r = await req('GET', '/api/notifications/feed');
+    assert(r.status === 401, `Expected 401, got ${r.status}`);
+  });
+
+  await test('GET /notifications/feed — system alerts persist even when email is disabled', async () => {
+    assert(signedUpUserId, 'Need signedUpUserId from signup test');
+    const prefs = await req('POST', '/api/notifications/preferences', {
+      emailEnabled: false,
+      email: 'quiet@example.com',
+      matchAlerts: true,
+      statusAlerts: true,
+      claimAlerts: true,
+      messageAlerts: true
+    }, userCookie);
+    assert(prefs.status === 200, `Expected 200 saving notification preferences, got ${prefs.status}`);
+
+    const { triggerAlert } = require('../server/lib/notificationService');
+    await triggerAlert(signedUpUserId, 'STATUS', {
+      itemType: 'found',
+      itemName: 'Quiet Wallet',
+      status: 'APPROVED'
+    });
+    await triggerAlert(signedUpUserId, 'MATCH', {
+      itemName: 'Quiet Headphones',
+      matchName: 'White Earbuds',
+      category: 'Electronics',
+      locationFound: 'Library'
+    });
+    await triggerAlert(signedUpUserId, 'CLAIM_STATUS', {
+      itemName: 'Quiet AirPods',
+      status: 'REJECTED'
+    });
+
+    const feed = await req('GET', '/api/notifications/feed', null, userCookie);
+    assert(feed.status === 200, `Expected 200, got ${feed.status}: ${JSON.stringify(feed.body)}`);
+    assert(Array.isArray(feed.body), 'Expected feed array');
+    assert(feed.body.some(n => n.type === 'STATUS' && n.title.includes('Quiet Wallet')), 'Expected status notification in feed');
+    assert(feed.body.some(n => n.type === 'MATCH' && n.actionHref === '/my-submissions.html?tab=matches'), 'Expected match notification with matches action');
+    assert(feed.body.some(n => n.type === 'CLAIM_STATUS' && n.actionHref === '/my-submissions.html?tab=claims'), 'Expected claim notification with claims action');
+    assert(feed.body.every(n => n.status !== 'error'), 'Disabled email should not turn in-app feed entries into email errors');
+  });
+
+  await test('GET /notifications/feed — legacy email logs map, utility and message logs stay hidden', async () => {
+    assert(signedUpUserId, 'Need signedUpUserId from signup test');
+    await testPrisma.notificationLog.create({
+      data: {
+        userId: signedUpUserId,
+        email: 'legacy@example.com',
+        type: 'EMAIL',
+        subject: 'Potential Match for "Legacy Bottle" - Green Level Lost & Found',
+        status: 'sent',
+        metadata: {
+          body: 'We found a potential match for your missing item "Legacy Bottle".',
+          recipient: 'legacy@example.com',
+          mode: 'test'
+        }
+      }
+    });
+    await testPrisma.notificationLog.create({
+      data: {
+        userId: signedUpUserId,
+        email: 'legacy@example.com',
+        type: 'EMAIL',
+        subject: 'Password Reset Request - Green Level Lost & Found',
+        status: 'sent',
+        metadata: { body: 'Reset your password here.' }
+      }
+    });
+    await testPrisma.notificationLog.create({
+      data: {
+        userId: signedUpUserId,
+        email: 'legacy@example.com',
+        type: 'EMAIL',
+        subject: 'New Message from Alex (Item: "AirPods") - Green Level Lost & Found',
+        status: 'sent',
+        metadata: { body: 'You received a message.' }
+      }
+    });
+
+    const feed = await req('GET', '/api/notifications/feed', null, userCookie);
+    assert(feed.status === 200, `Expected 200, got ${feed.status}`);
+    assert(feed.body.some(n => n.title.includes('Legacy Bottle') && n.type === 'MATCH'), 'Expected legacy match email to appear as feed entry');
+    assert(!feed.body.some(n => n.title.includes('Password Reset')), 'Password reset utility emails must not appear in notification feed');
+    assert(!feed.body.some(n => n.type === 'MESSAGE' || n.title.includes('New Message')), 'Message notification emails must stay out of the system feed');
+  });
+
+  await test('GET /notifications/feed — users only see their own notifications', async () => {
+    const mine = await req('GET', '/api/notifications/feed', null, userCookie);
+    const other = await req('GET', '/api/notifications/feed', null, user001Cookie);
+    assert(mine.status === 200 && other.status === 200, 'Expected both authenticated feed requests to succeed');
+    assert(mine.body.some(n => n.title.includes('Quiet Wallet')), 'Expected signed-up user to see own notification');
+    assert(!other.body.some(n => n.title.includes('Quiet Wallet')), 'Other student must not see signed-up user notification');
+    assert(!other.body.some(n => n.title.includes('Password Reset')), 'Password reset logs should stay hidden from feed');
   });
 
   // ══════════════════════════════════════════════════
@@ -1137,7 +1244,7 @@ async function runTests() {
 
   await test('PUT /admin/claims/:id/reject → 200', async () => {
     // Create a fresh claim to reject
-    const login = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'student123' });
+    const login = await req('POST', '/api/auth/login', { email: 'madelinefredrick@gmail.com', password: 'student123' });
     const sc = login.cookie;
     const claim = await req('POST', '/api/claims', {
       itemId:       'item-005',
@@ -1177,7 +1284,7 @@ async function runTests() {
 
   await test('DELETE /admin/claims/:id → 200, claim gone', async () => {
     // Create then delete
-    const login = await req('POST', '/api/auth/login', { email: 'student@school.edu', password: 'student123' });
+    const login = await req('POST', '/api/auth/login', { email: 'madelinefredrick@gmail.com', password: 'student123' });
     const sc = login.cookie;
     const claim = await req('POST', '/api/claims', {
       itemId:       'item-006',
@@ -1361,6 +1468,10 @@ async function runTests() {
 
   await test('demo report autofill and image preview source contracts hold', async () => {
     await runCommand('node tests/demo-autofill-source.test.js');
+  });
+
+  await test('homepage scroll story copy source contracts hold', async () => {
+    await runCommand('node tests/home-scroll-copy-source.test.js');
   });
 
   await test('portal translation coverage source contracts hold', async () => {

@@ -44,6 +44,12 @@ const requiredPortalKeys = [
   'Signed in as',
   'Matches',
   'Messages',
+  'Notifications',
+  'No notifications yet',
+  'System alerts for matches, approvals, and claims will appear here.',
+  'View matches',
+  'View claims',
+  'View submissions',
   'Ask GatorBot',
   'Need help?',
   'Website assistant',
@@ -55,8 +61,15 @@ const requiredPortalKeys = [
   'Hi, I’m GatorBot. Ask me about searching, reports, claims, messages, submissions, or the campus map.'
 ];
 
+const requiredHomeScrollKeys = [
+  'Report items',
+  'Found or lost something? Sign in, add item details and location, and upload a photo if you have one.',
+  'Search items',
+  'Claim safely'
+];
+
 for (const [lang, dictionary] of Object.entries(translations)) {
-  for (const key of requiredPortalKeys) {
+  for (const key of [...requiredPortalKeys, ...requiredHomeScrollKeys]) {
     assert(dictionary[key], `${lang} should include portal/settings key: ${key}`);
   }
 }

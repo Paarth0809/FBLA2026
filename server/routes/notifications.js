@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { asyncHandler } = require('../lib/asyncHandler');
-const { getPreferences, savePreferences, getLogs } = require('../lib/notificationService');
+const { getPreferences, savePreferences, getLogs, getFeed } = require('../lib/notificationService');
 
 // Notification settings are user-owned data. Requiring auth at the router level
 // prevents one user from reading or modifying another user's alert preferences.
@@ -24,6 +24,12 @@ router.post('/preferences', asyncHandler(async (req, res) => {
 router.get('/logs', asyncHandler(async (req, res) => {
   const logs = await getLogs(req.session.userId);
   res.json(logs);
+}));
+
+// GET /api/notifications/feed
+router.get('/feed', asyncHandler(async (req, res) => {
+  const feed = await getFeed(req.session.userId);
+  res.json(feed);
 }));
 
 module.exports = router;

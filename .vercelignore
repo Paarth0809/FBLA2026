@@ -1,0 +1,13 @@
+node_modules/
+uploads/
+.env
+.env.*
+.DS_Store
+.claude/
+.planning/
+.playwright-mcp/
+.vercel/
+.vscode/
+test-results/
+presentation-screenshots/
+presentation-screenshots.zip

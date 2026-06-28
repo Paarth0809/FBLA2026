@@ -32,7 +32,7 @@ Demo accounts are created automatically on first run:
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | `admin@school.edu` | `admin123` |
-| Student | `student@school.edu` | `student123` |
+| Student | `madelinefredrick@gmail.com` | `student123` |
 | Student | `student2@school.edu` | `student123` |
 
 ## Offline Demo Notes

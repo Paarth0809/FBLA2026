@@ -18,8 +18,8 @@ async function seed() {
       },
       {
         id: 'user-001',
-        name: 'Alex Chen',
-        email: 'student@school.edu',
+        name: 'Madeline Fredrick',
+        email: 'madelinefredrick@gmail.com',
         passwordHash: bcrypt.hashSync('student123', 10),
         role: 'USER'
       },
@@ -43,7 +43,7 @@ async function seed() {
   });
 
   console.log('  Admin account:   admin@school.edu   / admin123');
-  console.log('  Demo student:    student@school.edu / student123');
+  console.log('  Demo student:    madelinefredrick@gmail.com / student123');
 }
 
 module.exports = seed;

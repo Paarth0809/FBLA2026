@@ -1838,3 +1838,217 @@ Known risks:
   or add new rubric features.
 - Presentation screenshot files remain untracked until the user decides whether
   to keep or discard them.
+
+## 2026-06-25 Claim Page Layout + Demo Prefill Polish
+
+- Updated `public/claim.html` so the claim form uses the same Student Portal
+  shell rhythm as the report and My Submissions pages:
+  - current light sidebar/navigation structure;
+  - shared `student-form-card` surfaces;
+  - page eyebrow/title/actions matching portal pages;
+  - balanced claim info + form grid instead of the older narrow centered layout.
+- Added a quiet claim demo helper:
+  - `Demo prefill` row with `Prefill claim`;
+  - fills AirPods ownership proof and phone only;
+  - dispatches `input` and `change` events;
+  - never submits the form automatically.
+- Added scoped CSS for the claim grid in `public/css/style.css`.
+- Extended `tests/demo-autofill-source.test.js` to cover the claim page.
+
+Verification:
+
+```bash
+node tests/demo-autofill-source.test.js
+node tests/navigation-polish-source.test.js
+git diff --check
+npm test   # 122 / 122 pass
+```
+
+Known risks:
+
+- No browser screenshot QA was run in this turn.
+- `presentation-screenshots/` and `presentation-screenshots.zip` remain
+  untracked and were not modified.
+
+## 2026-06-25 Language Switcher Icon Contrast Polish
+
+- Updated the injected language switcher styling in `public/js/nav.js` so the
+  globe icon is readable against light green/white language button states:
+  - added a dedicated `lang-switcher-icon` span;
+  - gave it a subtle green icon chip;
+  - kept sidebar and floating switcher states consistent.
+- Extended `tests/navigation-polish-source.test.js` to guard against regressing
+  the globe back to low-contrast white.
+
+Verification:
+
+```bash
+node --check public/js/nav.js
+node tests/navigation-polish-source.test.js
+git diff --check
+npm test   # 122 / 122 pass
+```
+
+## 2026-06-25 Distinct AirPods Demo Prefill Photos
+
+- Added two separate tracked demo assets under `public/images/demo/`:
+  - `airpods-found-case.jpg` for the found-item demo prefill;
+  - `airpods-missing-open.jpg` for the missing-item demo prefill.
+- Updated `public/report.html` and `public/report-missing.html` so the two
+  AirPods demo prefills attach different photos through the existing
+  `DataTransfer` upload flow.
+- Extended `tests/demo-autofill-source.test.js` to require distinct found and
+  missing demo image paths and file names.
+- Left the older `public/images/demo/airpods-found.jpg` file untouched even
+  though it is no longer referenced, to avoid unrelated asset cleanup.
+
+Verification:
+
+```bash
+node tests/demo-autofill-source.test.js
+node tests/navigation-polish-source.test.js
+git diff --check
+npm test   # 122 / 122 pass
+```
+
+## 2026-06-25 Homepage Scroll Story Copy Polish
+
+- Updated the homepage scroll-story copy in `public/index.html`:
+  - replaced numbered `Step 1`, `Step 2`, and `Step 3` kicker tags with plain
+    action labels: `Report items`, `Search items`, and `Claim safely`;
+  - changed the first body line from found-only wording to
+    `Found or lost something? ...`.
+- Added `tests/home-scroll-copy-source.test.js` and wired it into `tests/run.js`
+  so the numbered step tags do not come back.
+- Added the new scroll-story labels/body copy to each language dictionary in
+  `public/js/translations.js`, and expanded translation source coverage.
+
+Verification:
+
+```bash
+node tests/home-scroll-copy-source.test.js
+node tests/translation-coverage-source.test.js
+node --check public/js/translations.js
+git diff --check
+npm test   # 123 / 123 pass
+```
+
+## 2026-06-26 Student Portal Notification Feed
+
+- Added a `Notifications` tab to `public/my-submissions.html` between Matches
+  and Messages:
+  - Notifications uses the envelope icon;
+  - Messages now uses a person icon so it is visually distinct;
+  - the tab loads `/api/notifications/feed` and renders system-alert cards with
+    type, title, body, timestamp, delivery/status badge, and an action link.
+- Added scoped notification-card styling in `public/css/style.css`.
+- Added `GET /api/notifications/feed` in `server/routes/notifications.js`.
+- Extended `server/lib/notificationService.js` so `MATCH`, `STATUS`, and
+  `CLAIM_STATUS` alerts create in-app feed logs even when email is disabled.
+  The feed maps legacy email logs for matches/status/claims into friendly cards
+  while excluding password-reset utility logs and direct-message alerts.
+- Added notification translation keys for every supported language in
+  `public/js/translations.js`.
+- Updated tests:
+  - backend/API coverage for auth, user isolation, disabled email preferences,
+    system feed logs, legacy email mapping, and excluded utility/message logs;
+  - source coverage for the new portal tab/icons/feed loader;
+  - translation coverage for notification labels/actions.
+- Set `process.env.DATABASE_URL = TEST_DATABASE_URL` inside `tests/run.js`
+  because the notification feed tests import app services directly in the test
+  process.
+
+Verification:
+
+```bash
+node --check server/lib/notificationService.js
+node --check server/routes/notifications.js
+node --check public/js/translations.js
+node tests/navigation-polish-source.test.js
+node tests/translation-coverage-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+```
+
+## 2026-06-26 Notification Feed Runtime Normalization Fix
+
+- Fixed a Student Portal runtime crash where the Notifications tab could show
+  `feed.map is not a function` if the API response arrived wrapped instead of
+  as a bare array.
+- Added `normalizeNotificationFeed()` in `public/my-submissions.html` so the
+  tab safely accepts the current array contract plus `{ feed: [...] }`,
+  `{ notifications: [...] }`, or `{ data: [...] }` response shapes, and falls
+  back to the empty state instead of crashing.
+- Extended `tests/navigation-polish-source.test.js` to guard this normalizer.
+
+Verification:
+
+```bash
+node tests/navigation-polish-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+```
+
+## 2026-06-26 Claim Success Layout Fix
+
+- Fixed `public/claim.html` after-submit state:
+  - the claim was submitting successfully, but the page hid only the form and
+    left the parent card empty, which made the layout look broken;
+  - added a real `claim-success-card` confirmation state with `View My Claims`
+    and `Back to item` actions;
+  - uses `result.claim?.itemName` from the successful `/api/claims` response
+    to restore the item context if the initial item-name lookup fails;
+  - added a `setClaimItemName()` fallback so the page does not leave `…` as the
+    visible item name.
+- Extended `tests/demo-autofill-source.test.js` to guard the claim success
+  state and prevent the empty-card regression.
+
+Verification:
+
+```bash
+node tests/demo-autofill-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+```
+
+## 2026-06-26 Claim Page Portal Layout Polish
+
+- Simplified `public/claim.html` so it matches the Student Portal rhythm:
+  - removed the separate two-column `claim-layout-grid` / `claim-info-card`
+    “Claiming item” side card that looked like a random box;
+  - changed the form to a single centered `max-w-3xl` portal card;
+  - kept the ownership guidance as a compact in-card context strip;
+  - highlighted `My Submissions` in the sidebar instead of `Browse Found Items`.
+- Replaced the default visible item placeholder from `…` to `this item`, so the
+  header does not look broken while the real item name loads or if lookup fails.
+- Updated `tests/demo-autofill-source.test.js` to prevent the side-card layout
+  and ellipsis placeholder from returning.
+
+Verification:
+
+```bash
+node tests/demo-autofill-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+```
+
+## 2026-06-26 Student Portal Sidebar Campus Map Cleanup
+
+- Removed duplicated top action buttons from Student Portal-style headers:
+  - `public/my-submissions.html` no longer shows top `Report Found Item`,
+    `Report Missing Item`, or `Campus Map` buttons;
+  - `public/claim.html` no longer shows top `My Submissions`,
+    `Browse Found Items`, or `Campus Map` buttons.
+- Added `Campus Map` to both desktop Student Portal sidebars after
+  `Browse Missing Items`, using the same inactive sidebar styling.
+- Updated source tests so Campus Map is required in the sidebar and the removed
+  header action groups stay gone.
+
+Verification:
+
+```bash
+node tests/navigation-polish-source.test.js
+node tests/demo-autofill-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+```

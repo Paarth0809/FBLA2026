@@ -13,3 +13,7 @@ data/user-settings.json
 .planning/
 .vscode/
 .vercel
+
+# Presentation artifacts (not part of the app)
+presentation-screenshots/
+presentation-screenshots.zip
