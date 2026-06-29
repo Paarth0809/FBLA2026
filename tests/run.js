@@ -267,6 +267,11 @@ function assert(condition, message) {
   if (!condition) throw new Error(message || 'Assertion failed');
 }
 
+function assertParseableDate(value, label) {
+  assert(value, `${label} should be present`);
+  assert(!Number.isNaN(new Date(value).getTime()), `${label} should be parseable, got ${value}`);
+}
+
 function loadCampusMapDataForTests() {
   const vm = require('vm');
   const file = path.join(ROOT, 'public/js/campus-map-data.js');
@@ -587,6 +592,20 @@ async function runTests() {
     assert(/found|missing|claim|message/i.test(r.body.reply), `Expected dashboard counts in reply: ${r.body.reply}`);
     assert(!JSON.stringify(r.body).includes('@school.edu'), 'Student summary must not expose private emails');
     assert(!(r.body.actions || []).some(action => action.href === '/admin.html'), 'Student must not receive admin action');
+  });
+
+  await test('/gatorbot/chat — finder contact question links directly to My Claims', async () => {
+    const r = await req('POST', '/api/gatorbot/chat', {
+      message: "Where can I see the finder's contact info?",
+      pagePath: '/my-submissions.html',
+      pageTitle: 'My Submissions'
+    }, user001Cookie);
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(/claim/i.test(r.body.reply), `Expected claims guidance in reply: ${r.body.reply}`);
+    assert(/approval|approved|admin/i.test(r.body.reply), `Expected approval guidance in reply: ${r.body.reply}`);
+    const hrefs = (r.body.actions || []).map(action => action.href);
+    assert(hrefs.includes('/my-submissions.html?tab=claims'), 'Expected My Claims action');
+    assert(!hrefs.includes('/search.html'), 'Finder contact question should not suggest generic found-item search');
   });
 
   await test('/gatorbot/chat — admin guidance requires admin session', async () => {
@@ -944,6 +963,7 @@ async function runTests() {
     assert(r.body.claim,                      'Expected claim in response');
     assert(r.body.claim.status === 'pending', 'Expected status=pending');
     assert(r.body.claim.itemName,             'Expected itemName in claim');
+    assertParseableDate(r.body.claim.createdAt, 'claim.createdAt');
     newClaimId = r.body.claim.id;
   });
 
@@ -957,6 +977,14 @@ async function runTests() {
     }, userCookie);
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     assert(r.body.claim.itemType === 'missing', 'Expected itemType=missing');
+  });
+
+  await test('GET /claims/mine — submitted claims include parseable submitted date', async () => {
+    const r = await req('GET', '/api/claims/mine', null, userCookie);
+    assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.body)}`);
+    assert(Array.isArray(r.body), 'Expected claims array');
+    assert(r.body.length >= 1, 'Expected at least one submitted claim');
+    assertParseableDate(r.body[0].createdAt, 'claims.mine[0].createdAt');
   });
 
   // ══════════════════════════════════════════════════
@@ -1090,6 +1118,50 @@ async function runTests() {
     assert(mine.body.some(n => n.title.includes('Quiet Wallet')), 'Expected signed-up user to see own notification');
     assert(!other.body.some(n => n.title.includes('Quiet Wallet')), 'Other student must not see signed-up user notification');
     assert(!other.body.some(n => n.title.includes('Password Reset')), 'Password reset logs should stay hidden from feed');
+  });
+
+  await test('DELETE /notifications/feed — clears own feed without deleting utility logs', async () => {
+    assert(signedUpUserId, 'Need signedUpUserId from signup test');
+    await testPrisma.notificationLog.create({
+      data: {
+        userId: signedUpUserId,
+        email: 'quiet@example.com',
+        type: 'EMAIL',
+        subject: 'Password Reset Request - Green Level Lost & Found',
+        status: 'sent',
+        metadata: { body: 'Reset your password here.' }
+      }
+    });
+    await testPrisma.notificationLog.create({
+      data: {
+        userId: 'user-001',
+        email: 'madelinefredrick@gmail.com',
+        type: 'STATUS',
+        subject: '"Other Necklace" Approved',
+        status: 'logged',
+        metadata: {
+          feedType: 'STATUS',
+          feedTitle: '"Other Necklace" Approved',
+          feedBody: 'Other student notification.',
+          actionHref: '/my-submissions.html',
+          actionLabel: 'View submissions'
+        }
+      }
+    });
+
+    const clear = await req('DELETE', '/api/notifications/feed', null, userCookie);
+    assert(clear.status === 200, `Expected 200 clearing notifications, got ${clear.status}: ${JSON.stringify(clear.body)}`);
+    assert(clear.body.deletedCount >= 1, 'Expected at least one feed notification to be deleted');
+
+    const mine = await req('GET', '/api/notifications/feed', null, userCookie);
+    const other = await req('GET', '/api/notifications/feed', null, user001Cookie);
+    const resetUtilityLog = await testPrisma.notificationLog.findFirst({
+      where: { userId: signedUpUserId, subject: { contains: 'Password Reset Request' } }
+    });
+    assert(mine.status === 200 && Array.isArray(mine.body), 'Expected own feed to stay readable after clear');
+    assert(mine.body.length === 0, 'Expected signed-in user feed to be empty after clearing');
+    assert(resetUtilityLog, 'Password reset utility log should not be deleted by feed clear');
+    assert(other.body.some(n => n.title.includes('Other Necklace')), 'Other student notification must not be cleared');
   });
 
   // ══════════════════════════════════════════════════

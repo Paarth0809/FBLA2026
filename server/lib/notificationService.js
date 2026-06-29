@@ -222,6 +222,37 @@ async function getFeed(userId) {
   return logs.map(feedLogToApi).filter(Boolean).slice(0, 100);
 }
 
+async function clearFeed(userId) {
+  const logs = await prisma.notificationLog.findMany({
+    where: {
+      userId,
+      OR: [
+        { type: { in: Array.from(SYSTEM_FEED_TYPES) } },
+        { type: 'EMAIL' }
+      ]
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 300
+  });
+
+  const feedVisibleIds = logs
+    .filter(log => feedLogToApi(log))
+    .map(log => log.id);
+
+  if (feedVisibleIds.length === 0) {
+    return { deletedCount: 0 };
+  }
+
+  const result = await prisma.notificationLog.deleteMany({
+    where: {
+      userId,
+      id: { in: feedVisibleIds }
+    }
+  });
+
+  return { deletedCount: result.count };
+}
+
 async function dispatchEmail(userId, to, subject, body, options = {}) {
   // Sending and logging are coupled so the UI can show what happened whether
   // the provider sent, previewed, or failed the message.
@@ -386,6 +417,7 @@ module.exports = {
   savePreferences,
   getLogs,
   getFeed,
+  clearFeed,
   dispatchEmail,
   triggerAlert
 };

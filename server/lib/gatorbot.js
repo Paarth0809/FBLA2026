@@ -44,6 +44,7 @@ const ACTIONS = {
   reportFound: { label: 'Report Found Item', href: '/report.html', kind: 'link', roles: ['student'] },
   reportMissing: { label: 'Report Missing Item', href: '/report-missing.html', kind: 'link', roles: ['student'] },
   submissions: { label: 'My Submissions', href: '/my-submissions.html', kind: 'link', roles: ['student'] },
+  myClaims: { label: 'My Claims', href: '/my-submissions.html?tab=claims', kind: 'link', roles: ['student'] },
   studentSettings: { label: 'Student Settings', href: '/my-submissions.html?tab=settings', kind: 'link', roles: ['student'] },
   map: { label: 'Campus Map', href: '/map.html', kind: 'link' },
   resetPassword: { label: 'Reset Password', href: '/forgot-password.html', kind: 'link' },
@@ -59,6 +60,7 @@ const ROUTE_LABELS = new Map([
   ['/report.html', 'Report Found Item'],
   ['/report-missing.html', 'Report Missing Item'],
   ['/my-submissions.html', 'My Submissions'],
+  ['/my-submissions.html?tab=claims', 'My Claims'],
   ['/admin.html', 'Admin Dashboard'],
   ['/login.html', 'Sign In'],
   ['/signup.html', 'Create Account'],
@@ -188,6 +190,7 @@ function intent(message) {
     isMissingReport: /\b(missing item|lost item|lost something|report missing)\b/.test(text),
     isSearch: /\b(search|browse|find|look for|listing|listings|catalog)\b/.test(text),
     isClaim: /\b(claim|proof|owner|ownership|pickup|pick up|recover|return)\b/.test(text),
+    finderContact: (/\b(finder'?s?|person who found|who found|found the item)\b/.test(text) && /\b(contact|email|phone|info|information|reach|message)\b/.test(text)) || /\bcontact (?:the )?finder\b/.test(text),
     isDashboard: /\b(my submissions|submissions|dashboard|status|updates|progress|my claims|my messages|matches)\b/.test(text),
     isAdmin: /\b(admin|approve|reject|moderate|review items|mark claimed|delete item)\b/.test(text),
     isMap: /\b(map|pin|room|floor|location|where)\b/.test(text),
@@ -334,6 +337,22 @@ function fallbackAnswer(message, context, user) {
       reply: `Here is your dashboard snapshot: ${describeCounts('found reports', context.foundCounts)}; ${describeCounts('missing reports', context.missingCounts)}; claims you submitted: ${Object.values(context.submittedClaimCounts).reduce((a, b) => a + b, 0)}; claims on your items: ${Object.values(context.receivedClaimCounts).reduce((a, b) => a + b, 0)}; messages involving you: ${context.messageCount}. Check My Submissions for updates and progress.`,
       actions: [action('submissions'), action('reportFound'), action('reportMissing')],
       quickReplies: ['How do claims work?', 'How do messages work?', 'Report another item']
+    }, user);
+  }
+
+  if (flags.finderContact) {
+    if (!context.signedIn) {
+      return createResponse({
+        reply: 'Finder contact details are private. Sign in first, then open My Claims to see claim status and contact information after an administrator approves your claim.',
+        actions: [action('signIn'), action('createAccount')],
+        quickReplies: ['How do claims work?', 'Search found items', 'Create account']
+      }, user);
+    }
+
+    return createResponse({
+      reply: 'Finder contact info appears in My Claims after an administrator approves your claim. Open My Claims to check the status and see the approved contact option there.',
+      actions: [action('myClaims')],
+      quickReplies: ['How do claims work?', 'Where are my submissions?', 'How do messages work?']
     }, user);
   }
 
@@ -536,13 +555,16 @@ User question: ${message}`;
 
 async function answerGatorBot({ message, pagePath, pageTitle, user }) {
   const context = await buildSafeContext(user);
+  const flags = intent(message);
   const fallback = fallbackAnswer(message, context, user);
+
+  if (flags.finderContact) return fallback;
 
   if (!aiEnabled()) return fallback;
 
   try {
     const aiResponse = await askAiProvider(message, context, user, pagePath, pageTitle);
-    if (isWebsiteIntent(intent(message)) && isRefusalReply(aiResponse.reply) && !isRefusalReply(fallback.reply)) {
+    if (isWebsiteIntent(flags) && isRefusalReply(aiResponse.reply) && !isRefusalReply(fallback.reply)) {
       return fallback;
     }
     return aiResponse;

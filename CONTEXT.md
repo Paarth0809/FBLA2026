@@ -5,6 +5,52 @@
 
 ---
 
+## Latest Update — Notifications, Admin Actions, and Demo Date Polish
+
+Current goal: finish final judge-demo polish for the Student Portal and admin
+dashboard without changing core data models or risky visual systems.
+
+Completed:
+- Added an authenticated `DELETE /api/notifications/feed` endpoint that clears
+  only the signed-in user's feed-visible system alerts.
+- Added a quiet `Clear notifications` button to the Student Portal
+  Notifications tab.
+- Kept password reset/email utility logs out of the clear action and left other
+  users' notification logs untouched.
+- Added an invisible hover bridge under the top-nav `Report Item` dropdown so
+  users can move from the button into `Report Found` / `Report Missing` without
+  needing to click.
+- Grouped admin row controls into decision actions and secondary actions so
+  approve/reject/mark claimed are visually separated from view/messages/delete.
+- Pinned the missing necklace demo prefill date to `2026-06-29` while leaving
+  the normal form max date dynamic.
+- Removed the physical hover gap under the top-nav `Report Item` dropdown so
+  the black menu does not disappear while moving the cursor down to its links.
+- Updated Student Portal and admin dashboard tab switches to refresh the
+  selected tab's data after changing tabs, instead of only replaying the tab
+  animation.
+- Aligned the claim page info alert with the claim form card by moving both
+  into the same `max-w-3xl` content wrapper.
+- Reworked admin row actions into a fixed compact grid: decision actions use
+  two equal slots and secondary actions use three equal slots, with single
+  actions spanning the row.
+
+Verification:
+- `node tests/demo-autofill-source.test.js` passed.
+- `node tests/navigation-polish-source.test.js` passed.
+- `node --check server/lib/notificationService.js` passed.
+- `node --check server/routes/notifications.js` passed.
+- `node --check public/js/nav.js` passed.
+- `git diff --check` passed.
+- `npm test` passed 128 / 128.
+
+Known risks / next steps:
+- Browser QA was not run in this pass. Manually check the Notifications tab
+  clear action, the Report Item hover dropdown, and admin row controls before
+  the final demo.
+- The local branch is still ahead of `origin/main`; shell-based GitHub push has
+  previously failed because HTTPS credentials were not available.
+
 ## Latest Update — Demo Autofill + Image Preview Polish
 
 Current goal: speed up judge-demo form entry with safe AirPods presets and make
@@ -2126,4 +2172,62 @@ Verification:
 ```bash
 node tests/navigation-polish-source.test.js
 git diff --check
+```
+
+## 2026-06-28 Claim Date + GatorBot Finder Contact Fix
+
+- Fixed the shared `formatDate()` helper in `public/js/nav.js` so My Claims can
+  render full ISO claim `createdAt` timestamps without showing `Invalid Date`.
+- Added a role-safe GatorBot `My Claims` action for
+  `/my-submissions.html?tab=claims`.
+- Added a deterministic finder-contact intent so “where can I see the finder’s
+  contact info?” always returns the My Claims button, even when the AI provider
+  is enabled in production.
+- Updated GatorBot knowledge to explain that finder contact info appears in
+  My Submissions → Claims only after admin approval.
+- Added regression tests for parseable claim submission dates and the exact
+  GatorBot Claims-tab action.
+- Production deployed successfully:
+  - `https://fbla-2026-five.vercel.app`
+  - deployment id `dpl_4RNLR25wwr1BHXFhD5kFrm4oxmnV`
+- Note: the older failed Vercel deployment shown in the UI was superseded. The
+  failed build was a Prisma `P1002` advisory-lock timeout; this deploy used
+  `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` and is Ready.
+
+Verification:
+
+```bash
+node --check public/js/nav.js
+node --check server/lib/gatorbot.js
+node tests/navigation-polish-source.test.js
+npm test   # 130 / 130 pass
+git diff --check
+vercel inspect fbla-2026-jpstm8sy0-paarth0809s-projects.vercel.app
+curl -I https://fbla-2026-five.vercel.app
+Live GatorBot check as Madeline:
+  actions[0].href === /my-submissions.html?tab=claims
+```
+
+Follow-up fix:
+
+- Fixed the Claims tab deep link actually opening Claims instead of staying on
+  the default Found tab.
+- Root cause: `activateInitialTabFromUrl()` looks for
+  `${tabName}-tab-btn`, but the Claims tab button did not have
+  `id="claims-tab-btn"`.
+- Added a source test so `/my-submissions.html?tab=claims` stays
+  URL-addressable.
+- Production deployed successfully:
+  - deployment id `dpl_GkzR3ydsPbunAyc336TPsUTiEfF9`
+
+Verification:
+
+```bash
+node tests/navigation-polish-source.test.js
+node --check public/js/nav.js
+node --check server/lib/gatorbot.js
+git diff --check
+npm test   # 130 / 130 pass
+curl 'https://fbla-2026-five.vercel.app/my-submissions.html?tab=claims'
+  contains id="claims-tab-btn"
 ```

@@ -257,6 +257,7 @@
   <script src="/js/nav.js?v=1.0.3"></script>
   <script>
     const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-missing-white.jpg';
+    const DEMO_NECKLACE_MISSING_DATE = '2026-06-29';
 
     document.getElementById('lastSeenDate').max = new Date().toISOString().split('T')[0];
 
@@ -298,16 +299,12 @@
       return true;
     }
 
-    function todayIsoDate() {
-      return new Date().toISOString().split('T')[0];
-    }
-
     async function fillDemoNecklaceReport() {
       setDemoField('itemName', 'Gold necklace');
       setDemoField('category', 'Jewelry & Accessories');
       setDemoField('description', 'Gold necklace with a small pearl pendant and a delicate chain.');
       setDemoField('lastSeenLocation', 'Media Center table');
-      setDemoField('lastSeenDate', todayIsoDate());
+      setDemoField('lastSeenDate', DEMO_NECKLACE_MISSING_DATE);
 
       try {
         await attachDemoPhoto();

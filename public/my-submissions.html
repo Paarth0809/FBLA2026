@@ -183,7 +183,7 @@
       <div class="tabs" role="tablist" aria-label="My submissions sections">
         <button class="tab active" onclick="switchTab('found',    this)" role="tab" aria-selected="true"  aria-controls="tab-found"><span class="material-symbols-outlined">inventory_2</span> Found</button>
         <button class="tab"        onclick="switchTab('missing',  this)" role="tab" aria-selected="false" aria-controls="tab-missing"><span class="material-symbols-outlined">search</span> Missing</button>
-        <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">pan_tool</span> Claims</button>
+        <button class="tab"        onclick="switchTab('claims',   this)" role="tab" aria-selected="false" aria-controls="tab-claims" id="claims-tab-btn"><span class="material-symbols-outlined">pan_tool</span> Claims</button>
         <button class="tab"        onclick="switchTab('matches',  this)" role="tab" aria-selected="false" aria-controls="tab-matches" id="matches-tab-btn"><span class="material-symbols-outlined">compare_arrows</span> Matches</button>
         <button class="tab"        onclick="switchTab('notifications', this)" role="tab" aria-selected="false" aria-controls="tab-notifications" id="notifications-tab-btn"><span class="material-symbols-outlined">mail</span> Notifications</button>
         <button class="tab"        onclick="switchTab('messages', this)" role="tab" aria-selected="false" aria-controls="tab-messages" id="messages-tab-btn"><span class="material-symbols-outlined">person</span> Messages</button>
@@ -372,18 +372,23 @@
       loadSettings();
       activateInitialTabFromUrl();
       showSubmissionSuccessNotice();
+      startPortalAutoRefresh();
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
+    let _activePortalTab = 'found';
+    const _portalInFlight = {};
+
     function activateInitialTabFromUrl() {
       const tabName = new URLSearchParams(window.location.search).get('tab');
       const tabButton = tabName ? document.getElementById(tabName + '-tab-btn') : null;
       if (tabButton && document.getElementById('tab-' + tabName)) {
-        switchTab(tabName, tabButton, { updateUrl: false });
+        switchTab(tabName, tabButton, { updateUrl: false, refresh: false });
       }
     }
 
     function switchTab(name, btn, options = {}) {
+      _activePortalTab = name;
       document.querySelectorAll('.tab').forEach(t => {
         t.classList.remove('active');
         t.setAttribute('aria-selected', 'false');
@@ -405,6 +410,37 @@
         }
         window.history.replaceState({}, '', url);
       }
+
+      if (options.refresh !== false) {
+        refreshPortalTab(name);
+      }
+    }
+
+    function refreshPortalTab(name) {
+      const loaders = {
+        found: loadFound,
+        missing: loadMissing,
+        claims: loadMyClaims,
+        matches: loadMatches,
+        notifications: loadNotifications,
+        messages: loadMessages,
+        settings: loadSettings
+      };
+      const loader = loaders[name];
+      return loader ? loader() : Promise.resolve();
+    }
+
+    function startPortalAutoRefresh() {
+      function tick() {
+        if (document.hidden) return;
+        const tab = _activePortalTab;
+        if (_portalInFlight[tab]) return;
+        _portalInFlight[tab] = true;
+        Promise.resolve(refreshPortalTab(tab)).finally(function() { _portalInFlight[tab] = false; });
+      }
+      setInterval(tick, 5000);
+      document.addEventListener('visibilitychange', function() { if (!document.hidden) tick(); });
+      window.addEventListener('focus', tick);
     }
 
     function showSubmissionSuccessNotice() {
@@ -923,7 +959,18 @@
         return;
       }
 
-      el.innerHTML = `<div class="notification-list">${feed.map(notificationCard).join('')}</div>`;
+      el.innerHTML = `
+        <div class="notification-toolbar">
+          <div>
+            <h3>${window.t('Notifications')}</h3>
+            <p class="text-muted">${window.t('System alerts for matches, approvals, and claims.')}</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" data-clear-notifications>
+            <span class="material-symbols-outlined">delete_sweep</span>
+            ${window.t('Clear notifications')}
+          </button>
+        </div>
+        <div class="notification-list">${feed.map(notificationCard).join('')}</div>`;
     }
 
     function notificationIcon(type) {
@@ -958,6 +1005,17 @@
             </div>
           </div>
         </article>`;
+    }
+
+    async function clearNotifications() {
+      if (!confirm(window.t('Clear all notifications? This only clears this feed.'))) return;
+      try {
+        await api.delete('/notifications/feed');
+        showToast(window.t('Notifications cleared.'), 'success');
+        loadNotifications();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
     }
 
     // ── Messages tab ──────────────────────────────────────────────────────────
@@ -1117,6 +1175,12 @@
       const delBtn = e.target.closest('[data-delete-msg-id]');
       if (delBtn) {
         deleteMessage(delBtn.dataset.deleteMsgId);
+        return;
+      }
+
+      const clearNotificationsBtn = e.target.closest('[data-clear-notifications]');
+      if (clearNotificationsBtn) {
+        clearNotifications();
       }
     });
 

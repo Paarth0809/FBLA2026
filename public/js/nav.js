@@ -410,7 +410,10 @@ function initMotion() {
 // ── Utility helpers ───────────────────────────────────────────────────────────
 function formatDate(str) {
   if (!str) return '—';
-  const d = new Date(str + 'T00:00:00');
+  const value = String(str).trim();
+  if (!value) return '—';
+  const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
+  if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 

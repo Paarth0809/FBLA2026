@@ -62,6 +62,12 @@ assert(
   'Missing report demo fill should name the attached missing necklace photo clearly.'
 );
 assert(
+  missingReport.includes("const DEMO_NECKLACE_MISSING_DATE = '2026-06-29';") &&
+    missingReport.includes("setDemoField('lastSeenDate', DEMO_NECKLACE_MISSING_DATE)") &&
+    !missingReport.includes("setDemoField('lastSeenDate', todayIsoDate())"),
+  'Missing report demo prefill should stay pinned to June 29, 2026 for prelims setup.'
+);
+assert(
   !missingReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-found-table.jpg';") &&
     !foundReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-missing-white.jpg';"),
   'Found and missing demo prefills should not share the same necklace image.'
@@ -79,6 +85,8 @@ assert(claimPage.includes('Demo prefill'), 'Claim page should include the quiet 
 assert(claimPage.includes('Prefill claim'), 'Claim page should expose a concise claim prefill button.');
 assert(claimPage.includes('student-form-card'), 'Claim page should use the shared student form card surface.');
 assert(claimPage.includes('max-w-3xl'), 'Claim page should use the same centered student portal content rhythm as settings/forms.');
+assert(claimPage.includes('id="form-container" class="hidden max-w-3xl"'), 'Claim page info alert should share the same max width as the claim form.');
+assert(claimPage.includes('class="w-full bg-white border border-outline-variant'), 'Claim form card should fill the aligned claim content wrapper.');
 assert(!claimPage.includes('claim-layout-grid'), 'Claim page should not show a separate two-column claim info layout.');
 assert(!claimPage.includes('claim-info-card'), 'Claim page should not show the extra claiming-item side card.');
 assert(!claimPage.includes('id="item-name-display" class="text-on-surface">…</strong>'), 'Claim page header should not default to an ellipsis item name.');

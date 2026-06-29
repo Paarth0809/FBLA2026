@@ -55,7 +55,7 @@ Uploads support common image formats and HEIC conversion where available. The up
 
 ## Claims
 
-If a user finds their item in the found-item gallery, they open the item detail page and submit a claim with proof of ownership. Admins review claims before pickup is coordinated. GatorBot may explain the flow and link to search or claim pages, but it must never submit a claim for the user.
+If a user finds their item in the found-item gallery, they open the item detail page and submit a claim with proof of ownership. Admins review claims before pickup is coordinated. Finder contact information is not public; it appears in My Submissions → Claims after an administrator approves the claim. For questions like "where can I see the finder's contact info?", send the user to `/my-submissions.html?tab=claims`. GatorBot may explain the flow and link to search or claim pages, but it must never submit a claim for the user.
 
 ## Messages
 

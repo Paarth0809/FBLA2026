@@ -193,9 +193,9 @@
 
       <!-- Tabs -->
       <div class="tabs" role="tablist" aria-label="Admin sections">
-        <button class="tab active" onclick="switchTab('found')"   role="tab" aria-selected="true"  aria-controls="tab-found"><span class="material-symbols-outlined">inventory_2</span> Found Items</button>
-        <button class="tab"        onclick="switchTab('missing')" role="tab" aria-selected="false" aria-controls="tab-missing"><span class="material-symbols-outlined">manage_search</span> Missing Items</button>
-        <button class="tab"        onclick="switchTab('claims')"  role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">assignment</span> Claims</button>
+        <button class="tab active" onclick="switchTab('found', this)"   role="tab" aria-selected="true"  aria-controls="tab-found"><span class="material-symbols-outlined">inventory_2</span> Found Items</button>
+        <button class="tab"        onclick="switchTab('missing', this)" role="tab" aria-selected="false" aria-controls="tab-missing"><span class="material-symbols-outlined">manage_search</span> Missing Items</button>
+        <button class="tab"        onclick="switchTab('claims', this)"  role="tab" aria-selected="false" aria-controls="tab-claims"><span class="material-symbols-outlined">assignment</span> Claims</button>
       </div>
 
       <!-- Tab: Found Items -->
@@ -263,15 +263,23 @@
     });
 
     // ── Tab switching ─────────────────────────────────────────
-    function switchTab(name) {
+    function switchTab(name, btn) {
       document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      event.target.classList.add('active');
-      event.target.setAttribute('aria-selected', 'true');
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       const panel = document.getElementById('tab-' + name);
       panel.classList.remove('active');
       void panel.offsetWidth;
       panel.classList.add('active');
+      loadAdminTab(name);
+    }
+
+    function loadAdminTab(name) {
+      if (name === 'found') return loadFound();
+      if (name === 'missing') return loadMissing();
+      if (name === 'claims') return loadClaims();
+      return Promise.resolve();
     }
 
     // ── Load everything ───────────────────────────────────────
@@ -353,15 +361,17 @@
         <td>${escapeHtml(item.submitterName)}</td>
         <td>${statusBadge(item.status)}</td>
         <td>
-          <div class="table-actions">
-            ${actions}
+          <div class="admin-action-stack">
+            <div class="admin-decision-row">${actions}</div>
+            <div class="admin-secondary-row">
             <a href="/item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details"><span class="material-symbols-outlined">visibility</span>View</a>
             <button data-msg-viewer-id="${safeAttr(item.id)}"
                     data-msg-viewer-name="${safeAttr(item.itemName)}"
                     class="btn btn-ghost btn-sm" title="View messages for this item"
-                    aria-label="View messages for ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">forum</span></button>
+                    aria-label="View messages for ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">forum</span>Messages</button>
             <button onclick="deleteFound('${item.id}')"
-                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">delete</span></button>
+                    class="btn btn-ghost btn-ghost-danger btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">delete</span>Delete</button>
+            </div>
           </div>
         </td>
       </tr>`;
@@ -430,15 +440,17 @@
         <td>${escapeHtml(item.submitterName)}</td>
         <td>${statusBadge(item.status)}</td>
         <td>
-          <div class="table-actions">
-            ${actions}
+          <div class="admin-action-stack">
+            <div class="admin-decision-row">${actions}</div>
+            <div class="admin-secondary-row">
             <a href="/missing-item.html?id=${item.id}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details"><span class="material-symbols-outlined">visibility</span>View</a>
             <button data-msg-viewer-id="${safeAttr(item.id)}"
                     data-msg-viewer-name="${safeAttr(item.itemName)}"
                     class="btn btn-ghost btn-sm" title="View messages for this item"
-                    aria-label="View messages for ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">forum</span></button>
+                    aria-label="View messages for ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">forum</span>Messages</button>
             <button onclick="deleteMissing('${item.id}')"
-                    class="btn btn-ghost btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">delete</span></button>
+                    class="btn btn-ghost btn-ghost-danger btn-sm" aria-label="Delete ${escapeHtml(item.itemName)}"><span class="material-symbols-outlined">delete</span>Delete</button>
+            </div>
           </div>
         </td>
       </tr>`;
@@ -506,11 +518,13 @@
         <td>${new Date(claim.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
         <td>${statusBadge(claim.status)}</td>
         <td>
-          <div class="table-actions">
-            ${actions}
+          <div class="admin-action-stack">
+            <div class="admin-decision-row">${actions}</div>
+            <div class="admin-secondary-row">
             <a href="${itemLink}" target="_blank" class="btn btn-outline btn-sm" style="font-size:0.75rem" title="View item details"><span class="material-symbols-outlined">visibility</span>View</a>
-            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${escapeHtml(claim.claimerName)}"><span class="material-symbols-outlined">description</span></button>
-            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="Delete claim from ${escapeHtml(claim.claimerName)}"><span class="material-symbols-outlined">delete</span></button>
+            <button onclick="viewClaim('${claim.id}')" class="btn btn-ghost btn-sm" aria-label="View proof of ownership from ${escapeHtml(claim.claimerName)}"><span class="material-symbols-outlined">description</span>Proof</button>
+            <button onclick="deleteClaim('${claim.id}')" class="btn btn-ghost btn-ghost-danger btn-sm" aria-label="Delete claim from ${escapeHtml(claim.claimerName)}"><span class="material-symbols-outlined">delete</span>Delete</button>
+            </div>
           </div>
         </td>
       </tr>`;
@@ -553,19 +567,25 @@
       overlay.classList.remove('hidden');
 
       try {
-        const messages = await api.get('/admin/messages?itemId=' + encodeURIComponent(itemId));
-        renderMsgThread(bodyEl, countEl, messages);
+        const raw = await api.get('/admin/messages?itemId=' + encodeURIComponent(itemId));
+        renderMsgThread(bodyEl, countEl, raw);
       } catch (err) {
         bodyEl.innerHTML =
           '<div class="alert alert-error" style="margin:1rem">' + escapeHtml(err.message) + '</div>';
+        countEl.textContent = '';
       }
     }
 
-    function renderMsgThread(bodyEl, countEl, messages) {
-      if (!Array.isArray(messages)) {
+    function renderMsgThread(bodyEl, countEl, rawMessages) {
+      const messages = Array.isArray(rawMessages) ? rawMessages
+        : Array.isArray(rawMessages && rawMessages.messages) ? rawMessages.messages
+        : null;
+
+      if (messages === null) {
         bodyEl.innerHTML =
           '<div class="alert alert-error" style="margin:0.5rem 0">' +
           'Could not load messages — please restart the server and try again.</div>';
+        countEl.textContent = '';
         return;
       }
       if (messages.length === 0) {
@@ -578,8 +598,6 @@
         countEl.textContent = '0 messages';
         return;
       }
-
-      countEl.textContent = messages.length + ' message' + (messages.length !== 1 ? 's' : '');
 
       bodyEl.innerHTML = '<div style="display:flex;flex-direction:column;gap:0.875rem;padding:0.25rem 0">' +
         messages.map(function(msg) {
@@ -608,6 +626,7 @@
           '</div>';
         }).join('') +
       '</div>';
+      countEl.textContent = messages.length + ' message' + (messages.length !== 1 ? 's' : '');
     }
 
     function closeMsgViewer() {

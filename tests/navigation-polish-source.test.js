@@ -50,6 +50,20 @@ assert(
 );
 
 assert(
+  !nav.includes("new Date(str + 'T00:00:00')") &&
+    nav.includes('Number.isNaN(d.getTime())'),
+  'shared date formatter should support ISO timestamps and avoid rendering Invalid Date.'
+);
+
+assert(
+  gatorbot.includes('myClaims') &&
+    gatorbot.includes("href: '/my-submissions.html?tab=claims'") &&
+    gatorbot.includes('finderContact') &&
+    /if \(flags\.finderContact\) return fallback;/.test(gatorbot),
+  'GatorBot should expose a role-safe deterministic My Claims action for finder contact questions.'
+);
+
+assert(
   reportFound.includes('report-mode-toggle') && reportFound.includes('/report-missing.html'),
   'found report page should expose a Found/Missing report toggle'
 );
@@ -163,6 +177,13 @@ assert(
 );
 
 assert(
+  submissions.includes("switchTab('claims',   this)") &&
+    submissions.includes('id="claims-tab-btn"') &&
+    submissions.includes('aria-controls="tab-claims"'),
+  'Claims tab should have a URL-addressable tab button so /my-submissions.html?tab=claims opens My Claims.'
+);
+
+assert(
   submissions.includes("switchTab('messages', this)") &&
     /id="messages-tab-btn"[^>]*><span class="material-symbols-outlined">(person|account_circle|supervisor_account)<\/span> Messages/.test(submissions),
   'Messages tab should use a person-style icon so it is visually distinct from Notifications.'
@@ -170,6 +191,8 @@ assert(
 
 assert(
   submissions.includes("api.get('/notifications/feed')") &&
+    submissions.includes("api.delete('/notifications/feed')") &&
+    submissions.includes('data-clear-notifications') &&
     submissions.includes('function normalizeNotificationFeed') &&
     submissions.includes('Array.isArray(rawFeed)') &&
     submissions.includes('Array.isArray(rawFeed.feed)') &&
@@ -177,6 +200,39 @@ assert(
     submissions.includes('No notifications yet') &&
     submissions.includes('System alerts for matches, approvals, and claims will appear here.'),
   'student portal should load, normalize, and render a notification feed separate from messages.'
+);
+
+assert(
+  /\.nav-report-menu-panel\s*\{[^}]*top:\s*100%;/s.test(css) &&
+    !css.includes('top: calc(100% + 0.45rem)'),
+  'Report Item dropdown should not keep a physical hover gap between the button and submenu.'
+);
+
+assert(
+  admin.includes('admin-action-stack') &&
+    admin.includes('admin-decision-row') &&
+    admin.includes('admin-secondary-row') &&
+    css.includes('.admin-action-stack') &&
+    css.includes('width: 17.5rem;') &&
+    css.includes('.admin-decision-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }') &&
+    css.includes('.admin-secondary-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }') &&
+    css.includes('.admin-decision-row .btn:only-child { grid-column: 1 / -1; }'),
+  'admin row controls should use a compact aligned action grid for decisions and secondary actions.'
+);
+
+assert(
+  admin.includes("onclick=\"switchTab('found', this)\"") &&
+    admin.includes("onclick=\"switchTab('missing', this)\"") &&
+    admin.includes("onclick=\"switchTab('claims', this)\"") &&
+    admin.includes('function loadAdminTab(name)') &&
+    admin.includes('loadAdminTab(name);'),
+  'admin dashboard tabs should reload the selected tab data when switched, not only replay the panel animation.'
+);
+
+assert(
+  submissions.includes('function refreshPortalTab(name)') &&
+    submissions.includes('refreshPortalTab(name);'),
+  'student portal tabs should refresh selected tab data when switched so multiple demo profiles stay current.'
 );
 
 assert(
@@ -190,6 +246,37 @@ assert(
     nav.includes('color: var(--primary, #006c49);') &&
     !nav.includes('lang-switcher-icon {\\n      color: rgba(255, 255, 255'),
   'Language switcher globe icon should have a readable green treatment instead of low-contrast white.'
+);
+
+assert(
+  admin.includes('countEl.textContent = messages.length') &&
+    admin.includes("countEl.textContent = '0 messages'"),
+  'admin message viewer should derive msg-viewer-count from the rendered message list, not a separate counter'
+);
+
+assert(
+  /countEl\.textContent\s*=\s*''/.test(admin) &&
+    (/catch[^}]*countEl\.textContent\s*=\s*''/s.test(admin) || admin.includes("countEl.textContent = '';\n        return;")),
+  'admin message viewer should clear msg-viewer-count on error and on non-array response so stale counts never show'
+);
+
+assert(
+  submissions.includes("addEventListener('visibilitychange'") &&
+    submissions.includes("addEventListener('focus'"),
+  'student portal should register visibilitychange and focus hooks for auto-refresh'
+);
+
+assert(
+  submissions.includes('_activePortalTab') &&
+    submissions.includes('_portalInFlight') &&
+    submissions.includes('startPortalAutoRefresh'),
+  'student portal should track the active tab name and guard against concurrent in-flight refreshes'
+);
+
+assert(
+  /found\s*:\s*loadFound/.test(submissions) &&
+    submissions.includes('return loader ? loader() : Promise.resolve()'),
+  'Found tab auto-refresh should invoke the existing claims-aware loadFound loader via refreshPortalTab'
 );
 
 console.log('navigation-polish-source.test.js passed');
