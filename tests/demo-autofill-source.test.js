@@ -34,7 +34,7 @@ for (const [name, source] of [
   ['missing report', missingReport]
 ]) {
   assert(source.includes('Demo prefill'), `${name} should label the autofill area as a quiet demo prefill utility.`);
-  assert(source.includes('Prefill AirPods'), `${name} should expose a concise AirPods autofill button.`);
+  assert(source.includes('Prefill necklace'), `${name} should expose a concise necklace autofill button.`);
   assert(!source.includes('Need the judge demo preset?'), `${name} should avoid corny judge-demo question copy.`);
   assert(!source.includes('auto_fix_high'), `${name} demo fill button should stay plain without a decorative icon.`);
   assert(source.includes('async function attachDemoPhoto()'), `${name} should attach the demo photo through a shared helper.`);
@@ -45,25 +45,25 @@ for (const [name, source] of [
 }
 
 assert(
-  foundReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found-case.jpg';"),
-  'Found report demo fill should use the AirPods case photo.'
+  foundReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-found-table.jpg';"),
+  'Found report demo fill should use the wooden-table necklace photo.'
 );
 assert(
-  foundReport.includes("new File([blob], 'airpods-found-case.jpg'"),
-  'Found report demo fill should name the attached case photo clearly.'
+  foundReport.includes("new File([blob], 'necklace-found-table.jpg'"),
+  'Found report demo fill should name the attached found necklace photo clearly.'
 );
 assert(
-  missingReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-missing-open.jpg';"),
-  'Missing report demo fill should use a different open-AirPods photo.'
+  missingReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-missing-white.jpg';"),
+  'Missing report demo fill should use the white-background necklace photo.'
 );
 assert(
-  missingReport.includes("new File([blob], 'airpods-missing-open.jpg'"),
-  'Missing report demo fill should name the attached open-AirPods photo clearly.'
+  missingReport.includes("new File([blob], 'necklace-missing-white.jpg'"),
+  'Missing report demo fill should name the attached missing necklace photo clearly.'
 );
 assert(
-  !missingReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found-case.jpg';") &&
-    !foundReport.includes("const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-missing-open.jpg';"),
-  'Found and missing demo prefills should not share the same AirPods image.'
+  !missingReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-found-table.jpg';") &&
+    !foundReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-missing-white.jpg';"),
+  'Found and missing demo prefills should not share the same necklace image.'
 );
 
 assert(claimPage.includes('Demo prefill'), 'Claim page should include the quiet demo prefill utility.');
@@ -104,8 +104,10 @@ assert(
 
 assert(
   fs.existsSync(path.join(ROOT, 'public/images/demo/airpods-found-case.jpg')) &&
-    fs.existsSync(path.join(ROOT, 'public/images/demo/airpods-missing-open.jpg')),
-  'Both distinct AirPods demo images should be tracked under public/images/demo.'
+    fs.existsSync(path.join(ROOT, 'public/images/demo/airpods-missing-open.jpg')) &&
+    fs.existsSync(path.join(ROOT, 'public/images/demo/necklace-found-table.jpg')) &&
+    fs.existsSync(path.join(ROOT, 'public/images/demo/necklace-missing-white.jpg')),
+  'Distinct AirPods and necklace demo images should be tracked under public/images/demo.'
 );
 
 assert(

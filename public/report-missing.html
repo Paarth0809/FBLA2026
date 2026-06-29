@@ -144,10 +144,10 @@
             <div class="demo-fill-card">
               <div>
                 <strong>Demo prefill</strong>
-                <span>AirPods missing-item sample with photo.</span>
+                <span>Necklace missing-item sample with photo.</span>
               </div>
-              <button type="button" id="demo-fill-airpods" class="btn btn-outline btn-sm">
-                Prefill AirPods
+              <button type="button" id="demo-fill-necklace" class="btn btn-outline btn-sm">
+                Prefill necklace
               </button>
             </div>
 
@@ -256,7 +256,7 @@
   <script src="/js/api.js"></script>
   <script src="/js/nav.js?v=1.0.3"></script>
   <script>
-    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-missing-open.jpg';
+    const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-missing-white.jpg';
 
     document.getElementById('lastSeenDate').max = new Date().toISOString().split('T')[0];
 
@@ -287,10 +287,10 @@
     async function attachDemoPhoto() {
       const photoInput = document.getElementById('photo');
       if (!photoInput || typeof DataTransfer === 'undefined') return false;
-      const response = await fetch(DEMO_AIRPODS_PHOTO);
+      const response = await fetch(DEMO_NECKLACE_PHOTO);
       if (!response.ok) throw new Error('Demo photo could not be loaded.');
       const blob = await response.blob();
-      const file = new File([blob], 'airpods-missing-open.jpg', { type: blob.type || 'image/jpeg' });
+      const file = new File([blob], 'necklace-missing-white.jpg', { type: blob.type || 'image/jpeg' });
       const transfer = new DataTransfer();
       transfer.items.add(file);
       photoInput.files = transfer.files;
@@ -302,11 +302,11 @@
       return new Date().toISOString().split('T')[0];
     }
 
-    async function fillDemoAirpodsReport() {
-      setDemoField('itemName', 'AirPods');
-      setDemoField('category', 'Electronics');
-      setDemoField('description', 'White AirPods Pro case with small scratches on the bottom left.');
-      setDemoField('lastSeenLocation', 'Room 1129, Floor 1');
+    async function fillDemoNecklaceReport() {
+      setDemoField('itemName', 'Gold necklace');
+      setDemoField('category', 'Jewelry & Accessories');
+      setDemoField('description', 'Gold necklace with a small pearl pendant and a delicate chain.');
+      setDemoField('lastSeenLocation', 'Media Center table');
       setDemoField('lastSeenDate', todayIsoDate());
 
       try {
@@ -317,10 +317,10 @@
         return;
       }
 
-      showToast('Demo AirPods missing report filled. Review before submitting.', 'success');
+      showToast('Demo necklace missing report filled. Review before submitting.', 'success');
     }
 
-    document.getElementById('demo-fill-airpods')?.addEventListener('click', fillDemoAirpodsReport);
+    document.getElementById('demo-fill-necklace')?.addEventListener('click', fillDemoNecklaceReport);
 
     document.getElementById('photo').addEventListener('change', function() {
       const file = this.files[0];

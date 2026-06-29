@@ -149,10 +149,10 @@
             <div class="demo-fill-card">
               <div>
                 <strong>Demo prefill</strong>
-                <span>AirPods sample with photo and Room 1129.</span>
+                <span>Necklace sample with photo and Room 1129.</span>
               </div>
-              <button type="button" id="demo-fill-airpods" class="btn btn-outline btn-sm">
-                Prefill AirPods
+              <button type="button" id="demo-fill-necklace" class="btn btn-outline btn-sm">
+                Prefill necklace
               </button>
             </div>
 
@@ -310,7 +310,7 @@
   <script type="module" src="/js/report-map-picker.js?v=20260617"></script>
   <script>
     const MISSING_PREFILL_KEY = 'glhsFoundReportPrefill';
-    const DEMO_AIRPODS_PHOTO = '/images/demo/airpods-found-case.jpg';
+    const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-found-table.jpg';
 
     // Set today as the max date for dateFound
     document.getElementById('dateFound').max = new Date().toISOString().split('T')[0];
@@ -345,10 +345,10 @@
     async function attachDemoPhoto() {
       const photoInput = document.getElementById('photo');
       if (!photoInput || typeof DataTransfer === 'undefined') return false;
-      const response = await fetch(DEMO_AIRPODS_PHOTO);
+      const response = await fetch(DEMO_NECKLACE_PHOTO);
       if (!response.ok) throw new Error('Demo photo could not be loaded.');
       const blob = await response.blob();
-      const file = new File([blob], 'airpods-found-case.jpg', { type: blob.type || 'image/jpeg' });
+      const file = new File([blob], 'necklace-found-table.jpg', { type: blob.type || 'image/jpeg' });
       const transfer = new DataTransfer();
       transfer.items.add(file);
       photoInput.files = transfer.files;
@@ -372,10 +372,10 @@
       return false;
     }
 
-    async function fillDemoAirpodsReport() {
-      setDemoField('itemName', 'AirPods');
-      setDemoField('category', 'Electronics');
-      setDemoField('description', 'White AirPods Pro case with small scratches on the bottom left.');
+    async function fillDemoNecklaceReport() {
+      setDemoField('itemName', 'Gold necklace');
+      setDemoField('category', 'Jewelry & Accessories');
+      setDemoField('description', 'Gold necklace with a small pearl pendant and a delicate chain.');
       setDemoField('locationFound', 'Room 1129, Floor 1');
       setDemoField('dateFound', todayIsoDate());
 
@@ -388,7 +388,7 @@
         return;
       }
 
-      showToast(mapSelected ? 'Demo AirPods report filled. Review before submitting.' : 'Demo AirPods report filled. Map picker is still loading.', 'success');
+      showToast(mapSelected ? 'Demo necklace report filled. Review before submitting.' : 'Demo necklace report filled. Map picker is still loading.', 'success');
     }
 
     function setPrefilledField(id, value) {
@@ -430,7 +430,7 @@
       sessionStorage.removeItem(MISSING_PREFILL_KEY);
     }
 
-    document.getElementById('demo-fill-airpods')?.addEventListener('click', fillDemoAirpodsReport);
+    document.getElementById('demo-fill-necklace')?.addEventListener('click', fillDemoNecklaceReport);
 
     // Photo preview
     document.getElementById('photo').addEventListener('change', function() {
