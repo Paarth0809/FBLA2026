@@ -42,6 +42,7 @@ for (const [name, source] of [
   assert(source.includes("photoInput.dispatchEvent(new Event('change', { bubbles: true }))"), `${name} should reuse the existing photo preview flow after attaching the file.`);
   assert(source.includes('dispatchFieldEvents(field)'), `${name} should dispatch validation events for programmatic field updates.`);
   assert(!/demo[^<\n]{0,80}submit\(/i.test(source), `${name} demo fill must not submit the form automatically.`);
+  assert(!/setTimeout\(\(\)\s*=>\s*window\.location\.href\s*=\s*['"]\/my-submissions\.html['"],\s*2200\)/.test(source), `${name} should not hold users on the form with a delayed success redirect.`);
 }
 
 assert(
@@ -64,6 +65,14 @@ assert(
   !missingReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-found-table.jpg';") &&
     !foundReport.includes("const DEMO_NECKLACE_PHOTO = '/images/demo/necklace-missing-white.jpg';"),
   'Found and missing demo prefills should not share the same necklace image.'
+);
+assert(
+  foundReport.includes("window.location.assign('/my-submissions.html?tab=found&submitted=found')"),
+  'Found report should redirect immediately to the Found submissions tab after the save completes.'
+);
+assert(
+  missingReport.includes("window.location.assign('/my-submissions.html?tab=missing&submitted=missing')"),
+  'Missing report should redirect immediately to the Missing submissions tab after the save completes.'
 );
 
 assert(claimPage.includes('Demo prefill'), 'Claim page should include the quiet demo prefill utility.');

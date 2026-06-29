@@ -138,6 +138,8 @@
         </div>
       </div>
 
+      <div id="submission-success-banner" class="alert alert-success hidden mb-6" role="status" data-i18n-skip></div>
+
       <section class="stats-row" aria-label="Student portal summary">
         <div class="stat-card">
           <div class="flex items-center justify-between gap-4">
@@ -369,6 +371,7 @@
       loadMessages();
       loadSettings();
       activateInitialTabFromUrl();
+      showSubmissionSuccessNotice();
     });
 
     // ── Tab switching ─────────────────────────────────────────────────────────
@@ -402,6 +405,27 @@
         }
         window.history.replaceState({}, '', url);
       }
+    }
+
+    function showSubmissionSuccessNotice() {
+      const url = new URL(window.location.href);
+      const submitted = url.searchParams.get('submitted');
+      if (!submitted) return;
+
+      const banner = document.getElementById('submission-success-banner');
+      const reportType = submitted === 'missing' ? 'missing item report' : 'found item report';
+      banner.innerHTML = `
+        <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+        <span>Your ${reportType} was saved and is pending admin review. It appears below with the Pending tag.</span>
+      `;
+      banner.classList.remove('hidden');
+
+      if (window.showToast) {
+        showToast('Report saved. Pending review.', 'success');
+      }
+
+      url.searchParams.delete('submitted');
+      window.history.replaceState({}, '', url);
     }
 
     // ── Status hints ──────────────────────────────────────────────────────────

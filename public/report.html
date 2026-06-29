@@ -481,17 +481,14 @@
       errorBox.classList.add('hidden');
       successBox.classList.add('hidden');
       btn.disabled  = true;
-      btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Submitting…';
+      btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Saving to My Submissions…';
 
       try {
         // Use FormData so the photo file is included automatically
         const formData = new FormData(this);
         await api.post('/items', formData);
-
-        successBox.textContent = 'Item submitted. Check the My Submissions tab to see review updates and progress.';
-        successBox.classList.remove('hidden');
-        showToast('Submitted. Check My Submissions for updates.', 'success');
-        setTimeout(() => window.location.href = '/my-submissions.html', 2200);
+        showToast('Saved. Opening My Submissions...', 'success');
+        window.location.assign('/my-submissions.html?tab=found&submitted=found');
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.classList.remove('hidden');

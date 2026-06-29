@@ -364,14 +364,12 @@
       const successBox = document.getElementById('success-box');
       errorBox.classList.add('hidden');
       successBox.classList.add('hidden');
-      btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Submitting…';
+      btn.disabled = true; btn.innerHTML = '<span class="spinner" style="width:1rem;height:1rem;border-width:2px"></span> Saving to My Submissions…';
 
       try {
         await api.post('/missing-items', new FormData(this));
-        successBox.textContent = 'Missing item reported. Check the My Submissions tab to see review updates and progress.';
-        successBox.classList.remove('hidden');
-        showToast('Submitted. Check My Submissions for updates.', 'success');
-        setTimeout(() => window.location.href = '/my-submissions.html', 2200);
+        showToast('Saved. Opening My Submissions...', 'success');
+        window.location.assign('/my-submissions.html?tab=missing&submitted=missing');
       } catch (err) {
         errorBox.textContent = err.message;
         errorBox.classList.remove('hidden');

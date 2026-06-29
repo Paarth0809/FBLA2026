@@ -2088,3 +2088,26 @@ Playwright live claim check:
   /claim.html?id=ff6c0109-1a95-428a-ad83-b7c64de1eca1&type=found => Gold necklace
   /claim.html?itemId=ff6c0109-1a95-428a-ad83-b7c64de1eca1&itemType=FOUND => Gold necklace
 ```
+
+## 2026-06-28 Fast Report Redirect Polish
+
+- Changed found and missing report submission UX to feel faster for the demo:
+  - after the API confirms the report is saved, the forms redirect immediately
+    to `my-submissions.html` instead of showing a success message and waiting
+    2.2 seconds;
+  - found reports land on `?tab=found&submitted=found`;
+  - missing reports land on `?tab=missing&submitted=missing`.
+- Added a one-time success banner on My Submissions that says the report was
+  saved and is pending admin review, then removes the `submitted` URL flag.
+- Kept uploads reliable by not navigating before the server confirms the save;
+  this avoids browser-cancelled photo uploads during the judge demo.
+- Extended source tests for fast redirects and the one-time banner.
+
+Verification:
+
+```bash
+node tests/demo-autofill-source.test.js
+node tests/navigation-polish-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+```

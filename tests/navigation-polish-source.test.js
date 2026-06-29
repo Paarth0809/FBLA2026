@@ -88,6 +88,13 @@ assert(
 );
 
 assert(
+  submissions.includes('submission-success-banner') &&
+    submissions.includes('showSubmissionSuccessNotice') &&
+    submissions.includes("url.searchParams.delete('submitted')"),
+  'My Submissions should show a one-time saved-report banner for fast report redirects.'
+);
+
+assert(
   admin.includes('<div class="eyebrow mb-2">Admin Portal</div>') &&
     admin.includes('class="stats-row"') &&
     admin.includes('class="stat-card"') &&
