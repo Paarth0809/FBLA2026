@@ -84,6 +84,10 @@ assert(claimPage.includes('claim-success-card'), 'Claim page should show an inte
 assert(claimPage.includes('View My Claims'), 'Claim success state should link back to the claims/submissions area.');
 assert(claimPage.includes('result.claim?.itemName'), 'Claim success state should use the submitted claim response to restore item context.');
 assert(!claimPage.includes("document.getElementById('claim-form').style.display = 'none';"), 'Claim page should not leave an empty card by only hiding the form after submission.');
+assert(/id="item-name-display"[^>]*data-i18n-skip/.test(claimPage), 'Claim item name should opt out of translation resets so loaded item names are not replaced with "this item".');
+assert(claimPage.includes("params.get('itemId')"), 'Claim page should accept itemId query parameters from alternate claim links.');
+assert(claimPage.includes("params.get('itemType')"), 'Claim page should accept itemType query parameters from alternate claim links.');
+assert(/toLowerCase\(\)/.test(claimPage), 'Claim page should normalize claim item type casing before loading item details.');
 
 assert(
   foundReport.includes("window.reportMapPicker?.selectRoom({ floorId: 'floor-1', roomNumber: '1129' })"),

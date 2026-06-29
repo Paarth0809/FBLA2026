@@ -2052,3 +2052,39 @@ node tests/demo-autofill-source.test.js
 git diff --check
 npm test   # 127 / 127 pass
 ```
+
+## 2026-06-28 Claim Item Name Translation Fix
+
+- Fixed `public/claim.html` showing `Claiming this item` even when the linked
+  found item loaded correctly from `/api/items/:id`.
+- Root cause: the global translation observer was restoring the dynamic
+  `#item-name-display` text back to its original static fallback after
+  `setClaimItemName()` changed it.
+- Added `data-i18n-skip` to the dynamic item-name element so loaded item names
+  are not reset by translation passes.
+- Hardened claim URL parsing to accept `id`, `itemId`, or `item`, and to
+  normalize `type` / `itemType` casing before selecting the found vs. missing
+  detail API.
+- Added source assertions in `tests/demo-autofill-source.test.js`.
+- Local commit created: `Fix claim item name display`
+- Production deployed successfully:
+  - `https://fbla-2026-five.vercel.app`
+  - deployment id `dpl_JCrRtF257nNh3Sy8qByHiAiqDJTv`
+- GitHub push is still pending because this shell has no HTTPS GitHub
+  credentials available:
+  - `fatal: could not read Username for 'https://github.com': Device not configured`
+  - branch state after commit: `main...origin/main [ahead 1]`
+
+Verification:
+
+```bash
+node tests/demo-autofill-source.test.js
+git diff --check
+npm test   # 127 / 127 pass
+Playwright local claim check:
+  /claim.html?id=test-necklace&type=found => Gold necklace
+  /claim.html?itemId=test-necklace&itemType=FOUND => Gold necklace
+Playwright live claim check:
+  /claim.html?id=ff6c0109-1a95-428a-ad83-b7c64de1eca1&type=found => Gold necklace
+  /claim.html?itemId=ff6c0109-1a95-428a-ad83-b7c64de1eca1&itemType=FOUND => Gold necklace
+```

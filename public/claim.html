@@ -111,7 +111,7 @@
         <div>
           <div class="eyebrow mb-2">Student Portal</div>
           <h1 class="font-headline font-bold text-2xl text-on-surface mb-1">Submit a Claim</h1>
-          <p class="text-on-surface-variant text-sm">Claiming <strong id="item-name-display" class="text-on-surface">this item</strong></p>
+          <p class="text-on-surface-variant text-sm">Claiming <strong id="item-name-display" class="text-on-surface" data-i18n-skip>this item</strong></p>
         </div>
       </div>
 
@@ -213,16 +213,20 @@
   <script src="/js/api.js"></script>
   <script src="/js/nav.js?v=1.0.3"></script>
   <script>
-    const params   = new URLSearchParams(window.location.search);
-    const itemId   = params.get('id');
-    const itemType = params.get('type') || 'found';
+    const params = new URLSearchParams(window.location.search);
+    const itemId = params.get('id') || params.get('itemId') || params.get('item') || '';
+    const rawItemType = (params.get('type') || params.get('itemType') || 'found').toLowerCase();
+    const itemType = rawItemType === 'missing' ? 'missing' : 'found';
 
-    const backUrl = itemType === 'found' ? `/item.html?id=${itemId}` : `/missing-item.html?id=${itemId}`;
+    const encodedItemId = encodeURIComponent(itemId);
+    const backUrl = itemId
+      ? (itemType === 'found' ? `/item.html?id=${encodedItemId}` : `/missing-item.html?id=${encodedItemId}`)
+      : '/search.html';
     document.getElementById('back-link').href   = backUrl;
     document.getElementById('cancel-link').href = backUrl;
     document.getElementById('success-back-link').href = backUrl;
     document.getElementById('login-link').href  = '/login.html?redirect=' +
-      encodeURIComponent(`/claim.html?id=${itemId || ''}&type=${itemType}`);
+      encodeURIComponent(`/claim.html?id=${encodedItemId}&type=${itemType}`);
 
     function setClaimItemName(name) {
       const label = name || 'this item';
@@ -236,7 +240,7 @@
         return;
       }
       try {
-        const endpoint = itemType === 'found' ? `/items/${itemId}` : `/missing-items/${itemId}`;
+        const endpoint = itemType === 'found' ? `/items/${encodedItemId}` : `/missing-items/${encodedItemId}`;
         const item = await api.get(endpoint);
         setClaimItemName(item.itemName);
       } catch {
