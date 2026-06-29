@@ -21,6 +21,7 @@ function pageHeader(source) {
 const nav = read('public/js/nav.js');
 const reportFound = read('public/report.html');
 const reportMissing = read('public/report-missing.html');
+const searchMissing = read('public/search-missing.html');
 const missingDetail = read('public/missing-item.html');
 const submissions = read('public/my-submissions.html');
 const claim = read('public/claim.html');
@@ -56,6 +57,14 @@ assert(
 assert(
   reportMissing.includes('report-mode-toggle') && reportMissing.includes('/report.html'),
   'missing report page should expose a Found/Missing report toggle'
+);
+
+assert(
+  searchMissing.includes('Found one of these items? <a href="/report.html" class="font-bold underline">Report it as found</a> or contact the owner directly.') &&
+    searchMissing.includes('Found one of these items? <a href="/report.html" style="font-weight:600;color:#006c49">Report it as found</a> or contact the owner directly.') &&
+    !searchMissing.includes('please <a') &&
+    !searchMissing.includes('contact the person directly'),
+  'missing-item search helper copy should avoid awkward spacing and use consistent owner wording.'
 );
 
 assert(

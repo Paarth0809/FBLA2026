@@ -2111,3 +2111,19 @@ node tests/navigation-polish-source.test.js
 git diff --check
 npm test   # 127 / 127 pass
 ```
+
+## 2026-06-28 Missing Search Helper Copy Polish
+
+- Cleaned the helper banner copy on `public/search-missing.html` to remove the
+  awkward spacing around the inline report link.
+- Standardized desktop and mobile copy to:
+  - `Found one of these items? Report it as found or contact the owner directly.`
+- Added a source assertion in `tests/navigation-polish-source.test.js` so the
+  older `please <a...>` / `person directly` wording does not return.
+
+Verification:
+
+```bash
+node tests/navigation-polish-source.test.js
+git diff --check
+```
